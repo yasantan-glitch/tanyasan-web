@@ -134,9 +134,10 @@ export function useHeroScroll(videoSrc: string, logoPathCount: number): HeroScro
         scrollHintRef.current.style.opacity = String(hint);
       }
 
-      // --- başlık 1. satır: %22'de girer, bir daha solmadan sona kadar kalır ---
+      // --- başlık 1. satır: %22'de girer, giriş sona (p=1.0) yakın yere kadar
+      // yayılır ki son fazda hareket "ölü" hissettirmesin ---
       if (title1Ref.current) {
-        const t1 = cue(p, 0.22, 1.0, 0.3, 0);
+        const t1 = cue(p, 0.22, 1.0, 0.85, 0);
         title1Ref.current.style.opacity = String(t1);
         title1Ref.current.style.transform = `translate3d(0, ${((1 - t1) * 2.4).toFixed(2)}vh, 0)`;
       }
@@ -144,7 +145,7 @@ export function useHeroScroll(videoSrc: string, logoPathCount: number): HeroScro
       // --- başlık 2. satır + alt başlık: %52'de girer, sona kadar kalır
       // (aynı cue, iki ayrı ref) ---
       {
-        const t2 = cue(p, 0.52, 1.0, 0.3, 0);
+        const t2 = cue(p, 0.52, 1.0, 0.85, 0);
         const t2transform = `translate3d(0, ${((1 - t2) * 2.4).toFixed(2)}vh, 0)`;
         if (title2Ref.current) {
           title2Ref.current.style.opacity = String(t2);
@@ -156,9 +157,11 @@ export function useHeroScroll(videoSrc: string, logoPathCount: number): HeroScro
         }
       }
 
-      // --- CTA: %80-100, yalnızca yeterince görünürken tıklanabilir ---
+      // --- CTA: %80-100, girişi p=1.0'a yakın yere kadar yayılır (bkz.
+      // title1/title2 ile aynı gerekçe), yalnızca yeterince görünürken
+      // tıklanabilir ---
       if (ctaRef.current) {
-        const cvis = cue(p, 0.8, 1.0, 0.35, 0);
+        const cvis = cue(p, 0.8, 1.0, 0.85, 0);
         ctaRef.current.style.opacity = String(cvis);
         ctaRef.current.style.transform = `translate3d(0, ${((1 - cvis) * 1.6).toFixed(2)}vh, 0)`;
         const on = cvis > 0.5;

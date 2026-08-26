@@ -52,7 +52,7 @@
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
 
   /* Display kademeleri akışkan: 360px → 1440px arasında ölçeklenir */
-  --text-display-hero: clamp(3.25rem, 1.5rem + 7.78vw, 8.5rem);
+  --text-display-hero: clamp(2.5rem, 1.25rem + 5.2vw, 6rem);
   --text-display-hero--line-height: 0.92;
   --text-display-hero--letter-spacing: -0.03em;
   --text-display-hero--font-weight: 800;
@@ -220,9 +220,11 @@
      büyük hero başlığıyla çakışmasın. */
   .hero-logo-layer {
     position: absolute;
-    inset: 0 0 38% 0;
-    display: grid;
-    place-items: center;
+    top: var(--spacing-gutter);
+    inset-inline: 0;
+    height: 6rem;
+    display: flex;
+    justify-content: center;
     pointer-events: none;
   }
 
