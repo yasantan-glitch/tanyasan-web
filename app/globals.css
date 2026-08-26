@@ -1,26 +1,310 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   tanyasan.com — Tasarım Sistemi
+   Gerekçe ve kararlar: docs/design-system.md
+   ========================================================================== */
+
+@theme {
+  /* ------------------------------------------------------------------
+     RENK
+     Aksan ve nötr griler public/Logo.svg'den birebir alındı.
+     ------------------------------------------------------------------ */
+
+  /* Koyu yüzeyler — hero, header, footer */
+  --color-ink-950: #141414;
+  --color-ink-900: #1c1c1c;
+  --color-ink-800: #242424;
+  --color-ink-700: #2e2e2e;
+
+  /* Açık yüzeyler — içerik bölümleri */
+  --color-paper-0: #ffffff;
+  --color-paper-50: #fafafa;
+  --color-paper-200: #e5e5e5;
+
+  /* Aksan — logodan (.st0 / .st1 = #E8AE30) */
+  --color-accent: #e8ae30;
+  --color-accent-hi: #f5c95c;
+  --color-accent-lo: #c98f1e;
+  --color-accent-dim: #6b4e14;
+  /* AÇIK zeminde metin/link için. #E8AE30 üzerinde #FAFAFA yalnızca 1.9:1
+     verir; bu ton 6.6:1 verir. Açık yüzeyde amber metin DAİMA bunu kullanır. */
+  --color-accent-ink: #7a5200;
+
+  /* Metin — koyu zemin üzeri */
+  --color-fg-on-ink: #ffffff;
+  --color-fg-on-ink-body: #e8e8e8;
+  --color-fg-on-ink-muted: #a4a5a8; /* logo .st1 */
+
+  /* Metin — açık zemin üzeri */
+  --color-fg-on-paper: #1c1c1c;
+  --color-fg-on-paper-muted: #676767; /* logo .st2 */
+
+  /* Durum */
+  --color-success: #2f7d4f;
+  --color-danger: #b4321f;
+
+  /* ------------------------------------------------------------------
+     TİPOGRAFİ
+     ------------------------------------------------------------------ */
+  --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
+  --font-sans: var(--font-instrument-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Display kademeleri akışkan: 360px → 1440px arasında ölçeklenir */
+  --text-display-hero: clamp(3.25rem, 1.5rem + 7.78vw, 8.5rem);
+  --text-display-hero--line-height: 0.92;
+  --text-display-hero--letter-spacing: -0.03em;
+  --text-display-hero--font-weight: 800;
+
+  --text-display-2xl: clamp(2.25rem, 1.667rem + 2.59vw, 4rem);
+  --text-display-2xl--line-height: 1.02;
+  --text-display-2xl--letter-spacing: -0.025em;
+  --text-display-2xl--font-weight: 700;
+
+  --text-display-xl: clamp(1.75rem, 1.417rem + 1.48vw, 2.75rem);
+  --text-display-xl--line-height: 1.1;
+  --text-display-xl--letter-spacing: -0.02em;
+  --text-display-xl--font-weight: 700;
+
+  --text-display-lg: clamp(1.5rem, 1.333rem + 0.74vw, 2rem);
+  --text-display-lg--line-height: 1.15;
+  --text-display-lg--letter-spacing: -0.015em;
+  --text-display-lg--font-weight: 600;
+
+  /* Gövde kademeleri sabit — viewport ile büyümesi okumayı bozar */
+  --text-lead: 1.25rem;
+  --text-lead--line-height: 1.55;
+  --text-lead--letter-spacing: -0.005em;
+
+  --text-body: 1.0625rem; /* 17px */
+  --text-body--line-height: 1.65;
+
+  --text-body-sm: 0.9375rem; /* 15px */
+  --text-body-sm--line-height: 1.6;
+
+  --text-caption: 0.8125rem; /* 13px */
+  --text-caption--line-height: 1.5;
+  --text-caption--letter-spacing: 0.01em;
+
+  --text-label: 0.75rem; /* 12px — mono, uppercase */
+  --text-label--line-height: 1.4;
+  --text-label--letter-spacing: 0.08em;
+
+  /* ------------------------------------------------------------------
+     BOŞLUK VE DÜZEN
+     Tailwind'in 4px tabanlı skalası korunur; bunlar düzen ritmi içindir.
+     ------------------------------------------------------------------ */
+  --spacing-section: clamp(4.5rem, 2rem + 7vw, 9rem);
+  --spacing-section-tight: clamp(3rem, 1.5rem + 4vw, 5.5rem);
+  --spacing-gutter: clamp(1.25rem, 0.75rem + 2vw, 3rem);
+
+  --container-site: 80rem; /* 1280 — ana içerik */
+  --container-wide: 90rem; /* 1440 — tam genişlik vitrin */
+  --container-prose: 36rem; /* ~68ch — uzun metin sütunu */
+
+  /* ------------------------------------------------------------------
+     HERO — scroll-scrubbing süresi ve video renk düzeltmesi.
+     Gerekçe: plan §2 (faz eşlemesi) ve §4 (video vs. #E8AE30 ölçümü).
+     ------------------------------------------------------------------ */
+  --hero-span: 320vh;
+  --hero-video-filter: saturate(1.35) hue-rotate(10deg) brightness(0.94) contrast(1.05);
+
+  /* ------------------------------------------------------------------
+     ŞEKİL — keskin. Pill buton ve yumuşak gölge yok.
+     ------------------------------------------------------------------ */
+  --radius-xs: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* ------------------------------------------------------------------
+     HAREKET
+     ------------------------------------------------------------------ */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --duration-deliberate: 700ms;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ==========================================================================
+   YÜZEYLER
+   Site geneli tema değişimi yok — koyu ve açık bölümler aynı sayfada yan yana
+   durur. Renk kaynağı, bölümün beyan ettiği yüzeydir. Bir yüzey sınıfı üç
+   yerel değişkeni yeniden bağlar, böylece içindeki bileşenler doğru amber
+   tonunu ve görünür bir focus halkasını otomatik alır.
+   ========================================================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer components {
+  .surface-ink {
+    background-color: var(--color-ink-900);
+    color: var(--color-fg-on-ink-body);
+    --hairline: color-mix(in srgb, #ffffff 12%, transparent);
+    --focus: var(--color-accent);
+    --accent-text: var(--color-accent);
+    --fg-strong: var(--color-fg-on-ink);
+    --fg-muted: var(--color-fg-on-ink-muted);
+  }
+
+  .surface-ink-deep {
+    background-color: var(--color-ink-950);
+  }
+
+  .surface-paper {
+    background-color: var(--color-paper-50);
+    color: var(--color-fg-on-paper);
+    --hairline: color-mix(in srgb, #1c1c1c 14%, transparent);
+    --focus: var(--color-accent-ink);
+    --accent-text: var(--color-accent-ink);
+    --fg-strong: var(--color-fg-on-paper);
+    --fg-muted: var(--color-fg-on-paper-muted);
+  }
+
+  .surface-paper-raised {
+    background-color: var(--color-paper-0);
+  }
+
+  /* ---------------------------------------------------------------
+     HERO — sticky pin stage + video/logo/scrim katmanları.
+     Per-frame değerler (opacity, transform, stroke-dashoffset)
+     JS tarafından (useHeroScroll) doğrudan yazılır; burada yalnızca
+     statik yerleşim ve görünüm kuralları var.
+     --------------------------------------------------------------- */
+  .hero-stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: clip;
+    background-color: var(--color-ink-950);
+  }
+
+  .hero-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    will-change: transform;
+  }
+
+  .hero-video {
+    filter: var(--hero-video-filter);
+  }
+
+  /* Metin/CTA'nın oturduğu alt bant için okunurluk taban katmanı. */
+  .hero-scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--color-ink-950) 90%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink-950) 58%, transparent) 34%,
+      transparent 64%
+    );
+  }
+
+  /* "Kamera ağın içinden geçiyor" hissi için son fazda kararan vinyet. */
+  .hero-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--color-ink-950);
+    opacity: 0;
+  }
+
+  /* Başlık bloğu alta sabit (bkz. Hero.tsx); logo üst bölgede kalır ki
+     büyük hero başlığıyla çakışmasın. */
+  .hero-logo-layer {
+    position: absolute;
+    inset: 0 0 38% 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+  }
+
+  .hero-logo-layer svg {
+    width: min(42vw, 18rem);
+    height: auto;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility border-hairline {
+  border-color: var(--hairline);
+}
+
+@utility text-accent-auto {
+  color: var(--accent-text);
+}
+
+@utility text-strong {
+  color: var(--fg-strong);
+}
+
+@utility text-muted {
+  color: var(--fg-muted);
+}
+
+/* Mono etiket — "01 — HİZMETLER", "NEXT.JS · POSTGRESQL" */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  letter-spacing: var(--text-label--letter-spacing);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   TABAN
+   ========================================================================== */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  /* Brief: "klavye ile gezinilebilir olmalı, focus göstergeleri görünür
+     kalmalı." Halka rengi yüzeyden gelir, iki zeminde de kontrastlı. */
+  :focus-visible {
+    outline: 2px solid var(--focus, var(--color-accent-ink));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-ink-900);
+  }
+}
+
+/* Brief: prefers-reduced-motion desteklenmeli. Hero'nun scroll-scrubbing
+   mantığı da bu sinyali okuyacak. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
