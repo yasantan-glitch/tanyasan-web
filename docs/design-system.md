@@ -122,7 +122,51 @@ Tailwind v4'ün 4px tabanlı `--spacing` skalası (`p-4`, `gap-6`…) korunur;
 `HeroLogo.tsx`, `logoData.ts`). Mekanizma scrollcraft eklentisinin
 (`nateherk-design@nateherk`) tekniklerinin React'e portu: sticky-pin +
 normalize progress, cue pencereleri, lerp'lenmiş/deadband'li video playhead,
-blob-preload, iOS priming. Yeni npm bağımlılığı yok.
+blob-preload, iOS priming.
+
+Tek runtime bağımlılığı `lucide-react` (hizmet fazlarının ikonları — 6 ikon,
+tree-shake ediliyor). Hareket kütüphanesi hâlâ yok; scrub tamamen kendi
+motorumuz.
+
+### Faz modeli
+
+Hero 8 fazlı bir anlatı: faz 1 slogan, fazlar 2-7 altı hizmet ailesi, faz 8
+toparlanma + CTA. Faz sırası, ağırlığı ve içeriği `heroPhases.ts`'te tek
+kaynakta durur; `[start, end]` aralıkları ağırlıklardan **türetilir**
+(`PHASE_RANGES`) — `useHeroScroll`'un `read()` döngüsünde faz sınırı sabiti
+yok. Bir ağırlık değişince tüm zamanlama kendiliğinden yeniden dağılır.
+
+| # | id | ağırlık | pay | ~travel (800vh) |
+|---|---|---|---|---|
+| 1 | `intro` | 1.30 | 0.000–0.155 | 124vh |
+| 2 | `grafik` | 1.15 | 0.155–0.292 | 110vh |
+| 3 | `dijital` | 1.05 | 0.292–0.417 | 100vh |
+| 4 | `web` | 0.85 | 0.417–0.518 | 81vh |
+| 5 | `yazilim` | 0.95 | 0.518–0.631 | 90vh |
+| 6 | `foto` | 0.85 | 0.631–0.732 | 81vh |
+| 7 | `danismanlik` | 0.85 | 0.732–0.833 | 81vh |
+| 8 | `resolve` | 1.40 | 0.833–1.000 | 133vh |
+
+Ağırlık = temel süre + kalem sayısı payı; faz 1 ve 8 en uzun nefesi alır.
+Bütçe `--hero-travel: 800vh` + sticky sahne = `--hero-span ≈ 900vh`
+(8 ekran). Toplam ağırlık 8.40, faz başına ~95vh.
+
+**Faz içi koreografi** (yerel `q`): ikon `q=0.10`'da ağdan doğar (ölçek +
+blur çözülür), ayraç çubuğu `0.18`'de yukarıdan aşağı çizilir, başlık
+`0.28`, kalemler `0.30–0.46` arasında `staggerDraw()` ile — logo çizimiyle
+**aynı** stagger formülü, iki hareket aynı ritmi paylaşsın diye.
+
+`ITEMS_TO = 0.46` keyfi değil: giriş ne kadar geç biterse "her şey görünür"
+platosu o kadar kısalır. Bu değerle plato faz süresinin **%43'ü**
+(q 0.445→0.871). Kullanıcı seçimi gereği scroll-snap yok; hızlı scroll'a
+karşı tek koruma bütçe + bu plato.
+
+Faz zarfı `cue(q, 0.06, 0.98, 0.14, 0.12)`: çıkış faz aralığının **içinde**
+biter, sonraki fazın girişi kendi aralığının %10'unda başlar — bu yüzden iki
+faz asla üst üste binmez (7 sınırın tamamında ölçüldü, ortak opaklık 0).
+
+**Performans:** 8 faz × ~9 node'a her frame yazmamak için yalnızca aktif faz
+sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]`).
 
 - **Video renk düzeltmesi:** `public/hero-network.mp4` ölçüldü — amber tonu
   hedeften (`#E8AE30`, H≈41°) daha turuncu ve soluk (H≈30-36°, S/L farklı)
@@ -132,12 +176,32 @@ blob-preload, iOS priming. Yeni npm bağımlılığı yok.
   eleman) animasyona alınıyor — `Logo_Beyaz.svg`'nin geri kalanı ("Design &
   Digital Agency" etiketi, 20 ayrı path) hero boyutunda okunaksız kaldığı ve
   ana başlık zaten aynı mesajı verdiği için dahil edilmedi.
-- **Mobil:** Ayrı/basitleştirilmiş bir deneyim yok — aynı mekanizma, yalnızca
-  daha büyük seek deadband'i (`0.02` vs `0.008`). Şu an tek bir video dosyası
-  (`hero-network.mp4`, 720p) hem masaüstünde hem mobilde kullanılıyor; bu
-  ortamda ffmpeg olmadığı için düşük çözünürlüklü ayrı bir mobil varyant
-  üretilemedi — ileride eklenirse `useHeroScroll`'daki tek `videoSrc`
-  parametresi bir mobil kaynağı kabul edecek şekilde genişletilebilir.
+- **Mobil:** Anlatı bölünmüyor — aynı 8 faz, sıkıştırılmış bütçe. `≤860px`'te
+  `--hero-travel: 520vh` (~5 ekran), faz başlığı `display-2xl → display-xl`,
+  kalemler `body → body-sm`, ikon/ayraç bir kademe küçülür, faz göstergesi
+  gizlenir. Eşik `useHeroScroll`'daki `isMobile()` ile aynı (860px). Override
+  `:root` üzerinde — Tailwind v4'te `@theme` media query kabul etmiyor.
+  Seek deadband mobilde hâlâ daha geniş (`0.02` vs `0.008`). Tek video dosyası
+  (`hero-network.mp4`, 720p) her iki ortamda kullanılıyor; bu ortamda ffmpeg
+  olmadığı için ayrı mobil varyant üretilemedi — ileride eklenirse
+  `useHeroScroll`'daki tek `videoSrc` parametresi genişletilebilir.
+- **Reduced-motion:** Video, scrub ve rAF döngüsü hiç mount edilmez. Yerine
+  durağan poster hero + altında `.surface-ink` bir bölümde 6 hizmet ailesi
+  hairline ayraçlı satırlar olarak (kart grid'i değil — bkz. §4). İçerik
+  `heroPhases.ts`'ten map'leniyor, iki dalda kopyalanmıyor; yani 8 fazın
+  taşıdığı bilginin tamamı hareketsiz olarak da veriliyor.
+
+  `useHeroScroll`'daki blob-preload `fetch`'i **AbortController ile iptal
+  edilebilir olmak zorunda**: server snapshot `false` olduğu için SSR önce
+  interaktif dalı basıyor, reduced-motion kullanıcısında hydration'da
+  `HeroReduced`'a geçiliyor. Abort olmasa o birkaç ms'de başlayan 7.4 MB'lık
+  indirme hook unmount olduktan sonra da arka planda sürüyordu (ölçüldü:
+  abort'tan önce indirme tamamlanıyordu, sonra 0 bayt).
+- **Erişilebilirlik:** Faz yığınına `aria-hidden` **verilmiyor**. `opacity: 0`
+  ekran okuyucudan gizlemez; böylece AT kullanıcısı 6 hizmet ailesini sırayla,
+  doğru `h1 → h2` hiyerarşisiyle okuyabiliyor. Faz içeriğinde odaklanabilir
+  öğe yok, dolayısıyla görünmez focus tuzağı oluşmuyor. Faz göstergesi
+  dekoratif, `aria-hidden="true"`.
 - **`public/hero-poster.jpg`:** Videodan `t=8s` karesi (tarayıcı+canvas ile)
   üretildi — reduced-motion fallback'i ve `<video>` ilk kare tutucusu için.
 

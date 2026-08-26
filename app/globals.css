@@ -104,11 +104,19 @@
   --container-prose: 36rem; /* ~68ch — uzun metin sütunu */
 
   /* ------------------------------------------------------------------
-     HERO — scroll-scrubbing süresi ve video renk düzeltmesi.
-     Gerekçe: plan §2 (faz eşlemesi) ve §4 (video vs. #E8AE30 ölçümü).
+     HERO — 8 fazlı scroll bütçesi ve video renk düzeltmesi.
+     Gerekçe: docs/design-system.md §8.
+     --hero-travel, 8 fazın ağırlık toplamına (8.40) faz başına ~95vh
+     verir; sticky sahnenin kendi yüksekliği bunun üstüne binerek toplam
+     section yüksekliğini kurar.
      ------------------------------------------------------------------ */
-  --hero-span: 320vh;
+  --hero-travel: 800vh;
+  --hero-span: calc(100svh + var(--hero-travel));
   --hero-video-filter: saturate(1.35) hue-rotate(10deg) brightness(0.94) contrast(1.05);
+
+  /* Faz öğelerinin ölçüsü — mobilde :root üzerinden küçültülür. */
+  --hero-phase-icon: 2.5rem;
+  --hero-phase-rule: 3.5rem;
 
   /* ------------------------------------------------------------------
      ŞEKİL — keskin. Pill buton ve yumuşak gölge yok.
@@ -231,6 +239,142 @@
   .hero-logo-layer svg {
     width: min(42vw, 18rem);
     height: auto;
+  }
+
+  /* reduced-motion dalının durağan sahnesi — .hero-stage'in sticky'sini
+     inline stille ezmek yerine kendi sınıfı. */
+  .hero-stage-static {
+    position: relative;
+    height: 100svh;
+    overflow: clip;
+    background-color: var(--color-ink-950);
+  }
+
+  /* ---------------------------------------------------------------
+     HERO FAZ KATMANI — fazlar 2-7. Altı faz da aynı anda DOM'da durur,
+     üst üste yığılır; opaklık/transform her frame'de useHeroScroll
+     tarafından yazılır. Burada yalnızca yerleşim var.
+     --------------------------------------------------------------- */
+  .hero-phase-layer {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center start;
+    padding-inline: var(--spacing-gutter);
+    pointer-events: none;
+  }
+
+  .hero-phase {
+    grid-area: 1 / 1;
+    max-width: var(--container-prose);
+  }
+
+  .hero-phase-icon {
+    width: var(--hero-phase-icon);
+    height: var(--hero-phase-icon);
+    color: var(--color-accent);
+    transform-origin: left center;
+  }
+
+  .hero-phase-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-phase-rule {
+    width: 1px;
+    height: var(--hero-phase-rule);
+    margin-block: 0.75rem;
+    margin-inline-start: calc(var(--hero-phase-icon) / 2);
+    background-color: var(--color-accent);
+    transform-origin: top center;
+  }
+
+  .hero-phase-title {
+    font-size: var(--text-display-2xl);
+    line-height: var(--text-display-2xl--line-height);
+    letter-spacing: var(--text-display-2xl--letter-spacing);
+    font-weight: var(--text-display-2xl--font-weight);
+    color: var(--color-fg-on-ink);
+  }
+
+  .hero-phase-items {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    color: var(--color-fg-on-ink-body);
+  }
+
+  /* 8 fazlık yolda konum göstergesi — dekoratif. */
+  .hero-phase-indicator {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: var(--spacing-gutter);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.6rem;
+    pointer-events: none;
+  }
+
+  .hero-phase-tick {
+    width: 0.75rem;
+    height: 1px;
+    background-color: var(--color-fg-on-ink-muted);
+    transition:
+      width var(--duration-base) var(--ease-out-quart),
+      background-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .hero-phase-tick[data-active="true"] {
+    width: 1.75rem;
+    background-color: var(--color-accent);
+  }
+
+  /* reduced-motion dalındaki hizmet listesi — hairline ayraçlı satırlar,
+     kart grid'i değil (bkz. docs/design-system.md §4). */
+  .hero-service-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    padding-block: var(--spacing-section-tight);
+    border-block-start-width: 1px;
+  }
+
+  .hero-service-row:first-child {
+    border-block-start-width: 0;
+    padding-block-start: 0;
+  }
+}
+
+/* Mobil — anlatı aynı 8 faz, mesafe ~%65'e iniyor ve tipografi bir kademe
+   küçülüyor. @theme media query kabul etmediği için override :root üzerinde.
+   Eşik 860px, useHeroScroll'daki isMobile() ile aynı. */
+@media (max-width: 860px) {
+  :root {
+    --hero-travel: 520vh;
+    --hero-phase-icon: 2rem;
+    --hero-phase-rule: 2.5rem;
+  }
+
+  .hero-phase-title {
+    font-size: var(--text-display-xl);
+    line-height: var(--text-display-xl--line-height);
+    letter-spacing: var(--text-display-xl--letter-spacing);
+    font-weight: var(--text-display-xl--font-weight);
+  }
+
+  .hero-phase-items {
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+  }
+
+  .hero-phase-indicator {
+    display: none;
   }
 }
 
