@@ -243,6 +243,20 @@
     background-color: var(--color-accent-hi);
   }
 
+  /* Üçüncü, nötr vurgu — .btn-accent (birincil amber) ve .btn-ghost (ikincil,
+     yüzeye uyan kenarlık) yanında. Sabit renk, yüzeyden bağımsız (.btn-accent
+     ile aynı desen): kendi dolgusunu taşıdığı için hem surface-ink hem
+     surface-paper üzerinde aynı kontrastı korur (#FFFFFF/#1C1C1C ≈ 15.3:1).
+     Hover tonu (--color-ink-950) surface-ink-deep'in zaten kullandığı ton. */
+  .btn-ink {
+    background-color: var(--color-ink-900);
+    color: var(--color-fg-on-ink);
+  }
+
+  .btn-ink:hover {
+    background-color: var(--color-ink-950);
+  }
+
   .btn-ghost {
     border: 1px solid var(--hairline);
     color: var(--fg-strong);
@@ -1046,6 +1060,41 @@
   .service-items li:last-child {
     border-block-end: 1px solid var(--hairline);
   }
+
+  /* ==========================================================================
+     HAKKIMDA (/hakkimda) — sayfa gövdesi .service-grid/.service-head'i olduğu
+     gibi yeniden kullanıyor; burada yalnızca ona ait olmayan üç kural var.
+     Bkz. docs/design-system.md §10.
+     ========================================================================== */
+
+  /* Başlık bandı: metin | portre. Portre sütunu içeriğe göre değil sabit bir
+     ölçüde duruyor — 4:5 bir portrenin metin sütunuyla dengelendiği genişlik. */
+  .about-hero {
+    display: grid;
+    grid-template-columns: 1fr minmax(16rem, 24rem);
+    gap: var(--spacing-section-tight);
+    align-items: end;
+  }
+
+  /* Kart yok, gölge yok (§4): portreyi hairline bir kenarlık tutuyor. Oran
+     CSS'te sabitleniyor, böylece kaynak dosya birebir 4:5 olmasa da düzen
+     kaymıyor. */
+  .about-portrait {
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+  }
+
+  /* Bölümler arası ayrım: yine hairline, yine kart değil. İlk bölüm ayraç
+     almıyor — üstünde zaten yüzey değişimi var. */
+  .about-section + .about-section {
+    margin-block-start: var(--spacing-section);
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: var(--spacing-section-tight);
+  }
 }
 
 /* Mobil — anlatı aynı 8 faz, mesafe ~%65'e iniyor ve tipografi bir kademe
@@ -1096,6 +1145,17 @@
 
   .service-index a {
     white-space: nowrap;
+  }
+
+  /* Dar ekranda portre metnin ALTINA düşer: yanında 16rem'lik bir sütun
+     kalmıyor, üstüne alınsa da giriş metnini fold'un dışına iterdi. */
+  .about-hero {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .about-portrait {
+    max-inline-size: 22rem;
   }
 
   .hero-phase-title {

@@ -539,6 +539,73 @@ sıranın ve zamanlamanın tek kaynağı, içerik bir katman aşağı indi. Alte
 (sayfanın kendi kopyasını taşıması) altı kalemlik listeyi iki yerde
 tutmak demekti — footer ve /portfolyo da aynı listeyi isteyecek.
 
+## 10. Hakkımda sayfası (`/hakkimda`)
+
+İlk sürümü brief §5.8'in birinci-tekil metniyle kuruldu; içerik sonradan eski
+tanyasan.com/hakkimda sayfasından gelen metinle **değiştirildi** (kullanıcı
+onayladı). Sonuç bilinçli bir ses karışımı: h1 tekil bir isim kartı
+(`TAN YASAN`), lead paragrafı ve üç anlatı bölümü (`YOL` / `YAZILIMA GEÇİŞ` /
+`BUGÜN`) "biz" dilinde. Nav etiketi yine `Hakkımda` (`navLinks.ts`), site
+haritası (§4) da bu adresi veriyor, ikisine de dokunulmadı.
+
+**Üç yüzey: ink → paper → ink — Hizmetler'in dönüşümlü ritmi tekrarlanmadı.**
+§9'daki altı kez yüzey değişimi orada altı **eşdeğer** kalemi birbirinden
+ayırıyordu; burada tek bir ses kesintisiz bir hikâye anlatıyor ve her bölümde
+zemin çevirmek anlatıyı parçalardı. Yüzey *dili* aynı kalıyor (`surface-ink`
+başlık ve kapanış bandı, `surface-paper` gövde, hairline ayraçlar, `eyebrow`,
+`text-accent-auto`), yalnızca ritim sakinleşiyor. Başlık ve kapanış bantları
+`/hizmetler` ile birebir aynı kalıp — iki sayfa yan yana açıldığında aynı
+sistemden çıktıkları okunuyor.
+
+**Düzen yeniden kullanıldı, kopyalanmadı.** Anlatı bölümleri `.service-grid` +
+`.service-head`'i (`globals.css`) olduğu gibi kullanıyor: soldaki numara+başlık
+sütunu yapışkan, sağda `--container-prose` metin, `≤860px`'te tek sütun ve
+yapışma kapalı. Sayfaya özel yalnızca üç kural eklendi — `.about-hero`
+(metin | portre grid'i), `.about-portrait` (4:5 oran + hairline çerçeve) ve
+`.about-section + .about-section` (bölüm ayracı). `.about-*` adıyla
+`.service-*` ikizleri yazılmadı.
+
+**Medya: video yok, tek statik portre.** §9'un gerekçesi aynen geçerli —
+`public/hero-videos/*.mp4` hero'nun imzası olarak kalıyor. Brief §5.8'in notu
+portreyi açıkça öneriyor (kişisel ajanslarda güven kurmanın en hızlı yolu):
+beklenen dosya **`public/images/tan-yasan-portre.jpg`**, önerilen en az
+1200×1500 (4:5 dikey). `next/image` statik `src` ile çağrıldığı için
+`width`/`height` bileşende açıkça veriliyor; dosya yerine konana kadar sayfa
+düzeni doğru, yalnızca görsel kırık görünür.
+
+**Emlak CRM Pro bağlantısı yine iç rotaya gidiyor** (`/portfolyo/emlak-crm-pro`)
+— brief §5.2 dış domaini yalnızca vaka çalışması sayfasının sonuna koyuyor,
+§9'daki kuralın aynısı. Bu CTA'nın rengi **siyah** (`.btn-ink`, bkz. §buton
+envanteri altında) — sayfanın diğer bağlantıları amber/hairline aksanlı
+kalırken bu tek CTA bilinçli olarak nötr bırakıldı.
+
+**Buton envanterine üçüncü bir varyant eklendi: `.btn-ink`**
+(`globals.css`, `.btn-accent`in yanında). `.btn-accent` (birincil, amber
+dolgu) ve `.btn-ghost` (ikincil, yüzeye uyan hairline kenarlık) yanında nötr/
+siyah bir üçüncü seçenek: dolgu `--color-ink-900` (`#1C1C1C`), metin
+`--color-fg-on-ink` (`#FFFFFF`) — ikisi de paletin kendi renkleri, yeni hex
+icat edilmedi. `.btn-accent` gibi sabit renk taşıyor, yüzeyden bağımsız;
+bu yüzden hem `surface-ink` hem `surface-paper` üzerinde aynı kontrastı
+koruyor (`#FFFFFF`/`#1C1C1C` ≈ 15.3:1, AAA). Hover'da `--color-ink-950`
+(`#141414`) — `.surface-ink-deep`'in zaten kullandığı ton. Focus halkası
+ayrıca tanımlanmadı: `:focus-visible` zaten yüzeyin `--focus`'undan geliyor
+ve koyu dolgu üzerinde de görünür kalıyor.
+
+### Eksik içerik — bilinçli boşluklar
+
+Sayfa hâlâ yalnızca elimizdeki hazır metinle kuruldu — önce brief §5.8, şimdi
+eski sitenin sayfası. Her iki kaynakta da olmayan ve uydurulmayan üç şey var: 
+
+- **Yıllar ve kurum adları** — hangi Güzel Sanatlar, hangi şirkette pazarlama
+  müdürlüğü, ajans hangi yıl kuruldu. Bu yüzden tarihli bir kilometre taşı
+  çizelgesi kurulmadı; bölümler `01 / 03 · YOL`, `02 / 03 · YAZILIMA GEÇİŞ`,
+  `03 / 03 · BUGÜN` diye numaralandı. Veri gelirse bu üçlü aynı düzende tarihli
+  bir raya çevrilebilir.
+- **Ekip** — metnin tamamı tekil, kaç kişi olunduğu bilinmiyor. Ekip bölümü yok.
+- **Değerler** — yazılı bir değerler listesi yok. Metnin örtük tezi
+  ("iyi görünen bir iş, işe yaramıyorsa iyi bir iş değildir") `01 / 03`
+  bölümünün gövdesinde duruyor, ayrı bir değerler bloğuna çıkarılmadı.
+
 ## Kapsam dışı
 
 Bu doküman ve `app/globals.css` yalnızca tasarım sistemini kurar. Sayfa
