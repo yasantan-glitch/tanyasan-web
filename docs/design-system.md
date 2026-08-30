@@ -497,6 +497,48 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
 - **`public/hero-poster.jpg`:** Videodan `t=8s` karesi (tarayıcı+canvas ile)
   üretildi — reduced-motion fallback'i ve `<video>` ilk kare tutucusu için.
 
+## 9. Hizmetler sayfası (`/hizmetler`)
+
+Brief §5'in altı hizmet metninin evi. Üç karar taşıyor:
+
+**Medya yok.** `public/hero-videos/*.mp4` yalnızca hero'da kalıyor. Altı klibi
+bu sayfaya da taşımak (viewport'a girince yüklenen sessiz döngüler olarak bile)
+hem MB'larca indirme hem altı ayrı poster karesi üretmek demekti; daha önemlisi
+hero'nun tek görsel imzasını sulandırırdı. Sayfa tamamen tipografi + hairline:
+ilk yükte ağırlıksız, `prefers-reduced-motion` için ayrı dal gerekmiyor.
+
+**Tam genişlik, dönüşümlü yüzey — kart grid'i değil.** Her hizmet kendi
+section'ı, `surface-paper` ↔ `surface-ink` dönüşümlü (§2, §4). Sol sütun
+yapışkan (`.service-head`, `inset-block-start: calc(var(--nav-h) + 2rem)`):
+uzun metin okunurken hangi hizmette olunduğu kaybolmuyor. Sağ sütunda brief
+metni (`--container-prose`) ve hairline ayraçlı kalem listesi. `≤860px`'te tek
+sütuna düşer ve başlık yapışmayı bırakır — dar ekranda sticky bir başlık okuma
+alanının yarısını yerdi.
+
+Renklerin hiçbiri sabit yazılmıyor: bölüm iki yüzey arasında dönüştüğü için
+metin/hairline/accent tonu yüzeyin bağladığı değişkenlerden gelmek zorunda.
+Hero'nun `.hero-phase-icon`'u bu yüzden yeniden kullanılamadı — o `--color-accent`'i
+sabit yazıyor (yalnızca koyu zeminde duruyor); `.service-icon` aynı ölçüyü
+(`--hero-phase-icon`) alır ama rengi `--accent-text`'ten okur, böylece açık
+zeminde `#7A5200` olur (§1'deki kontrast ayrımı).
+
+**Emlak CRM Pro bağlantısı iç rotaya gider.** Brief §5.2 net: emlakcrmpro.com
+bağlantısı *yalnızca* vaka çalışması sayfasının sonunda, küçük bir bağlantı
+olarak yer alacak. Bu yüzden Yazılım kaleminin CTA'sı
+`/portfolyo/emlak-crm-pro`; dış domain bu sayfada hiç geçmiyor. Bölüm ürün
+satmıyor, yazılım yeteneğini kanıtlıyor.
+
+### İçerik `app/content/services.ts`'e çıkarıldı
+
+Altı hizmetin ikonu, başlığı, kalemleri ve brief §5 metinleri artık ortak bir
+kaynakta. `heroPhases.ts` bu diziyi map'liyor ve yalnızca kendi işini —
+scroll bütçesi payı (`SERVICE_WEIGHTS`) ve faz klibi (`SERVICE_VIDEOS`) —
+tutuyor; `PHASE_RANGES`, `SERVICE_PHASES`, `HERO_PHASE_COUNT` imzaları
+değişmedi, `Hero.tsx` ve `useHeroScroll.ts`'e dokunulmadı. Yani hero hâlâ
+sıranın ve zamanlamanın tek kaynağı, içerik bir katman aşağı indi. Alternatif
+(sayfanın kendi kopyasını taşıması) altı kalemlik listeyi iki yerde
+tutmak demekti — footer ve /portfolyo da aynı listeyi isteyecek.
+
 ## Kapsam dışı
 
 Bu doküman ve `app/globals.css` yalnızca tasarım sistemini kurar. Sayfa

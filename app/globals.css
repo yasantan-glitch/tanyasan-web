@@ -958,6 +958,94 @@
     border-block-start-width: 0;
     padding-block-start: 0;
   }
+
+  /* ==========================================================================
+     HİZMETLER (/hizmetler)
+     Hero'nun .hero-* kurallarından bilinçli olarak AYRI: hero'nunkiler scroll
+     motoru tarafından her frame sürülüyor, buradakiler tamamen durağan. Ortak
+     olan tek şey desen (hairline ayraç, kart yok — design-system §4), o da
+     kopyalanmıyor değil, aynı token'lardan okunuyor.
+
+     Renklerin hiçbiri sabit değil: bölüm surface-ink / surface-paper arasında
+     dönüşümlü olduğu için metin, hairline ve accent tonu yüzeyin bağladığı
+     değişkenlerden (--fg-strong, --fg-muted, --hairline, --accent-text)
+     gelmek ZORUNDA.
+     ========================================================================== */
+  .service-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
+    margin-block-start: var(--spacing-section-tight);
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: 1.25rem;
+  }
+
+  .service-index a {
+    padding-block: 0.35rem;
+    color: var(--fg-muted);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .service-index a:hover {
+    color: var(--accent-text);
+  }
+
+  .service-grid {
+    display: grid;
+    grid-template-columns: minmax(14rem, 22rem) 1fr;
+    gap: var(--spacing-section-tight);
+    align-items: start;
+  }
+
+  /* Başlık sütunu uzun metnin yanında sabit durur: sayfa boyu okunurken hangi
+     hizmette olunduğu kaybolmasın. Fixed nav'ın altına girmemesi için üst
+     yapışma noktası --nav-h'ten hesaplanıyor. */
+  .service-head {
+    position: sticky;
+    inset-block-start: calc(var(--nav-h) + 2rem);
+    display: grid;
+    gap: 1rem;
+    justify-items: start;
+  }
+
+  /* Hero'nun .hero-phase-icon'u accent rengini SABİT yazıyor (yalnızca koyu
+     zeminde duruyor). Buradaki ikon açık zeminde de görünmek zorunda, o
+     yüzden yüzeyden gelen --accent-text kullanılıyor (#7A5200 / #E8AE30). */
+  .service-icon {
+    width: var(--hero-phase-icon);
+    height: var(--hero-phase-icon);
+    color: var(--accent-text);
+  }
+
+  .service-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .service-title {
+    font-size: var(--text-display-xl);
+    line-height: var(--text-display-xl--line-height);
+    letter-spacing: var(--text-display-xl--letter-spacing);
+    font-weight: var(--text-display-xl--font-weight);
+  }
+
+  /* Prose sütunundan geniş ama sayfa genişliğinden dar: liste bir tablo gibi
+     okunmalı, metin sütunuyla aynı hizada başlayıp ondan biraz taşmalı. */
+  .service-items {
+    margin-block-start: var(--spacing-section-tight);
+    max-width: 44rem;
+  }
+
+  .service-items li {
+    border-block-start: 1px solid var(--hairline);
+    padding-block: 0.9rem;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  .service-items li:last-child {
+    border-block-end: 1px solid var(--hairline);
+  }
 }
 
 /* Mobil — anlatı aynı 8 faz, mesafe ~%65'e iniyor ve tipografi bir kademe
@@ -980,6 +1068,34 @@
 
   .nav-toggle {
     display: inline-flex;
+  }
+
+  /* Hizmet bölümü tek sütuna düşer; başlık artık yapışmıyor (dar ekranda
+     sticky bir başlık okuma alanının yarısını yerdi). */
+  .service-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .service-head {
+    position: static;
+  }
+
+  .service-title {
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    font-weight: var(--text-display-lg--font-weight);
+  }
+
+  .service-index {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0 1rem;
+  }
+
+  .service-index a {
+    white-space: nowrap;
   }
 
   .hero-phase-title {

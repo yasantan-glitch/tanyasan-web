@@ -61,6 +61,12 @@ Gerekçenin tamamı ve geri çekilme yolu için `docs/design-system.md` §8.
 
 ## Tek kaynak: `heroPhases.ts`
 
+> **İçerik bir katman aşağıda.** Hizmet fazlarının ikon/başlık/kalemleri
+> `app/content/services.ts`'te (`SERVICES`) durur; `/hizmetler` sayfası da aynı
+> diziyi okur. `heroPhases.ts` onu map'ler ve yalnızca faz sırasını, scroll
+> bütçesi payını (`SERVICE_WEIGHTS`) ve klipleri (`SERVICE_VIDEOS`) tutar —
+> aşağıdaki her şey geçerli, "içerik" dendiğinde kaynak `services.ts`'tir.
+
 Faz sırası, ağırlığı ve içeriği (`title`, `items`, `icon`) yalnızca
 `app/components/hero/heroPhases.ts`'te tanımlıdır. `useHeroScroll.ts`
 veya `Hero.tsx` içinde faz sınırı için elle yazılmış sabit **yoktur**.

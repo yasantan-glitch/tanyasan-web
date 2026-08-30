@@ -1,16 +1,12 @@
-import {
-  Camera,
-  CodeXml,
-  Globe,
-  GraduationCap,
-  Megaphone,
-  Palette,
-  type LucideIcon,
-} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { SERVICES } from "@/app/content/services";
 
 /**
- * Hero'nun 8 fazlı anlatısının tek kaynağı: sıra, scroll bütçesi payı ve
- * içerik burada durur. Faz aralıkları ağırlıklardan TÜRETİLİR — useHeroScroll'un
+ * Hero'nun 8 fazlı anlatısının tek kaynağı: faz SIRASI ve scroll bütçesi payı
+ * burada durur. Hizmet İÇERİĞİ (ikon/başlık/kalemler) bir katman aşağıda,
+ * `app/content/services.ts`'te — /hizmetler sayfası da aynı diziyi okuyor,
+ * liste iki yerde kopyalanmıyor. Faz aralıkları ağırlıklardan TÜRETİLİR — useHeroScroll'un
  * read() döngüsüne elle sabit yazılmaz. Bir ağırlık değiştiğinde tüm zamanlama
  * kendiliğinden yeniden dağılır.
  *
@@ -71,88 +67,48 @@ export const RESOLVE_SLOGAN_LINES = ["FİKİRDEN", "SONUCA,", "TEK", "EKİPLE"];
  * kopyalanmasın diye tek kaynak burada. */
 export const RESOLVE_SLOGAN_ACCENT_LINE = 2;
 
+/**
+ * Hizmet fazlarının scroll bütçesi payı. Ağırlık = temel süre + kalem sayısı
+ * payı; içerikten bağımsız olduğu için burada kalıyor (services.ts sırayı ve
+ * metni taşır, zamanlamayı değil).
+ */
+const SERVICE_WEIGHTS: Record<string, number> = {
+  grafik: 1.15,
+  dijital: 1.05,
+  web: 0.85,
+  yazilim: 0.95,
+  foto: 0.85,
+  danismanlik: 0.85,
+};
+
+/** Fazın kendi klibi. Yalnızca hero'yu ilgilendirir — /hizmetler medyasız. */
+const SERVICE_VIDEOS: Record<string, string> = {
+  grafik: "/hero-videos/grafik-tasarim.mp4",
+  dijital: "/hero-videos/dijital-pazarlama.mp4",
+  web: "/hero-videos/web-tasarimi.mp4",
+  yazilim: "/hero-videos/yazilim-uygulama.mp4",
+  foto: "/hero-videos/foto-video.mp4",
+  danismanlik: "/hero-videos/danismanlik-egitim.mp4",
+};
+
+/**
+ * İçerik (ikon/başlık/kalemler) services.ts'ten gelir, zamanlama buradan.
+ * Sıra da services.ts'in sırasıdır: aradan bir hizmet eklemek/çıkarmak için
+ * o diziye dokunmak ve buraya ağırlık + klip eklemek yeterli.
+ */
+const SERVICE_HERO_PHASES: HeroServicePhase[] = SERVICES.map((service) => ({
+  id: service.id,
+  kind: "service",
+  weight: SERVICE_WEIGHTS[service.id],
+  icon: service.icon,
+  videoSrc: SERVICE_VIDEOS[service.id],
+  title: service.title,
+  items: service.items,
+}));
+
 export const HERO_PHASES: HeroPhase[] = [
   { id: "intro", kind: "intro", weight: 1.3 },
-  {
-    id: "grafik",
-    kind: "service",
-    weight: 1.15,
-    icon: Palette,
-    videoSrc: "/hero-videos/grafik-tasarim.mp4",
-    title: "GRAFİK TASARIM",
-    items: [
-      "Kurumsal Kimlik Tasarımı",
-      "Logo Tasarımı",
-      "Broşür, Katalog & Poster",
-      "Sosyal Medya Görselleri",
-      "Ambalaj & Etiket",
-      "Outdoor, Tabela & Totem",
-    ],
-  },
-  {
-    id: "dijital",
-    kind: "service",
-    weight: 1.05,
-    icon: Megaphone,
-    videoSrc: "/hero-videos/dijital-pazarlama.mp4",
-    title: "DİJİTAL PAZARLAMA",
-    items: [
-      "Sosyal Medya Hesap Yönetimi",
-      "Meta (Facebook & Instagram) Reklamları",
-      "Google Ads Yönetimi",
-      "İçerik Pazarlama & Strateji",
-      "E-posta Pazarlama",
-    ],
-  },
-  {
-    id: "web",
-    kind: "service",
-    weight: 0.85,
-    icon: Globe,
-    videoSrc: "/hero-videos/web-tasarimi.mp4",
-    title: "WEB TASARIMI",
-    items: ["Kurumsal Web Sitesi", "E-ticaret Sitesi", "Mobil Uygulama Tasarımı"],
-  },
-  {
-    id: "yazilim",
-    kind: "service",
-    weight: 0.95,
-    icon: CodeXml,
-    videoSrc: "/hero-videos/yazilim-uygulama.mp4",
-    title: "YAZILIM VE UYGULAMA",
-    items: [
-      "Özel Web Uygulamaları & Yönetim Panelleri",
-      "Çok Kullanıcılı SaaS Platformları",
-      "Sistem Entegrasyonu",
-      "Süreç Otomasyonu & Raporlama",
-    ],
-  },
-  {
-    id: "foto",
-    kind: "service",
-    weight: 0.85,
-    icon: Camera,
-    videoSrc: "/hero-videos/foto-video.mp4",
-    title: "FOTOĞRAF & VİDEO ÇEKİMİ",
-    items: [
-      "Ürün ve Mekân Çekimleri",
-      "Sosyal Medya İçin Kısa Videolar",
-      "Reklam & Tanıtım Filmleri",
-    ],
-  },
-  {
-    id: "danismanlik",
-    kind: "service",
-    weight: 0.85,
-    icon: GraduationCap,
-    videoSrc: "/hero-videos/danismanlik-egitim.mp4",
-    title: "DANIŞMANLIK & EĞİTİM",
-    items: [
-      "Dijital Pazarlama Stratejisi Danışmanlığı",
-      "Grafik Tasarım Eğitimi",
-      "Sosyal Medya Yönetimi Eğitimi",
-    ],
-  },
+  ...SERVICE_HERO_PHASES,
   { id: "resolve", kind: "resolve", weight: 1.4 },
 ];
 
