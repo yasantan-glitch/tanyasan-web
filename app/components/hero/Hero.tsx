@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
-import { HeroLogoSolid, HeroLogoStroke, LOGO_ELEMENT_COUNT } from "./HeroLogo";
+import { Fragment, useSyncExternalStore } from "react";
 import {
   HERO_PHASES,
+  HERO_STATEMENT_LINES,
+  RESOLVE_SLOGAN_ACCENT_LINE,
+  RESOLVE_SLOGAN_LINES,
   SERVICE_PHASES,
   isServicePhase,
   type HeroServicePhase,
 } from "./heroPhases";
+import { ORB_DOTS, ORB_VIEWBOX } from "./outroOrb";
 import { useHeroScroll } from "./useHeroScroll";
 
-const VIDEO_SRC = "/hero-network.mp4";
 const POSTER_SRC = "/hero-poster.jpg";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -36,83 +38,154 @@ function useReducedMotion() {
   );
 }
 
-const heroTitleStyle: React.CSSProperties = {
-  fontSize: "var(--text-display-hero)",
-  lineHeight: "var(--text-display-hero--line-height)",
-  letterSpacing: "var(--text-display-hero--letter-spacing)",
-  // letter-spacing negatif olduğu için boşluk karakterinin iki yanından da
-  // düşülüyor (harf→boşluk, boşluk→harf) — kelimeler görsel olarak
-  // birbirine yapışıyor. word-spacing bu payı yalnızca kelime aralarında
-  // geri veriyor, harfler arası sıkı görünüm korunuyor.
-  wordSpacing: "0.12em",
-};
-
-const ctaLinkClass =
-  "eyebrow px-6 py-3 rounded-(--radius-sm) transition-colors duration-(--duration-base)";
+// Buton görünümünün tek kaynağı globals.css'teki .btn ailesi — nav CTA'sı
+// da aynı sınıfları kullanıyor.
+const ctaLinkClass = "btn eyebrow";
 
 export default function Hero() {
   const reduced = useReducedMotion();
   return reduced ? <HeroReduced /> : <HeroInteractive />;
 }
 
+/**
+ * Faz 1'in kopyası. `animated` yalnızca tek seferlik CSS load animasyonunu
+ * (.hero-intro-rise) açar — kopya her iki dalda da ilk karede EKRANDADIR;
+ * scroll yalnızca çıkışı sürer (bkz. useHeroScroll'daki handoff).
+ */
+const STATEMENT_LINE_COLORS = ["var(--color-accent)", "var(--color-fg-on-ink)"];
+
 function HeroSlogan({
-  title1Ref,
-  title2Ref,
-  subtitleRef,
   animated,
+  statementWordRefs,
+  subtitleRef,
 }: {
-  title1Ref?: React.RefObject<HTMLSpanElement | null>;
-  title2Ref?: React.RefObject<HTMLSpanElement | null>;
-  subtitleRef?: React.RefObject<HTMLParagraphElement | null>;
   animated: boolean;
+  statementWordRefs?: React.RefObject<Array<Array<HTMLSpanElement | null>>>;
+  subtitleRef?: React.RefObject<HTMLParagraphElement | null>;
 }) {
-  const hidden = animated ? { opacity: 0 } : undefined;
   return (
-    <>
-      <h1 className="font-display font-extrabold" style={heroTitleStyle}>
-        <span
-          ref={title1Ref}
-          className="block"
-          style={{ ...hidden, color: "var(--color-accent)" }}
-        >
-          FARK YARATAN TASARIM,
-        </span>
-        <span
-          ref={title2Ref}
-          className="block"
-          style={{ ...hidden, color: "var(--color-fg-on-ink)" }}
-        >
-          İŞLEYEN SİSTEM
-        </span>
+    <div className={animated ? "hero-intro-rise" : undefined}>
+      {/* Faz 1'in tek görsel öğesi: statement. Logo grafiği kaldırıldı —
+          logonun tek yeri nav (bkz. .site-header-logo). Tip ölçüsü ve
+          word-spacing fix'i .hero-statement'ta (globals.css).
+
+          Kelimeler ayrı span: çıkışta her biri kendi yönüne savruluyor
+          (bkz. useHeroScroll'daki scatterOf). Aralarındaki boşluklar gerçek
+          text node — word-spacing fix'i ve satır kaydırma korunuyor, ekran
+          okuyucu cümleyi bütün okuyor. */}
+      <h1 className="hero-statement font-display">
+        {HERO_STATEMENT_LINES.map((words, lineIndex) => (
+          <span
+            key={words.join(" ")}
+            className="block"
+            style={{ color: STATEMENT_LINE_COLORS[lineIndex] }}
+          >
+            {words.map((word, wordIndex) => (
+              <Fragment key={word}>
+                <span
+                  ref={(node) => {
+                    if (!statementWordRefs) return;
+                    const line = (statementWordRefs.current[lineIndex] ??= []);
+                    line[wordIndex] = node;
+                  }}
+                  className="hero-statement-word"
+                >
+                  {word}
+                </span>
+                {wordIndex < words.length - 1 ? " " : ""}
+              </Fragment>
+            ))}
+          </span>
+        ))}
       </h1>
-      <p
-        ref={subtitleRef}
-        className="text-lead mt-8 max-w-(--container-prose)"
-        style={{ ...hidden, color: "var(--color-fg-on-ink-body)" }}
-      >
-        Markanızı görünür kılın, süreçlerinizi hızlandırın.
-      </p>
-    </>
+      {/* Sarmalayıcı GİRİŞ animasyonunu, içteki <p> scroll'a bağlı ÇIKIŞI
+          taşır. İkisi aynı elementte olamaz: CSS animasyonunun çıktısı
+          kaskadda inline stilin üstünde, `fill-mode: both` ile animasyon
+          bittikten sonra da son karesini tutuyor ve motorun her frame
+          yazdığı opacity/transform'u eziyordu — alt başlık faz 1'den sonra
+          ekranda kalıyordu. Statement'ta aynı ayrım zaten var (animasyon
+          satır span'ında, scroll kelime span'ında). */}
+      <div className="hero-intro-sub">
+        <p
+          ref={subtitleRef}
+          className="text-lead mt-8 max-w-(--container-prose)"
+          style={{ color: "var(--color-fg-on-ink-body)" }}
+        >
+          Markanızı görünür kılın, süreçlerinizi hızlandırın.
+        </p>
+      </div>
+    </div>
   );
 }
+
+/**
+ * Kapanışın iki CTA'sı — içerik tek kaynakta. Hareketli dal bu diziyi kendi
+ * içinde map'liyor (her butona ayrı ref bağlaması gerekiyor: faz 8'de
+ * butonlar raydan tek tek çıkıyor, bkz. OUTRO_CTA_*), reduced dalı ise
+ * aşağıdaki <HeroCtas /> ile durağan basıyor.
+ */
+const HERO_CTAS = [
+  { href: "/hizmetler", label: "Hizmetler", variant: "btn-accent" },
+  { href: "/portfolyo", label: "Projelerimiz", variant: "btn-ghost" },
+] as const;
 
 function HeroCtas() {
   return (
     <>
-      <Link
-        href="/hizmetler"
-        className={`${ctaLinkClass} bg-(--color-accent) text-(--color-ink-900) hover:bg-(--color-accent-hi)`}
-      >
-        Hizmetler
-      </Link>
-      <Link
-        href="/portfolyo"
-        className={`${ctaLinkClass} border-hairline border hover:border-(--color-accent)`}
-        style={{ color: "var(--color-fg-on-ink)" }}
-      >
-        Projelerimiz
-      </Link>
+      {HERO_CTAS.map((cta) => (
+        <Link key={cta.href} href={cta.href} className={`${ctaLinkClass} ${cta.variant}`}>
+          {cta.label}
+        </Link>
+      ))}
     </>
+  );
+}
+
+/**
+ * Faz 8'in küresi: nokta bulutundan bir küre. Koordinatların YANI SIRA her
+ * noktanın nefes parametreleri de deterministik (bkz. outroOrb.ts) ve inline
+ * custom property olarak basılıyor; hareketin kendisi CSS'te, tek bir
+ * paylaşılan @keyframes'te (hero-orb-dot).
+ *
+ * Neden per-nokta CSS animasyonu, JS rAF değil: bu döngü scroll'dan bağımsız
+ * ve sonsuz. rAF'ta olsaydı 280 elemana kare başına iki özellik yazmak
+ * gerekirdi ve bu iş, video playhead'ini süren mevcut tick() ile aynı kare
+ * bütçesine binerdi. CSS'te JS işi sıfır, tarayıcı ekran dışında/arka plan
+ * sekmesinde animasyonu kendiliğinden kısıyor ve prefers-reduced-motion
+ * motorda dal açmadan çözülüyor.
+ *
+ * `will-change` bilinçli olarak YOK: 280 noktaya verilseydi 280 ayrı katman
+ * oluşurdu — kazançtan çok maliyet.
+ */
+function HeroOutroOrb() {
+  return (
+    <svg
+      className="hero-outro-orb"
+      viewBox={`0 0 ${ORB_VIEWBOX} ${ORB_VIEWBOX}`}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g>
+        {ORB_DOTS.map((dot, index) => (
+          <circle
+            key={index}
+            cx={dot.cx}
+            cy={dot.cy}
+            r={dot.r}
+            opacity={dot.opacity}
+            style={
+              {
+                "--odx": `${dot.dx}px`,
+                "--ody": `${dot.dy}px`,
+                "--os": dot.scale,
+                "--odur": `${dot.duration}s`,
+                "--odly": `${dot.delay}s`,
+              } as React.CSSProperties
+            }
+          />
+        ))}
+      </g>
+    </svg>
   );
 }
 
@@ -121,17 +194,20 @@ function HeroInteractive() {
   const {
     sectionRef,
     stageInnerRef,
-    videoRef,
-    vignetteRef,
+    mediaVideoRefs,
+    bgWashRef,
+    scrimRef,
+    lightScrimRef,
     scrollHintRef,
-    logoLayerRef,
-    logoStrokeWrapRef,
-    logoSolidWrapRef,
-    logoPathRefs,
-    title1Ref,
-    title2Ref,
+    introBlockRef,
+    statementWordRefs,
     subtitleRef,
     ctaRef,
+    ctaItemRefs,
+    outroRailRef,
+    outroDotRef,
+    outroLineRefs,
+    outroOrbRef,
     phaseRootRefs,
     phaseIconRefs,
     phaseRuleRefs,
@@ -139,25 +215,49 @@ function HeroInteractive() {
     phaseItemRefs,
     indicatorRef,
     phaseTickRefs,
-  } = useHeroScroll(VIDEO_SRC, LOGO_ELEMENT_COUNT);
+  } = useHeroScroll();
 
   return (
-    <section ref={sectionRef} className="relative" style={{ height: "var(--hero-span)" }}>
+    // surface-ink: hairline/focus/fg değişkenlerini koyu zemine bağlar —
+    // içindeki .btn-ghost ve focus halkası doğru tonu alsın diye.
+    <section
+      ref={sectionRef}
+      className="surface-ink relative"
+      style={{ height: "var(--hero-span)" }}
+    >
       <div className="hero-stage">
         <div ref={stageInnerRef} className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={POSTER_SRC} alt="" className="hero-media" />
-          <video
-            ref={videoRef}
-            className="hero-media hero-video"
-            muted
-            playsInline
-            preload="none"
-            aria-hidden="true"
-          />
+          {/* Statik koyu zemin: intro fazı ve hizmet klipleri arası her
+              boşlukta görünür. Hiç sürülmez — her video katmanı opacity:0'dan
+              başlayıp yalnızca kendi fazında üzerine fade eder. */}
+          <div className="hero-media hero-bg-static" aria-hidden="true" />
+          {/* Hizmet klipleri (faz 2-7). src JSX'te VERİLMEZ: motor yalnızca
+              aktif fazın ve komşularının blob'unu bağlar, uzaklaşanı bırakır —
+              yani DOM'da 6 etiket var ama en fazla 3'ü yüklü. */}
+          {HERO_PHASES.map((phase, index) =>
+            isServicePhase(phase) ? (
+              <video
+                key={phase.id}
+                ref={(node) => {
+                  mediaVideoRefs.current[index] = node;
+                }}
+                className="hero-media hero-video"
+                style={{ opacity: 0 }}
+                muted
+                playsInline
+                preload="none"
+                aria-hidden="true"
+              />
+            ) : null
+          )}
+          {/* Faz 8'in beyaz zemini — kapanış sahnesinin altında, zemini
+              koyudan beyaza çeviren katman. */}
+          <div ref={bgWashRef} className="hero-media hero-bg-wash" style={{ opacity: 0 }} aria-hidden="true" />
         </div>
-        <div className="hero-scrim" />
-        <div ref={vignetteRef} className="hero-vignette" />
+        <div ref={scrimRef} className="hero-scrim" />
+        <div ref={lightScrimRef} className="hero-light-scrim" style={{ opacity: 0 }} aria-hidden="true" />
 
         {/* Hizmet fazları — hepsi DOM'da, opaklıkları scroll'dan sürülüyor.
             aria-hidden VERİLMİYOR: opacity:0 ekran okuyucudan gizlemez, bu
@@ -217,19 +317,101 @@ function HeroInteractive() {
           )}
         </div>
 
-        <div ref={logoLayerRef} className="hero-logo-layer">
-          <div
-            ref={logoStrokeWrapRef}
-            style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}
+        {/* Faz 8'in kapanış sahnesi — tamamen kod tabanlı, hiç medya yok.
+            Ray ve nokta ayrı iki SVG: ikisinin de kutu genişliği kendi
+            viewBox genişliğine EŞİT, yani x ölçeği tam 1 — `preserveAspectRatio:
+            none` yalnızca rayı dikeyde geriyor, noktayı hiç bozmuyor.
+            Konum/uzunluk ölçüleri JS'ten px olarak yazılıyor (bkz.
+            useHeroScroll'daki outro layout ölçümü). */}
+        <div className="hero-outro-scene" aria-hidden="true">
+          <svg
+            ref={outroRailRef}
+            className="hero-outro-rail"
+            viewBox="0 0 24 1000"
+            preserveAspectRatio="none"
+            focusable="false"
           >
-            <HeroLogoStroke pathRefs={logoPathRefs} />
-          </div>
-          <div
-            ref={logoSolidWrapRef}
-            style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", opacity: 0 }}
+            {/* pathLength=1: dash uzunlukları ekran yüksekliğinden bağımsız,
+                dashoffset doğrudan "çizilmemiş oran" oluyor. */}
+            <line
+              x1="12"
+              y1="0"
+              x2="12"
+              y2="1000"
+              pathLength="1"
+              strokeDasharray="1 1"
+              strokeDashoffset="1"
+            />
+          </svg>
+          <svg
+            ref={outroDotRef}
+            className="hero-outro-dot"
+            viewBox="0 0 28 28"
+            focusable="false"
+            style={{ opacity: 0 }}
           >
-            <HeroLogoSolid />
+            <circle className="hero-outro-dot-halo" cx="14" cy="14" r="11" />
+            <circle className="hero-outro-dot-core" cx="14" cy="14" r="4" />
+          </svg>
+        </div>
+
+        {/* Küre: sahnenin sağında, butonların üstünde. Görünürlüğü scroll'dan
+            (svg kökünde), nefes alması CSS'ten (iç <g>) sürülüyor — iki
+            hareket ayrı elemanlarda olmak zorunda, aksi halde her frame
+            yazılan transform animasyonun karesini eziyor. */}
+        <div className="hero-outro-orb-wrap" aria-hidden="true">
+          <div ref={outroOrbRef} style={{ opacity: 0 }}>
+            <HeroOutroOrb />
           </div>
+        </div>
+
+        {/* Faz 8'in kapanış mesajı — faz 1'in sloganıyla aynı değil. Blok
+            sağ kenarından raya yaslı, satırlar raydan çıkıp SOLA uzuyor;
+            yerine otururken yaylanıyor (bkz. springOut). aria-hidden
+            VERİLMİYOR: opacity:0 ekran okuyucudan gizlemez. */}
+        <p className="hero-outro-slogan on-paper font-display">
+          {RESOLVE_SLOGAN_LINES.map((line, index) => (
+            <span key={line} className="hero-outro-slogan-line">
+              <span
+                ref={(node) => {
+                  outroLineRefs.current[index] = node;
+                }}
+                style={{
+                  opacity: 0,
+                  color:
+                    index === RESOLVE_SLOGAN_ACCENT_LINE
+                      ? "var(--color-accent)"
+                      : "var(--color-fg-on-paper)",
+                }}
+              >
+                {line}
+              </span>
+            </span>
+          ))}
+        </p>
+
+        {/* CTA'lar aynı raydan, ters yönde (SAĞA) çıkıyor. Faz 1'in alt
+            bandında DEĞİL: kendi mutlak kutusunda, sol kenarı raya yaslı —
+            nokta da bu satırın dikey merkezinde duruyor. Zemin bu anda beyaz:
+            .on-paper hairline/focus/fg token'larını açık zemine bağlıyor. */}
+        <div
+          ref={ctaRef}
+          className="hero-outro-cta on-paper"
+          style={{ opacity: 0, pointerEvents: "none" }}
+        >
+          {HERO_CTAS.map((cta, index) => (
+            <Link
+              key={cta.href}
+              ref={(node) => {
+                ctaItemRefs.current[index] = node;
+              }}
+              href={cta.href}
+              className={`${ctaLinkClass} ${cta.variant}`}
+              style={{ opacity: 0 }}
+            >
+              {cta.label}
+            </Link>
+          ))}
         </div>
 
         {/* 8 fazlık yolda nerede olduğunu gösterir — dekoratif. */}
@@ -246,23 +428,19 @@ function HeroInteractive() {
           ))}
         </div>
 
-        <div
-          ref={scrollHintRef}
-          className="eyebrow absolute inset-x-0 bottom-8 flex justify-center"
-          style={{ color: "var(--color-fg-on-ink-muted)" }}
-        >
-          kaydır ↓
+        {/* Faz 1'e özel scroll ipucu — sağ altta, düşük opaklıkta. Scroll
+            başlayınca söner (bkz. useHeroScroll), faz 1 dışında görünmez. */}
+        <div ref={scrollHintRef} className="hero-scroll-hint eyebrow" aria-hidden="true">
+          Scroll
         </div>
 
         <div className="absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">
-          <HeroSlogan
-            animated
-            title1Ref={title1Ref}
-            title2Ref={title2Ref}
-            subtitleRef={subtitleRef}
-          />
-          <div ref={ctaRef} className="mt-10 flex flex-wrap gap-4" style={{ opacity: 0, pointerEvents: "none" }}>
-            <HeroCtas />
+          {/* Faz 1 kopyası tek bir node'da: faz 2'ye devreden çıkış hareketi
+              (yukarı kayma + ölçek) bu sarmalayıcıdan sürülüyor. CTA burada
+              DEĞİL — o faz 8'in sahnesine ait (bkz. .hero-outro-cta), aynı
+              transform'u paylaşmamalı. */}
+          <div ref={introBlockRef} style={{ transformOrigin: "left bottom" }}>
+            <HeroSlogan animated statementWordRefs={statementWordRefs} subtitleRef={subtitleRef} />
           </div>
         </div>
       </div>
@@ -280,14 +458,10 @@ function HeroInteractive() {
 function HeroReduced() {
   return (
     <>
-      <section className="hero-stage-static">
+      <section className="hero-stage-static surface-ink">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={POSTER_SRC} alt="" className="hero-media" />
         <div className="hero-scrim" />
-
-        <div className="hero-logo-layer">
-          <HeroLogoSolid />
-        </div>
 
         <div className="absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">
           <HeroSlogan animated={false} />
@@ -303,6 +477,36 @@ function HeroReduced() {
             <HeroReducedService key={phase.id} phase={phase} />
           ))}
         </ul>
+      </section>
+
+      {/* Faz 8'in kapanışı — hareketli dalda zemin beyaza döner, bir nokta
+          dikey rayı çizerek iner, slogan raydan sola / CTA raydan sağa çıkar
+          ve sağda nokta bulutu küresi nefes alır. Burada aynı BİLGİ durağan:
+          ray, nokta ve küre hiç render EDİLMEZ (hepsi yalnızca hareketten
+          ibaret, durağan hâlde anlam taşımıyorlar), slogan ve CTA statik
+          duruyor. Kendi açık yüzeyini beyan ediyor (bkz. §2). */}
+      <section className="surface-paper surface-paper-raised px-(--spacing-gutter) py-(--spacing-section)">
+        <div className="hero-reduced-outro mx-auto max-w-(--container-site)">
+          <p className="hero-outro-slogan-static font-display">
+            {RESOLVE_SLOGAN_LINES.map((line, index) => (
+              <span
+                key={line}
+                className="block"
+                style={{
+                  color:
+                    index === RESOLVE_SLOGAN_ACCENT_LINE
+                      ? "var(--color-accent-ink)"
+                      : "var(--color-fg-on-paper)",
+                }}
+              >
+                {line}
+              </span>
+            ))}
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <HeroCtas />
+          </div>
+        </div>
       </section>
     </>
   );

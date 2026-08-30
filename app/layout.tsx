@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Archivo, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import SiteHeader from "./components/nav/SiteHeader";
+import SkipLink from "./components/nav/SkipLink";
 
 // Display: geniş ağırlık (100–900) ve genişlik (62–125) eksenine sahip
 // endüstriyel grotesk. Hero'da büyük boyutta logonun sert diyagonalleriyle
@@ -39,7 +41,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="tr"
       className={`${archivo.variable} ${instrumentSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="surface-paper min-h-full flex flex-col">{children}</body>
+      {/* relative: .nav-sentinel'in (SiteHeader) konumlanacağı çerçeve. */}
+      <body className="surface-paper min-h-full flex flex-col relative">
+        <SkipLink />
+        <SiteHeader />
+        <main id="icerik" className="flex-1">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }

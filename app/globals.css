@@ -57,6 +57,16 @@
   --text-display-hero--letter-spacing: -0.03em;
   --text-display-hero--font-weight: 800;
 
+  /* Yalnızca hero'nun açılış statement'ı için — display-hero'dan bir kademe
+     büyük. Ayrı token: --text-display-hero /design-system'de ve başka
+     başlıklarda kullanılıyor, oranını bozmadan bırakılıyor. */
+  --text-hero-statement: clamp(2.75rem, 1rem + 7.6vw, 8.5rem);
+  /* 0.88 çok sıkıydı: Türkçe'de İ'nin noktası bir üst satırın virgülüne
+     giriyor. 0.95 hâlâ sıkı bir display ritmi veriyor, çakışma yok. */
+  --text-hero-statement--line-height: 0.95;
+  --text-hero-statement--letter-spacing: -0.035em;
+  --text-hero-statement--font-weight: 800;
+
   --text-display-2xl: clamp(2.25rem, 1.667rem + 2.59vw, 4rem);
   --text-display-2xl--line-height: 1.02;
   --text-display-2xl--letter-spacing: -0.025em;
@@ -118,6 +128,27 @@
   --hero-phase-icon: 2.5rem;
   --hero-phase-rule: 3.5rem;
 
+
+  /* ------------------------------------------------------------------
+     NAV
+     --nav-solid-after: header'ın şeffaftan koyuya geçtiği scroll mesafesi.
+     Sentinel bu yüksekliktedir; viewport'un üstünden çıktığında nav
+     solid'e döner. 100svh ≈ hero'nun intro fazının bitişi (bkz.
+     heroPhases.ts intro ağırlığı 1.30 / toplam 8.40).
+     ------------------------------------------------------------------ */
+  --nav-h: 4.5rem;
+  --nav-solid-after: 100svh;
+
+  /* ------------------------------------------------------------------
+     KATMAN
+     Hero kendi içinde z-index KULLANMIYOR (saf DOM sırası). Bu ölçek
+     yalnızca hero sahnesinin üstünde duran global kabuk içindir.
+     ------------------------------------------------------------------ */
+  --z-nav: 100;
+  --z-drawer-overlay: 200;
+  --z-drawer: 210;
+  --z-skip-link: 300;
+
   /* ------------------------------------------------------------------
      ŞEKİL — keskin. Pill buton ve yumuşak gölge yok.
      ------------------------------------------------------------------ */
@@ -174,13 +205,275 @@
     background-color: var(--color-paper-0);
   }
 
+  /* Açık zemin bir renkten değil MEDYADAN geldiğinde (faz 8'in beyaz zeminli
+     full-bleed videosu gibi) kullanılır: .surface-paper ile aynı token'ları
+     bağlar ama background-color VERMEZ — altındaki medya görünür kalmalı. */
+  .on-paper {
+    color: var(--color-fg-on-paper);
+    --hairline: color-mix(in srgb, #1c1c1c 14%, transparent);
+    --focus: var(--color-accent-ink);
+    --accent-text: var(--color-accent-ink);
+    --fg-strong: var(--color-fg-on-paper);
+    --fg-muted: var(--color-fg-on-paper-muted);
+  }
+
+  /* ---------------------------------------------------------------
+     BUTON — tek kaynak. Keskin köşe (--radius-sm), mono etiket.
+     Hero CTA'ları ve nav CTA'sı aynı sınıfları kullanır.
+     --------------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 1.5rem;
+    padding-block: 0.75rem;
+    border-radius: var(--radius-sm);
+    transition:
+      background-color var(--duration-base) var(--ease-out-quart),
+      border-color var(--duration-base) var(--ease-out-quart),
+      color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .btn-accent {
+    background-color: var(--color-accent);
+    color: var(--color-ink-900);
+  }
+
+  .btn-accent:hover {
+    background-color: var(--color-accent-hi);
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--hairline);
+    color: var(--fg-strong);
+  }
+
+  /* Yüzeye bağlı: koyu zeminde --color-accent, açık zeminde --color-accent-ink
+     (bkz. .surface-paper / .on-paper) — kontrast her iki zeminde korunuyor. */
+  .btn-ghost:hover {
+    border-color: var(--accent-text);
+  }
+
+  /* ---------------------------------------------------------------
+     SITE HEADER — fixed. Hero section'ının İÇİNE konamaz:
+     .hero-stage'in `overflow: clip`i onu kırpar. Ayrıca fixed olduğu
+     için doküman akışını değiştirmez; useHeroScroll'un layout()'ta
+     cache'lediği top/height ölçümleri geçerli kalır.
+     --------------------------------------------------------------- */
+  .site-header {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: var(--z-nav);
+    height: var(--nav-h);
+    background-color: transparent;
+    border-block-end: 1px solid transparent;
+    transition:
+      background-color var(--duration-slow) var(--ease-out-quart),
+      border-color var(--duration-slow) var(--ease-out-quart),
+      backdrop-filter var(--duration-slow) var(--ease-out-quart);
+  }
+
+  /* Şeffaf durumda linklerin video üzerinde okunması için üstten inen
+     ince scrim. Video görünür kalır; okunurluk taban alır. */
+  .site-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-ink-950) 55%, transparent) 0%,
+      transparent 100%
+    );
+    transition: opacity var(--duration-slow) var(--ease-out-quart);
+  }
+
+  .site-header[data-solid="true"] {
+    background-color: color-mix(in srgb, var(--color-ink-950) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-block-end-color: var(--hairline);
+  }
+
+  /* Solid zemin zaten okunurluğu veriyor — scrim çift karartma yapmasın. */
+  .site-header[data-solid="true"]::before {
+    opacity: 0;
+  }
+
+  .site-header-inner {
+    position: relative;
+    height: 100%;
+    margin-inline: auto;
+    max-width: var(--container-site);
+    padding-inline: var(--spacing-gutter);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  /* Hero'nun kendi büyük logosu kaldırıldı (faz 1 artık tipografik bir
+     statement) — logonun tek yeri burası, o yüzden şeffaf nav'da da
+     görünür. Üstteki scrim okunurluğu veriyor. */
+  .site-header-logo {
+    display: flex;
+    align-items: center;
+  }
+
+  .site-header-logo svg {
+    height: 1.5rem;
+    width: auto;
+  }
+
+  /* Sentinel: --nav-solid-after yüksekliğinde, akış dışı. Viewport'un
+     üstünden çıkınca IntersectionObserver nav'ı solid'e çevirir.
+     Scroll listener yok — hero'nun motoruyla hiç temas etmez. */
+  .nav-sentinel {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 1px;
+    height: var(--nav-solid-after);
+    pointer-events: none;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+  }
+
+  .nav-link {
+    color: var(--color-fg-on-ink-body);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .nav-link:hover,
+  .nav-link[aria-current="page"] {
+    color: var(--color-accent);
+  }
+
+  .nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-inline-end: calc(var(--spacing-gutter) * -0.35);
+    color: var(--color-fg-on-ink);
+  }
+
+  .nav-toggle svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* ---------------------------------------------------------------
+     MOBİL DRAWER — sürekli mount, data-open ile sürülür.
+     Kapalıyken `visibility: hidden` geçiş süresi kadar geciktirilir;
+     böylece kapanış animasyonu görünür ama panel sonrasında
+     klavye/AT için tamamen yok olur (ek olarak `inert`).
+     --------------------------------------------------------------- */
+  .nav-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-drawer-overlay);
+    background-color: color-mix(in srgb, var(--color-ink-950) 70%, transparent);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--duration-base) var(--ease-out-quart),
+      visibility 0s linear var(--duration-base);
+  }
+
+  .nav-overlay[data-open="true"] {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity var(--duration-base) var(--ease-out-quart),
+      visibility 0s;
+  }
+
+  .nav-drawer {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-end: 0;
+    z-index: var(--z-drawer);
+    width: min(20rem, 84vw);
+    padding: var(--spacing-gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-inline-start: 1px solid var(--hairline);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+      transform var(--duration-base) var(--ease-out-quart),
+      visibility 0s linear var(--duration-base);
+  }
+
+  .nav-drawer[data-open="true"] {
+    transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform var(--duration-base) var(--ease-out-quart),
+      visibility 0s;
+  }
+
+  .nav-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .nav-drawer-head svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .nav-drawer-links {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nav-drawer-links .nav-link {
+    display: block;
+    padding-block: 1rem;
+    border-block-start: 1px solid var(--hairline);
+  }
+
+  .nav-drawer-links .nav-link:first-child {
+    border-block-start-width: 0;
+  }
+
+  /* Klavye kullanıcısı için ilk durak. Odaklanana dek görünmez. */
+  .skip-link {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    z-index: var(--z-skip-link);
+    margin: 0.5rem;
+    transform: translateY(-200%);
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
+  }
+
   /* ---------------------------------------------------------------
      HERO — sticky pin stage + video/logo/scrim katmanları.
      Per-frame değerler (opacity, transform, stroke-dashoffset)
      JS tarafından (useHeroScroll) doğrudan yazılır; burada yalnızca
      statik yerleşim ve görünüm kuralları var.
      --------------------------------------------------------------- */
+  /* --hero-outro-rail-x: faz 8'in dikey rayının yatay konumu. Sayfayı üçe
+     bölen ikinci çizgi (%66) — ray, slogan bloğunun sağ kenarı, CTA'nın sol
+     kenarı ve kürenin dayandığı hat hep buradan okunuyor, dört yerde ayrı
+     sabit tutulmuyor. */
   .hero-stage {
+    --hero-outro-rail-x: 66%;
     position: sticky;
     top: 0;
     height: 100vh;
@@ -198,15 +491,269 @@
     will-change: transform;
   }
 
-  .hero-video {
-    filter: var(--hero-video-filter);
+  /* Statik koyu zemin: intro fazı ve hizmet klipleri arası boşluklarda
+     görünen katman. Hiç sürülmez (opacity her zaman 1) — düz renk yerine
+     hafif radial-gradient, en uzun faz (intro) boyunca derinlik hissi verir. */
+  .hero-bg-static {
+    background: radial-gradient(
+      120% 120% at 50% 0%,
+      var(--color-ink-900) 0%,
+      var(--color-ink-950) 60%
+    );
   }
 
-  /* Metin/CTA'nın oturduğu alt bant için okunurluk taban katmanı. */
+  /* Video katmanları üst üste yığılır (hepsi .hero-media => absolute inset-0);
+     DOM sırası z-sırasını verir: statik zemin altta, hizmet/resolve klipleri
+     üstünde. Opaklık her frame'de useHeroScroll tarafından yazılır — CSS
+     transition YOK, crossfade scroll'a bağlı olduğu için geri scroll'da da
+     simetrik çözülüyor. */
+  .hero-video {
+    filter: var(--hero-video-filter);
+    will-change: opacity;
+  }
+
+  /* Faz 8'in zemin geçişi: koyudan beyaza. Sahnenin zemini tamamen beyaz
+     olur; bu düz beyaz katmanın opaklığı scroll'a bağlı sürülür, böylece
+     faz 7'den faz 8'e geçişte zemin sıçramadan beyaza döner. Monitör
+     görseli bu katmanın üstüne biner. */
+  .hero-bg-wash {
+    background-color: var(--color-paper-0);
+    will-change: opacity;
+  }
+
+  /* Faz 8'in ray + nokta katmanı. Sahneyi kaplar, ölçü taşımaz: rayın tepe
+     noktası ve yüksekliği JS'ten px olarak yazılıyor (CTA satırının layout
+     kutusundan ölçülüyor, bkz. useHeroScroll'daki outroLayout). */
+  .hero-outro-scene {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Dikey ray. Kutu genişliği (24px) viewBox genişliğine EŞİT: bu yüzden
+     `preserveAspectRatio: none` yalnızca dikeyde geriyor, x ölçeği tam 1
+     kalıyor ve çizgi kalınlığı hiç bozulmuyor. Uzunluğu stroke-dashoffset
+     ile sürülüyor — noktanın inişiyle aynı ilerlemeden. */
+  .hero-outro-rail {
+    position: absolute;
+    inset-inline-start: var(--hero-outro-rail-x);
+    margin-inline-start: -12px;
+    width: 24px;
+    overflow: visible;
+  }
+
+  .hero-outro-rail line {
+    stroke: color-mix(in srgb, var(--color-fg-on-paper) 24%, transparent);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    will-change: stroke-dashoffset;
+  }
+
+  /* Rayı çizerek inen nokta. Kendi kutusu 28×28 ve viewBox'ı da 28: dikey
+     kaydırma dışında hiçbir ölçek uygulanmıyor, daire her ekranda daire. */
+  .hero-outro-dot {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: var(--hero-outro-rail-x);
+    margin-block-start: -14px;
+    margin-inline-start: -14px;
+    width: 28px;
+    height: 28px;
+    will-change: transform, opacity;
+  }
+
+  .hero-outro-dot-core {
+    fill: var(--color-accent);
+  }
+
+  .hero-outro-dot-halo {
+    fill: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+
+  /* Nokta bulutu küresi. Sarmalayıcı yerleşimi, içteki div scroll'a bağlı
+     görünürlüğü, SVG'nin içindeki <g> ise sürekli nefes döngüsünü taşır —
+     üçü ayrı eleman olmak zorunda: aynı elemanda olsalar her frame yazılan
+     transform, CSS animasyonunun karesini ezerdi. */
+  .hero-outro-orb-wrap {
+    position: absolute;
+    inset-inline-start: calc(var(--hero-outro-rail-x) + 4vw);
+    inset-block-end: 26svh;
+    width: min(20vw, 250px);
+    pointer-events: none;
+  }
+
+  .hero-outro-orb-wrap > div {
+    will-change: transform, opacity;
+  }
+
+  .hero-outro-orb {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Her nokta AYNI keyframe'i, KENDİ süresi/gecikmesi/genliğiyle sürüyor
+     (değerler outroOrb.ts'te deterministik üretilip inline custom property
+     olarak basılıyor). Tek bir <g> animasyonu olsaydı bütün bulut aynı anda
+     şişip aynı anda renk değiştirirdi — mükemmel küresel ve mekanik.
+
+     `fill: currentColor` + per-nokta `color` animasyonu: renk geçişi de
+     noktadan noktaya kayıyor, amber bulutta aynı anda parlamak yerine
+     içinde dolaşıyor.
+
+     `will-change` YOK: 280 noktaya verilseydi 280 ayrı katman oluşurdu. */
+  .hero-outro-orb circle {
+    fill: currentColor;
+    color: var(--color-fg-on-paper-muted);
+    /* px = viewBox kullanıcı birimi; ölçek noktanın kendi merkezinden. */
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hero-orb-dot var(--odur, 5.4s) var(--ease-in-out-soft)
+      var(--odly, 0s) infinite;
+  }
+
+  /* Nefes: nokta 3B radyal yönünde dışa çıkarken büyüyor ve rengi dönüyor.
+     Yol/ölçek per-nokta değiştiği için kürenin dış hattı yönlere göre farklı
+     miktarda şişiyor — scroll'dan bağımsız, sürekli döngü. */
+  @keyframes hero-orb-dot {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+      color: var(--color-fg-on-paper-muted);
+    }
+    50% {
+      transform: translate(var(--odx, 0), var(--ody, 0)) scale(var(--os, 1));
+      color: var(--color-accent);
+    }
+  }
+
+  /* Hareketi kapalı olan kullanıcıda küre zaten render EDİLMİYOR
+     (bkz. Hero.tsx'in HeroReduced dalı); bu kural, hareketli dal bir şekilde
+     mount olursa nefesin yine de durmasını garanti eder. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-outro-orb circle {
+      animation: none;
+    }
+  }
+
+  /* Faz 8'in CTA'ları: sol kenarı raya yaslı kendi kutusunda. Faz 1'in alt
+     bandında DEĞİL — noktanın durma yüksekliği bu kutunun layout kutusundan
+     ölçülüyor, o yüzden kutuya transform YAZILMAZ (kaydırma butonların
+     kendisinde). padding: butonlar rayın üstüne binmesin diye. */
+  .hero-outro-cta {
+    position: absolute;
+    inset-inline-start: var(--hero-outro-rail-x);
+    inset-block-end: var(--spacing-section-tight);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-inline-start: 1.25rem;
+  }
+
+  .hero-outro-cta .btn {
+    will-change: transform, opacity;
+  }
+
+  /* Koyu sahnedeki .hero-scrim'in açık zemin karşılığı: kapanışta slogan ve
+     CTA beyaz zeminin üstünde okunmak zorunda ve zeminin her noktasının saf
+     beyaz olacağının garantisi yok. Opaklığı zemin geçişinden (wash) sürülür. */
+  .hero-light-scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* Dikey (0deg): kapanışta okunması gereken metin rayın İKİ yanında birden
+       (solda slogan, sağda CTA), yatay bir gradyan biri lehine çalışırdı.
+       Ağırlık altta — CTA bandı ve sloganın alt satırları orada. */
+    background: linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--color-paper-0) 88%, transparent) 0%,
+      color-mix(in srgb, var(--color-paper-0) 55%, transparent) 36%,
+      transparent 64%
+    );
+    will-change: opacity;
+  }
+
+  /* Faz 8'in kapanış sloganı. Blok SAĞ kenarından raya yaslı; satırlar
+     raydan çıkıp sola uzuyor. Sağa yaslı hizalama zorunlu: satırlar rayın
+     üstünde hizalanmazsa "hattan sökülme" okuması kayboluyor. */
+  .hero-outro-slogan {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: var(--spacing-gutter);
+    /* Sağ kenar tam rayın üstünde: 100% - %66 = %34. */
+    inset-inline-end: calc(100% - var(--hero-outro-rail-x));
+    translate: 0 -50%;
+    text-align: end;
+    /* Faz 1'in statement'ıyla AYNI token: hero'nun iki hakim tipografik
+       bloğu (açılış ve kapanış) tek ölçekte kilitli, biri değişince diğeri
+       de değişiyor. --text-display-hero burada yetersiz kalıyordu, ama o
+       token /design-system'de de kullanıldığı için büyütülemezdi.
+
+       min(..., 15svh): 4 satır × 0.95 satır yüksekliği = 3.8em'lik bir blok,
+       dikeyde ortalı. Kısa masaüstü pencerelerinde (≤800px) bu blok CTA
+       bandına iniyordu; guard onu orada sınırlıyor. 918px'lik tipik sahnede
+       15svh = 138px, token tavanı 136px — yani normal masaüstünde etkisiz. */
+    font-size: min(var(--text-hero-statement), 15svh);
+    line-height: var(--text-hero-statement--line-height);
+    letter-spacing: var(--text-hero-statement--letter-spacing);
+    font-weight: var(--text-hero-statement--font-weight);
+    /* Statement'takiyle aynı gerekçe: negatif tracking kelime aralarını
+       yiyor (bkz. .hero-statement). */
+    word-spacing: 0.12em;
+    pointer-events: none;
+  }
+
+  /* Satır kutusu maskeyi taşır: sağ kenarı rayın üstünde olduğu için satır,
+     rayı geçene kadar görünmüyor — hareket "hattan çıkma" olarak okunuyor.
+     Maske burada bilinçli, statement'taki maske yasağının istisnası: orada
+     mesafe kelime kutusundan büyüktü ve maske kelimeyi kendi kutusunda
+     kırpıyordu, burada kutu satırdan geniş ve kırpma kenarı ANLAMLI.
+
+     overflow-x: clip + overflow-y: visible: yalnızca yatayda kırpıyoruz, iki
+     eksende birden kırpsak büyük harflerin (İ) noktası ve çıkıntılar
+     kesilirdi. `clip`, `visible` ile eşleşebilen tek değer — `hidden` olsaydı
+     tarayıcı y eksenini de `auto`ya çevirirdi.
+
+     padding-inline-end: metin dururken raya yapışmasın diye; kırpma kenarı
+     yine kutunun (yani rayın) üstünde kalıyor. */
+  .hero-outro-slogan-line {
+    display: block;
+    overflow-x: clip;
+    overflow-y: visible;
+    padding-inline-end: 0.9rem;
+  }
+
+  .hero-outro-slogan-line > span {
+    display: inline-block;
+    will-change: opacity, transform;
+  }
+
+  /* reduced-motion dalının kapanışı — hareket yok: ray, nokta ve küre hiç
+     basılmıyor (hepsi yalnızca hareketten ibaret), slogan ve CTA durağan
+     duruyor. Kendi açık yüzeyinde (bkz. Hero.tsx). */
+  .hero-reduced-outro {
+    display: grid;
+    gap: var(--spacing-section-tight);
+    justify-items: start;
+  }
+
+  .hero-outro-slogan-static {
+    max-width: 16ch;
+    font-size: var(--text-display-hero);
+    line-height: var(--text-display-hero--line-height);
+    letter-spacing: var(--text-display-hero--letter-spacing);
+    font-weight: var(--text-display-hero--font-weight);
+    word-spacing: 0.12em;
+    color: var(--color-fg-on-paper);
+  }
+
+  /* Metin/CTA'nın oturduğu alt bant için okunurluk taban katmanı. Faz 8'de
+     zemin beyaza döndüğü için opaklığı JS'ten sıfıra sürülür (bkz. wash). */
   .hero-scrim {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    will-change: opacity;
     background: linear-gradient(
       0deg,
       color-mix(in srgb, var(--color-ink-950) 90%, transparent) 0%,
@@ -215,30 +762,92 @@
     );
   }
 
-  /* "Kamera ağın içinden geçiyor" hissi için son fazda kararan vinyet. */
-  .hero-vignette {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: var(--color-ink-950);
-    opacity: 0;
+  /* Faz 1'in tipografik statement'ı — ekrana hakim tek blok. Kendi tip
+     token'ı var (bkz. --text-hero-statement); --text-display-hero başka
+     yerlerde kullanıldığı için büyütülmedi. */
+  .hero-statement {
+    font-size: var(--text-hero-statement);
+    line-height: var(--text-hero-statement--line-height);
+    letter-spacing: var(--text-hero-statement--letter-spacing);
+    font-weight: var(--text-hero-statement--font-weight);
+    /* letter-spacing negatif olduğu için boşluk karakterinin iki yanından da
+       düşülüyor (harf→boşluk, boşluk→harf) — kelimeler görsel olarak
+       birbirine yapışıyor. word-spacing bu payı yalnızca kelime aralarında
+       geri veriyor, harfler arası sıkı görünüm korunuyor. */
+    word-spacing: 0.12em;
+    max-width: 18ch;
   }
 
-  /* Başlık bloğu alta sabit (bkz. Hero.tsx); logo üst bölgede kalır ki
-     büyük hero başlığıyla çakışmasın. */
-  .hero-logo-layer {
+  /* Statement'ın kelimeleri. Çıkışta her biri kendi yönüne savrulduğu için
+     ayrı ayrı sürülüyor (transform/opacity/filter JS'ten). Maske YOK: maske
+     girişler içindir, kelime kendi kutusundan dışarı savrulduğu için
+     kırpılırdı. */
+  .hero-statement-word {
+    display: inline-block;
+    will-change: transform, opacity, filter;
+  }
+
+  /* Faz 1'in kopyası açılışta EKRANDA olmalı — hero'nun ilk karesinde
+     başka öğe yok (logo grafiği kaldırıldı). Bu yüzden giriş scroll'a değil,
+     tek seferlik bir load animasyonuna bağlı; scroll yalnızca ÇIKIŞI
+     (faz 2'ye devreden hareket) sürüyor. */
+  @keyframes hero-rise-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 2.4vh, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Doğrudan çocuk: giriş SATIR düzeyinde kalır, kelimelere sızmaz —
+     kelimelerin transform'u çıkış koreografisine ait, iki hareket aynı
+     özelliğe yazmamalı. */
+  .hero-intro-rise .hero-statement > span,
+  .hero-intro-rise .hero-intro-sub {
+    animation: hero-rise-in var(--duration-deliberate) var(--ease-out-quart) both;
+  }
+
+  .hero-intro-rise .hero-statement > span:nth-child(2) {
+    animation-delay: 0.12s;
+  }
+
+  .hero-intro-rise .hero-intro-sub {
+    animation-delay: 0.26s;
+  }
+
+  /* Motoru mount etmeyen dal zaten bu sınıfı basmıyor; bu blok yalnızca
+     savunma amaçlı (bkz. docs/design-system.md §7). */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-intro-rise .hero-statement > span,
+    .hero-intro-rise .hero-intro-sub {
+      animation: none;
+    }
+  }
+
+  /* Faz 1'in scroll ipucu — sağ altta, bilgilendirme amaçlı. Opaklık
+     JS'ten sürülür (intro'nun ilk çeyreğinde söner), faz 1 dışında 0. */
+  .hero-scroll-hint {
     position: absolute;
-    top: var(--spacing-gutter);
-    inset-inline: 0;
-    height: 6rem;
+    inset-block-end: var(--spacing-gutter);
+    inset-inline-end: var(--spacing-gutter);
     display: flex;
-    justify-content: center;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--color-fg-on-ink-muted);
+    opacity: 0.55;
     pointer-events: none;
+    will-change: opacity, transform;
   }
 
-  .hero-logo-layer svg {
-    width: min(42vw, 18rem);
-    height: auto;
+  .hero-scroll-hint::before {
+    content: "";
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: 50%;
+    background-color: currentColor;
   }
 
   /* reduced-motion dalının durağan sahnesi — .hero-stage'in sticky'sini
@@ -359,6 +968,18 @@
     --hero-travel: 520vh;
     --hero-phase-icon: 2rem;
     --hero-phase-rule: 2.5rem;
+    --nav-h: 3.75rem;
+  }
+
+  /* Nav bu eşiğin altında drawer'a düşer. Eşik, useHeroScroll'daki
+     isMobile() ile bilinçli olarak aynı. */
+  .nav-links,
+  .site-header .btn {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
   }
 
   .hero-phase-title {
@@ -376,6 +997,49 @@
   .hero-phase-indicator {
     display: none;
   }
+
+  /* Dar ekranda faz 8: ray biraz sağa kayıyor (%68) ki sloganın satırları
+     nefes alabilsin; slogan alt banda, CTA'nın üstüne iniyor; CTA raydan
+     değil gutter'dan başlıyor (rayın sağında iki butona yer yok — kayma
+     genliği JS'te ayrıca kısılıyor, bkz. OUTRO_MOBILE_SHIFT_DAMP) ve küre
+     küçülüp sahnenin sağ ÜSTÜNE, sloganın üstündeki boş alana geçiyor. */
+  .hero-stage {
+    --hero-outro-rail-x: 68%;
+  }
+
+  .hero-outro-orb-wrap {
+    inset-block-start: 12svh;
+    inset-block-end: auto;
+    inset-inline-start: auto;
+    inset-inline-end: var(--spacing-gutter);
+    width: 34vw;
+  }
+
+  .hero-outro-cta {
+    inset-inline-start: var(--spacing-gutter);
+    inset-inline-end: var(--spacing-gutter);
+    padding-inline-start: 0;
+  }
+
+  /* Slogan yine sağ kenarından raya yaslı (satırlar hattan çıkmalı), ama
+     dikeyde ortada değil: CTA'nın üstündeki banda iniyor. */
+  .hero-outro-slogan {
+    inset-block-start: auto;
+    inset-block-end: 28svh;
+    translate: 0 0;
+    font-size: var(--text-display-2xl);
+    line-height: var(--text-display-2xl--line-height);
+    letter-spacing: var(--text-display-2xl--letter-spacing);
+    font-weight: var(--text-display-2xl--font-weight);
+  }
+
+  .hero-outro-slogan-static {
+    font-size: var(--text-display-2xl);
+    line-height: var(--text-display-2xl--line-height);
+    letter-spacing: var(--text-display-2xl--letter-spacing);
+    font-weight: var(--text-display-2xl--font-weight);
+  }
+
 }
 
 @utility border-hairline {
@@ -411,6 +1075,13 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* Fixed header'ın altına çapa atlaması engellenir. */
+    scroll-padding-top: var(--nav-h);
+    /* Drawer açıkken html'e overflow:hidden yazılıyor. Gutter kalıcı
+       olarak ayrıldığı için o an sayfa genişliği değişmiyor — aksi
+       halde kayan layout, hero'nun cache'lenmiş ölçümleriyle
+       tutarsızlaşırdı. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -452,5 +1123,27 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Yukarıdaki blok geçişleri zaten anlık yapıyor. Drawer'ın 100%'lük
+     translate'i o hızda bir "sıçrama" olarak okunur; hareketi tamamen
+     kaldırıp sade bir belirmeye çeviriyoruz. */
+  .nav-drawer,
+  .nav-drawer[data-open="true"] {
+    transform: none;
+    opacity: 0;
+  }
+
+  .nav-drawer[data-open="true"] {
+    opacity: 1;
+  }
+
+  .skip-link {
+    transform: none;
+    inset-block-start: -100vh;
+  }
+
+  .skip-link:focus-visible {
+    inset-block-start: 0;
   }
 }

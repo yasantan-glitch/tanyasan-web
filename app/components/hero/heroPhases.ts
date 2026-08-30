@@ -29,6 +29,10 @@ export interface HeroPhase {
   icon?: LucideIcon;
   title?: string;
   items?: string[];
+  /** Fazın kendi klibi. YALNIZCA hizmet fazlarında; intro'da video yok
+   * (statik zemin, bkz. globals.css .hero-bg-static), resolve'da da yok
+   * (kapanış sahnesinin hiç medyası yok — bkz. HeroResolvePhase). */
+  videoSrc?: string;
 }
 
 /** İkon/başlık/kalemlerin garanti olduğu daraltılmış tip. */
@@ -37,7 +41,35 @@ export interface HeroServicePhase extends HeroPhase {
   icon: LucideIcon;
   title: string;
   items: string[];
+  videoSrc: string;
 }
+
+/** Faz 8 (resolve) hiçbir medya taşımıyor: ne klip ne fotoğraf. Kapanış
+ * sahnesi tamamen kod tabanlı — beyaza dönen zemin üstünde SVG bir dikey ray,
+ * onu çizen bir nokta, raydan çıkan slogan/CTA ve nokta bulutundan bir küre.
+ * Böylece sahne her ölçekte keskin, ilk yükte ağırlıksız ve tema
+ * token'larına bağlı kalıyor (bkz. docs/design-system.md §8). */
+export interface HeroResolvePhase extends HeroPhase {
+  kind: "resolve";
+}
+
+/** Faz 1'in statement'ı — satır satır, satır içinde kelime kelime. Çıkışta
+ * her kelime kendi yön/hız/gecikmesiyle dağıldığı için metin burada sözcük
+ * dizisi olarak durur (bkz. useHeroScroll'daki saçılma). */
+export const HERO_STATEMENT_LINES: string[][] = [
+  ["FARK", "YARATAN", "TASARIM,"],
+  ["İŞLEYEN", "SİSTEM"],
+];
+
+/** Faz 8'in kapanışa özel mesajı — faz 1'in ana sloganıyla aynı DEĞİL.
+ * SATIR SATIR durur: her satır dikey raydan ayrı ayrı, kendi gecikmesi ve
+ * yaylanmasıyla çıkıyor (bkz. useHeroScroll'daki OUTRO_LINES_*). Tamamı
+ * büyük harf; vurgu kelimesi RESOLVE_SLOGAN_ACCENT_LINE ile işaretli. */
+export const RESOLVE_SLOGAN_LINES = ["FİKİRDEN", "SONUCA,", "TEK", "EKİPLE"];
+
+/** Accent renginde çıkacak satırın indeksi ("TEK"). Renk JSX'te iki dala
+ * kopyalanmasın diye tek kaynak burada. */
+export const RESOLVE_SLOGAN_ACCENT_LINE = 2;
 
 export const HERO_PHASES: HeroPhase[] = [
   { id: "intro", kind: "intro", weight: 1.3 },
@@ -46,6 +78,7 @@ export const HERO_PHASES: HeroPhase[] = [
     kind: "service",
     weight: 1.15,
     icon: Palette,
+    videoSrc: "/hero-videos/grafik-tasarim.mp4",
     title: "GRAFİK TASARIM",
     items: [
       "Kurumsal Kimlik Tasarımı",
@@ -61,6 +94,7 @@ export const HERO_PHASES: HeroPhase[] = [
     kind: "service",
     weight: 1.05,
     icon: Megaphone,
+    videoSrc: "/hero-videos/dijital-pazarlama.mp4",
     title: "DİJİTAL PAZARLAMA",
     items: [
       "Sosyal Medya Hesap Yönetimi",
@@ -75,6 +109,7 @@ export const HERO_PHASES: HeroPhase[] = [
     kind: "service",
     weight: 0.85,
     icon: Globe,
+    videoSrc: "/hero-videos/web-tasarimi.mp4",
     title: "WEB TASARIMI",
     items: ["Kurumsal Web Sitesi", "E-ticaret Sitesi", "Mobil Uygulama Tasarımı"],
   },
@@ -83,6 +118,7 @@ export const HERO_PHASES: HeroPhase[] = [
     kind: "service",
     weight: 0.95,
     icon: CodeXml,
+    videoSrc: "/hero-videos/yazilim-uygulama.mp4",
     title: "YAZILIM VE UYGULAMA",
     items: [
       "Özel Web Uygulamaları & Yönetim Panelleri",
@@ -96,6 +132,7 @@ export const HERO_PHASES: HeroPhase[] = [
     kind: "service",
     weight: 0.85,
     icon: Camera,
+    videoSrc: "/hero-videos/foto-video.mp4",
     title: "FOTOĞRAF & VİDEO ÇEKİMİ",
     items: [
       "Ürün ve Mekân Çekimleri",
@@ -108,6 +145,7 @@ export const HERO_PHASES: HeroPhase[] = [
     kind: "service",
     weight: 0.85,
     icon: GraduationCap,
+    videoSrc: "/hero-videos/danismanlik-egitim.mp4",
     title: "DANIŞMANLIK & EĞİTİM",
     items: [
       "Dijital Pazarlama Stratejisi Danışmanlığı",
