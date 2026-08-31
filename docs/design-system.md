@@ -694,6 +694,108 @@ Dizi boş kaldığı sürece sayfa sosyal medya bölümünü hiç render etmiyor
 adresler gelince yalnızca o dosya değişecek. (`contact.ts` de aynı sebeple
 ayrı bir modül — footer kurulduğunda telefon/adres iki yerde kopyalanmasın.)
 
+## 12. Anasayfa (`/`)
+
+Hero'nun altına brief §4'ün anasayfa sırasından beş bant kuruldu: kısa tanıtım,
+hizmetler özeti, portfolyo teaser, partner rozetleri, iletişim CTA'sı. Emlak
+CRM Pro vitrini (§4-4 / brief §5.2) kendi ekran görüntülerini beklediği için
+şimdilik yok.
+
+**Yüzey ritmi hero'nun son karesinden devralınıyor.** Hero'nun her iki dalı da
+beyaz bitiyor — hareketli dalda `.hero-bg-wash` (`--color-paper-0`),
+reduced-motion dalında `surface-paper surface-paper-raised` bandı. İlk bant
+bu yüzden `surface-paper-raised` (#FFFFFF): iki bant arasında görünür bir renk
+kesiği olmuyor. Sonra sayfa aşağı doğru koyulaşıyor:
+
+| # | Bant | Yüzey | Neden |
+|---|---|---|---|
+| 1 | Kısa tanıtım | `surface-paper surface-paper-raised` | Hero'nun son karesinin devamı |
+| 2 | Hizmetler özeti | `surface-paper` | Renk değil ton kademesi; iki açık bandı ayırıyor |
+| 3 | Portfolyo | `surface-ink` | Görseller koyu zeminde ayrışıyor, sayfanın tek vitrini |
+| 4 | Partnerler | `surface-paper` | Zorunlu — aşağıdaki alfa notuna bakın |
+| 5 | İletişim CTA | `surface-ink surface-ink-deep` | Diğer üç sayfanın kapanış bandıyla aynı |
+
+**Kart yok, yine hairline satır.** Brief §4 hizmetler özetini "6 kart" diye
+tarif ediyor ama §4'ün şekil dili kart grid'ini atıyor ve §9 `/hizmetler`'i
+hairline ayraçlı satırlarla kurdu. Özet aynı dili tekrarlıyor: sayaç, ikon,
+başlık ve kalemler tek mono satırda. Satırların dolgusu `.hero-service-row`'un
+`--spacing-section-tight`'i DEĞİL sabit `2.5rem` — o ölçüyle bant 2300px'i
+geçiyor ve "özet", `/hizmetler`'in kendisi kadar uzun oluyordu. Her satır
+`/hizmetler#<id>`'ye giden bir bağlantı; o çapalar `.service-index` sayesinde
+zaten var.
+
+`.hero-phase-icon` yeniden kullanılamadı — §9'daki sebebin aynısı: o kural
+`--color-accent`'i sabit yazıyor ve yalnızca koyu zeminde doğru. Açık zeminli
+bu bantta ikon `.service-icon`'dan geliyor.
+
+**Portfolyo: statik grid, marquee değil.** Kayan şerit JS + DOM kopyası ister,
+`prefers-reduced-motion` için ayrı bir dal gerektirir ve hareketin tek sahibi
+hero'dur (§9'un "medya/ağırlık yok" çizgisi). Düzen üç sütun + tek bir
+`span 2` kare: sekiz iş dokuz hücreye, yani tam üç sıraya oturuyor, boş hücre
+kalmıyor. `span 2` olan `Welsness_Kurumsal.jpg` — sekiz görselin tek manzara
+oranlısı (3000×1987), diğer yedisi kare. Kadraj `object-fit: cover`; hiçbiri
+`contain` ile küçültülmüyor, çünkü hepsi kendi kompozisyonu olan kampanya/
+mockup kareleri. Bant `--container-wide` (1440) genişliğinde: metin bandı değil
+vitrin.
+
+**Tile'lar link değil.** Tek tek vaka çalışması sayfaları yok, bu yüzden
+tile'da hover durumu da yok — tıklanabilirlik ima edilmiyor. Bandın tek
+bağlantısı alttaki `/portfolyo` CTA'sı. O sayfa henüz kurulmadı ve bağlantı
+bilerek şimdiden konuldu (kullanıcı kararı): nav'da zaten aynı adres var ve o
+da 404 veriyor, yani yeni bir kırılma değil; sayfa kurulunca burada
+değişecek bir şey olmuyor.
+
+**Partner bandı açık zeminde olmak ZORUNDA.** Eski sitede rozetler koyu zeminde
+dairelerdi; §4'te daire ve pill olmadığı için sunum yeniden kuruldu (solda
+başlık, sağda üç hairline kare). Ama asıl kısıt renk değil dosya:
+`meta-ads-digital.png` **alfasız** (RGB) ve zemini pişmiş beyaz. Koyu bantta
+beyaz bir kare olarak dururdu; `#FAFAFA` üstünde bile logonun etrafında ince
+bir kenar görünüyor. Bu yüzden bant `surface-paper`, tile zemini ise yüzeyden
+değil sabit `--color-paper-0` (`--field-bg`'nin gerekçesiyle aynı).
+
+Tile iki satırlı bir grid (`1fr auto`): logo esneyen üst satırda, etiket
+altta. Tek `place-items: center` ile her tile kendi içeriğini ayrı ortalıyor
+ve üç etiket farklı yüksekliklerde duruyordu — logolar aynı ölçüde değil
+(Google Ads dikey 251×313, diğer ikisi kare). Logo ölçüsü de genişlikten değil
+**yükseklikten** sınırlanıyor; aynı sebeple. Sütun sayısı sabit 3: `auto-fit`
+861–1000px arasında 2'ye düşüp üçüncü rozeti tek başına alt satıra bırakıyordu.
+`≤860px`'te üçü alt alta ve yatay (solda sabit genişlikte logo sütunu, sağda
+etiket) — dar ekranda üç küçük kare hem sıkışık hem kırık okunuyordu.
+
+**Partner logoları düz `<img>`, `next/image` değil.** `Google_Ads.svg` bir SVG
+ve Next'in görsel optimizasyonu SVG'yi varsayılan olarak reddediyor
+(`images.dangerouslyAllowSVG: false`). Üç küçük logo için `next.config.ts`'i
+gevşetmeye değmiyor; `width`/`height` açıkça verildiği için layout shift de
+yok. Portfolyo görselleri ise `next/image` `fill` + `sizes` ile geliyor
+(çerçevenin oranı CSS'te). Hiçbirine `preload` verilmiyor — Next 16'da
+`priority`nin yerini alan bu prop hero'nun ilk boyamasını bloklardı.
+
+### Türkçe `text-transform: uppercase` tuzağı
+
+`.eyebrow` metni büyütüyor ve `<html lang="tr">` altında tarayıcı **Türkçe**
+büyütme kuralını uyguluyor: her "i" → "İ". Türkçe sözcüklerde doğru
+("kimlik" → "KİMLİK") ama yabancı özel adlarda değil — "Rixos Premium" →
+"RİXOS PREMİUM", "Business" → "BUSİNESS", "Direct" → "DİRECT", "City" →
+"CİTY". Bu yüzden `content/portfolio.ts`'teki `brand`/`category` ve
+`content/partners.ts`'teki `label` alanları **doğrudan büyük harfle** yazılıyor;
+metin zaten büyükse dönüşümün değiştireceği bir şey kalmıyor. Doğal yazım
+`alt` metinlerinde duruyor.
+
+### İçerik `app/content/portfolio.ts` ve `partners.ts`'e çıkarıldı
+
+`services.ts` / `contact.ts` deseni: `/portfolyo` sayfası kurulduğunda aynı
+diziyi okuyacak (kategori filtresi `category`den türer), liste iki yerde
+tutulmaz. Kısa tanıtım metni ise sayfa-yerel bir `const` — tek tüketicisi var
+(`CHAPTERS`'ın `hakkimda/page.tsx`'te durmasıyla aynı gerekçe). O metin brief
+§7'nin korunacak iki vurgusunu taşıyor: "20 yıla yakın tecrübe" (§7 eski
+sitedeki "tec**br**übeyle" hatasının düzeltilmesini istiyor) ve "Dijitalde Fark
+Yaratın".
+
+Anasayfada `metadata` tanımlanmadı: `layout.tsx`'in kök `title`/`description`'ı
+zaten "/" için yazılmış, burada tekrarlamak ikinci bir kaynak olurdu.
+
+---
+
 ## Kapsam dışı
 
 Bu doküman ve `app/globals.css` yalnızca tasarım sistemini kurar. Sayfa

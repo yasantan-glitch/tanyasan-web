@@ -1277,6 +1277,151 @@
     block-size: 1px;
     overflow: hidden;
   }
+
+  /* ==========================================================================
+     ANASAYFA (/)
+     Hero'nun altındaki beş bant. Hero'nun .hero-* kurallarından ayrı: onlar
+     her frame scroll motoru tarafından sürülüyor, buradakiler tamamen durağan.
+
+     Renklerin hiçbiri sabit yazılmıyor — bantlar surface-paper / surface-ink
+     arasında dönüştüğü için metin, hairline ve accent tonu yüzeyin bağladığı
+     değişkenlerden (--fg-strong, --fg-muted, --hairline, --accent-text)
+     gelmek ZORUNDA (bkz. docs/design-system.md §9). Tek istisna
+     .home-partner-tile'ın zemini; gerekçesi kendi yorumunda.
+     ========================================================================== */
+
+  /* Hizmetler özeti satırı. Geometrisi .hero-service-row ile aynı ailedendir
+     ama o kural reduced-motion hero'ya ait ve ikonu .hero-phase-icon'dan alır
+     — .hero-phase-icon --color-accent'i SABİT yazıyor, yalnızca koyu zeminde
+     doğru (design-system §9). Bu bant açık zeminde olduğu için ikon
+     .service-icon'dan geliyor (rengi --accent-text'ten okur → #7A5200) ve
+     satır düzeni burada ayrı tanımlanıyor.
+
+     Satırın kendisi bir <Link> (/hizmetler#<id>) — hover'da hairline ve başlık
+     accent'e dönüyor, .service-index a ile aynı geri bildirim. */
+  .home-service-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    /* .hero-service-row'un --spacing-section-tight'i (48-88px) burada
+       kullanılmadı: orada altı satır sayfanın TAMAMI, burada bir özet.
+       O ölçüyle bant 2300px'i geçiyor ve özet, /hizmetler'in kendisi kadar
+       uzun oluyordu. */
+    padding-block: 2.5rem;
+    border-block-start: 1px solid var(--hairline);
+    transition: border-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .home-service-row:first-child {
+    border-block-start-width: 0;
+    padding-block-start: 0;
+  }
+
+  .home-service-row:hover {
+    border-color: var(--accent-text);
+  }
+
+  .home-service-title {
+    color: var(--fg-strong);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .home-service-row:hover .home-service-title {
+    color: var(--accent-text);
+  }
+
+  /* Portfolyo vitrini. Üç sütun + tek bir `span 2` kare = 9 hücre, yani sekiz
+     iş tam üç sıraya oturuyor, boş hücre kalmıyor. Marquee/kayan şerit
+     bilinçli olarak tercih EDİLMEDİ: JS + DOM kopyası ister, reduced-motion
+     için ayrı bir dal gerektirir ve hareketin tek sahibi hero'dur. */
+  .home-portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+
+  .home-portfolio-item--wide {
+    grid-column: span 2;
+  }
+
+  /* next/image `fill` için konumlanmış çerçeve (parent position: relative
+     ZORUNLU). Oran burada veriliyor: kareler 1/1, geniş olan 2/1 — iki sütun
+     + aradaki gap'e denk gelen kadraj. */
+  .home-portfolio-frame {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: clip;
+    border: 1px solid var(--hairline);
+    background-color: var(--field-bg);
+  }
+
+  .home-portfolio-item--wide .home-portfolio-frame {
+    aspect-ratio: 2 / 1;
+  }
+
+  /* Künye: işleri bir mood board'dan portfolyoya çeviren tipografik katman.
+     Tile'lar LİNK DEĞİL (tek tek vaka sayfaları yok), bu yüzden tile'da hover
+     durumu da yok — tıklanabilirlik ima edilmiyor. */
+  .home-portfolio-caption {
+    margin-block-start: 0.875rem;
+  }
+
+  .home-portfolio-caption > span {
+    display: block;
+  }
+
+  /* Partner rozetleri. Eski sitedeki koyu zemin + DAİRESEL rozet sunumu
+     kopyalanmadı — design-system §4'te pill ve daire yok.
+
+     Sütun sayısı SABİT 3: `auto-fit` denendi ve sağ sütunun genişliğine göre
+     861–1000px arasında 2'ye düşüp üçüncü rozeti tek başına alt satıra
+     bırakıyordu. Üç rozet ya yan yana durur ya da (≤860px) alt alta; 2+1
+     kırık bir sıralama. */
+  .home-partners {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  /* Tile zemini yüzeyden DEĞİL, sabit --color-paper-0: meta-ads-digital.png
+     alfasız (RGB) ve zemini pişmiş beyaz — #FAFAFA üstünde logonun etrafında
+     görünür bir kare kenarı oluşurdu. Diğer iki logo (SVG ve alfalı PNG)
+     beyaz üstünde zaten doğru duruyor. --field-bg ile aynı gerekçe. */
+  .home-partner-tile {
+    /* İki satır: logo (esner) + etiket (kendi yüksekliği). `place-items`
+       tek başına kullanılsaydı her tile kendi içeriğini ayrı ortalar ve üç
+       etiket farklı yüksekliklerde dururdu — logolar aynı ölçüde değil
+       (Google Ads dikey, diğer ikisi kare). Bu düzende etiketler üçünde de
+       aynı hatta oturuyor. */
+    display: grid;
+    grid-template-rows: 1fr auto;
+    place-items: center;
+    gap: 1rem;
+    aspect-ratio: 4 / 3;
+    /* Dolgu ve logo ölçüsü birlikte esniyor: dar masaüstünde tile ~113px'e
+       inebiliyor ve sabit 1.5rem dolgu logoya yer bırakmıyordu. */
+    padding: clamp(0.75rem, 1.5vw, 1.5rem);
+    border: 1px solid var(--hairline);
+    background-color: var(--color-paper-0);
+  }
+
+  /* Ölçü YÜKSEKLİKTEN sınırlanıyor, genişlikten değil: Google Ads logosu
+     dikey (251×313), kare olanlarla aynı genişliğe zorlansaydı diğer ikisinden
+     belirgin büyük görünürdü. Ortak yükseklik üçünü optik olarak eşitliyor. */
+  .home-partner-tile img {
+    max-block-size: clamp(2.25rem, 4vw, 4.5rem);
+    max-inline-size: 100%;
+    inline-size: auto;
+    block-size: auto;
+    object-fit: contain;
+  }
+
+  .home-partner-tile figcaption {
+    color: var(--fg-muted);
+    text-align: center;
+    text-wrap: balance;
+  }
 }
 
 /* Mobil — anlatı aynı 8 faz, mesafe ~%65'e iniyor ve tipografi bir kademe
@@ -1401,6 +1546,43 @@
     line-height: var(--text-display-2xl--line-height);
     letter-spacing: var(--text-display-2xl--letter-spacing);
     font-weight: var(--text-display-2xl--font-weight);
+  }
+
+  /* Anasayfa. Portfolyo iki sütuna düşer, geniş iş yine `span 2` yani tam
+     satır. Hizmet satırında ikon üstte, metin altta — 360px'te yan yana iki
+     sütun başlığı kırpıyordu. */
+  .home-portfolio-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .home-service-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Üç rozet alt alta ve YATAY: solda logo, sağda etiket. Dar ekranda üç
+     küçük kare (ya da 2+1) hem sıkışık hem kırık okunuyordu; tam genişlikte
+     üç satır telefonda daha okunur. */
+  .home-partners {
+    grid-template-columns: 1fr;
+  }
+
+  .home-partner-tile {
+    grid-template-rows: auto;
+    /* Logo sütunu SABİT genişlik: `auto` olsaydı her tile logosunun kendi
+       genişliğini alır ve üç etiket farklı noktalarda başlardı. */
+    grid-template-columns: 4.5rem 1fr;
+    justify-items: start;
+    align-items: center;
+    aspect-ratio: auto;
+    gap: 1.25rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .home-partner-tile img {
+    max-block-size: 3rem;
+    justify-self: center;
   }
 
 }
