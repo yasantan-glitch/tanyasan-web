@@ -245,10 +245,38 @@ düzeltme de yapıldı:
    hero içindeki ghost buton (ve focus halkası) yanlış (açık zemine göre
    ayarlanmış) tonu alıyordu.
 
-## Nav linkleri henüz sayfası olmayan rotalara işaret ediyor
+## Nav linklerinin bir kısmının hâlâ sayfası yok
 
-`navLinks.ts`'teki `/hizmetler`, `/portfolyo`, `/hakkimda`, `/blog`,
-`/iletisim` rotalarının **henüz sayfaları yok** — bu sayfalar sırada.
-Yeni bir sayfa eklerken `navLinks.ts`'i güncellemeye gerek yok, adresler
-zaten oradan geliyor; yapılması gereken yalnızca o route'ta bir sayfa
-oluşturmak.
+`navLinks.ts`'teki `/hizmetler`, `/hakkimda` ve `/iletisim` kuruldu;
+`/portfolyo` (ve `/portfolyo/emlak-crm-pro`) ile `/blog` **hâlâ boş** — bu
+sayfalar sırada. Yeni bir sayfa eklerken `navLinks.ts`'i güncellemeye gerek
+yok, adresler zaten oradan geliyor; yapılması gereken yalnızca o route'ta bir
+sayfa oluşturmak.
+
+# İletişim formu — sitenin tek sunucu tarafı
+
+`/iletisim` sitedeki tek **çalışan backend'i** taşıyor: `app/iletisim/
+actions.ts` bir Server Action, Resend'in REST API'sine tek bir `fetch` POST'u
+yapıyor (`resend` npm paketi bilinçli olarak eklenmedi). Üçüncü parti bir form
+servisi yok.
+
+- **`"use server"` dosyasından yalnızca async fonksiyon export edilebilir.**
+  `ContactState` tipi ve `CONTACT_INITIAL_STATE` sabiti bu yüzden ayrı bir
+  modülde (`app/iletisim/contactState.ts`); sabiti `actions.ts`'e taşımak
+  derlemeyi kırar.
+- **Form JS kapalıyken de çalışmalı.** `useActionState` + Server Action bunu
+  veriyor; `ContactForm.tsx`'e `onSubmit`/`preventDefault` **eklenmemeli**,
+  durum mesajı state'ten render edilmeli ve alanlar kontrolsüz kalmalı
+  (hata hâlinde `defaultValue` sunucudan dönen `state.values`'tan gelir).
+- **`Date.now()` render sırasında okunmaz** — hydration mismatch olurdu; spam
+  zaman damgası `useEffect` içinde hidden input'a yazılıyor.
+- **Env runtime'da okunuyor** (`RESEND_API_KEY`, `CONTACT_TO`,
+  `CONTACT_FROM` — bkz. `.env.example`): anahtar yokken build kırılmaz,
+  yalnızca gönderim başarısız olur ve kullanıcıya e-posta/telefon alternatifi
+  gösterilir.
+- İletişim bilgileri ve sosyal linkler `app/content/contact.ts` /
+  `app/content/socialLinks.ts`'te — `services.ts` ile aynı desen. Sosyal dizi
+  **şu an boş** (adresler brief'te yok); boş kaldığı sürece sayfa o bölümü hiç
+  render etmiyor, yer tutucu link yazılmamalı.
+
+Gerekçelerin tamamı için `docs/design-system.md` §11.

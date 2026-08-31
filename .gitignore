@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...ama örnek dosya izlenmeli: /iletisim formunun hangi değişkenleri
+# beklediği kod tarafında görünmezse kurulum belgesizleşir.
+!.env.example
 
 # vercel
 .vercel

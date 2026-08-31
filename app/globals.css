@@ -185,6 +185,7 @@
     --accent-text: var(--color-accent);
     --fg-strong: var(--color-fg-on-ink);
     --fg-muted: var(--color-fg-on-ink-muted);
+    --field-bg: var(--color-ink-800);
   }
 
   .surface-ink-deep {
@@ -199,6 +200,7 @@
     --accent-text: var(--color-accent-ink);
     --fg-strong: var(--color-fg-on-paper);
     --fg-muted: var(--color-fg-on-paper-muted);
+    --field-bg: var(--color-paper-0);
   }
 
   .surface-paper-raised {
@@ -215,6 +217,7 @@
     --accent-text: var(--color-accent-ink);
     --fg-strong: var(--color-fg-on-paper);
     --fg-muted: var(--color-fg-on-paper-muted);
+    --field-bg: var(--color-paper-0);
   }
 
   /* ---------------------------------------------------------------
@@ -1095,6 +1098,185 @@
     border-block-start: 1px solid var(--hairline);
     padding-block-start: var(--spacing-section-tight);
   }
+
+  /* ==========================================================================
+     İLETİŞİM (/iletisim) — sayfa gövdesi yine .service-grid/.service-head'i
+     olduğu gibi kullanıyor (§10'daki kural: .contact-* ikizleri yazılmaz).
+     Buradaki kurallar yalnızca bilgi listesi ve form için.
+     Bkz. docs/design-system.md §11.
+
+     Hiçbir renk sabit yazılmıyor: form ileride koyu bir bantta da
+     kullanılabilsin diye zemin bile yüzeyin bağladığı --field-bg'den geliyor.
+     ========================================================================== */
+
+  /* .service-items'in ikizi değil kardeşi: aynı hairline ayraç deseni, ama
+     satırlar iki katmanlı (mono etiket + değer). Kart yok (§4). */
+  .contact-details {
+    inline-size: 100%;
+    margin-block-start: 1.5rem;
+  }
+
+  .contact-details > div {
+    border-block-start: 1px solid var(--hairline);
+    padding-block: 1rem;
+    display: grid;
+    gap: 0.3rem;
+    justify-items: start;
+  }
+
+  .contact-details > div:last-child {
+    border-block-end: 1px solid var(--hairline);
+  }
+
+  .contact-details a {
+    color: inherit;
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .contact-details a:hover {
+    color: var(--accent-text);
+  }
+
+  /* --- Form ---------------------------------------------------------------
+     Genişlik .service-items ile aynı (44rem): metin sütunundan geniş, sayfa
+     genişliğinden dar. */
+  .contact-form {
+    display: grid;
+    gap: 1.75rem;
+    max-inline-size: 44rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.55rem;
+    align-content: start;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.75rem;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    inline-size: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+    background-color: var(--field-bg);
+    color: var(--fg-strong);
+    font-family: inherit;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    transition: border-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .field input::placeholder,
+  .field textarea::placeholder {
+    color: var(--fg-muted);
+  }
+
+  .field input:hover,
+  .field select:hover,
+  .field textarea:hover {
+    border-color: var(--accent-text);
+  }
+
+  /* Odak halkası ayrıca tanımlanmıyor — :focus-visible zaten yüzeyin
+     --focus'undan geliyor (§7) ve her iki zeminde görünür kalıyor. */
+
+  .field textarea {
+    resize: vertical;
+    min-block-size: 9rem;
+  }
+
+  .field [aria-invalid="true"] {
+    border-color: var(--color-danger);
+  }
+
+  /* Native select oku macOS'ta kenarlığı/dolguyu yok sayıyor; appearance
+     sıfırlanıp ok kendi ikonumuzla çiziliyor (renk yüzeyden gelsin diye
+     background-image değil, gerçek bir eleman). */
+  .select-wrap {
+    position: relative;
+    display: grid;
+  }
+
+  .select-wrap select {
+    appearance: none;
+    padding-inline-end: 2.75rem;
+  }
+
+  .select-wrap > svg {
+    position: absolute;
+    inset-inline-end: 1rem;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    inline-size: 1rem;
+    block-size: 1rem;
+    color: var(--fg-muted);
+    pointer-events: none;
+  }
+
+  .field-error {
+    color: var(--color-danger);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+
+  /* Durum bandı: kart değil, soldan renkli bir hairline. Renk yalnızca
+     ayraçta — metin yüzeyin kendi tonunda kalıyor, kontrast bozulmuyor. */
+  .form-status {
+    border: 1px solid var(--hairline);
+    border-inline-start: 2px solid var(--form-status-accent, var(--hairline));
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    max-inline-size: 44rem;
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+  }
+
+  .form-status[data-status="success"] {
+    --form-status-accent: var(--color-success);
+  }
+
+  .form-status[data-status="error"] {
+    --form-status-accent: var(--color-danger);
+  }
+
+  .form-submit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .form-submit .btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  /* KVKK notu — onay kutusu değil (§11). */
+  .form-note {
+    flex: 1 1 18rem;
+    color: var(--fg-muted);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    letter-spacing: var(--text-caption--letter-spacing);
+  }
+
+  /* Honeypot: `display: none` bazı botlarca atlanır, o yüzden görsel olarak
+     ekran dışına taşınıyor. Klavye/AT erişimi bileşende tabIndex={-1} ve
+     aria-hidden ile kapatılıyor. */
+  .honeypot {
+    position: absolute;
+    inset-inline-start: -9999px;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+  }
 }
 
 /* Mobil — anlatı aynı 8 faz, mesafe ~%65'e iniyor ve tipografi bir kademe
@@ -1156,6 +1338,11 @@
 
   .about-portrait {
     max-inline-size: 22rem;
+  }
+
+  /* Dar ekranda yan yana iki alan (Ad|E-posta, Telefon|Hizmet) sıkışıyor. */
+  .field-row {
+    grid-template-columns: 1fr;
   }
 
   .hero-phase-title {

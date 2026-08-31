@@ -606,6 +606,94 @@ eski sitenin sayfası. Her iki kaynakta da olmayan ve uydurulmayan üç şey var
   ("iyi görünen bir iş, işe yaramıyorsa iyi bir iş değildir") `01 / 03`
   bölümünün gövdesinde duruyor, ayrı bir değerler bloğuna çıkarılmadı.
 
+## 11. İletişim sayfası (`/iletisim`)
+
+Sitenin tek dönüşüm noktası: nav'daki `NAV_CTA` ("Teklif Al"), `/hizmetler` ve
+`/hakkimda` kapanış bantları hep buraya gönderiyor. Brief bu sayfa için
+**yalnızca** §7'deki iletişim bilgilerini veriyor; form backend'i, sosyal medya
+adresleri ve harita brief'te hiç geçmiyor — dördü de kullanıcıya soruldu,
+aşağıdaki kararlar onun onayıyla alındı.
+
+**Kalıp üçüncü kez tekrarlanıyor, bilinçli.** Koyu başlık bandı → açık gövde →
+koyu kapanış bandı; gövde yine `.service-grid` + `.service-head`. Sol yapışkan
+sütunda iletişim bilgileri, sağda form: uzun bir form doldurulurken telefon ve
+adres ekranda kalıyor. `.contact-*` adıyla `.service-*` ikizleri yazılmadı
+(§10'daki kuralın aynısı); yalnızca bilgi listesi ve form için yeni kural var.
+Kapanış bandının CTA'sı burada `NAV_CTA` **olamaz** — zaten o sayfadayız;
+yerine `tel:` bağlantısı konuldu.
+
+### Form: Server Action + Resend, üçüncü parti form servisi yok
+
+Site Vercel'de barınıyor (brief §1), yani sunucu tarafı zaten elimizde.
+Formspree/Web3Forms gibi bir aracı, yazılım geliştirdiğini söyleyen bir ajansın
+kendi sitesinde gereksiz bir dış bağımlılık olurdu — üstelik mesajlar bir
+başkasının panelinden geçerdi. `mailto:` ise gönderimlerin çoğunu kaybeder
+(webmail ve mobil).
+
+- **`resend` npm paketi eklenmedi.** Gönderim tek bir `fetch` POST'u;
+  `docs/CLAUDE.md`'deki "yeni paket eklemeden önce mevcut yolu değerlendir"
+  notu burada da geçerli. Proje bağımlılık listesi değişmedi.
+- **Progressive enhancement.** `useActionState` bir Server Action ile
+  kullanıldığında React formu JS kapalıyken native olarak POST eder ve sonucu
+  sunucudan render eder. Bu yüzden `ContactForm.tsx`'te `onSubmit`,
+  `preventDefault` ve `alert` **yok**; doğrulama, spam kontrolü ve durum
+  mesajının tamamı sunucuda üretilip `ContactState` olarak dönüyor. Aynı
+  sebeple alanlar kontrolsüz ve hata hâlinde `defaultValue` sunucudan dönen
+  `state.values`'tan geliyor — JS'siz turda yazılanlar kaybolmasın diye.
+- **`CONTACT_INITIAL_STATE` ayrı bir modülde** (`contactState.ts`): bir
+  `"use server"` dosyasından yalnızca async fonksiyon export edilebilir, sabit
+  export'u derlemeyi kırar.
+- **Env runtime'da okunuyor** (`RESEND_API_KEY`, `CONTACT_TO`,
+  `CONTACT_FROM`; bkz. `.env.example`). Anahtar yokken build kırılmıyor,
+  yalnızca gönderim başarısız oluyor ve kullanıcıya doğrudan e-posta/telefon
+  alternatifi gösteriliyor — mesaj sessizce kaybolmuyor.
+- **Spam: honeypot + doldurma süresi, reCAPTCHA yok.** reCAPTCHA üçüncü parti
+  bir script; sayfanın "medya/ağırlık yok" çizgisine (§9) aykırı. Honeypot
+  `display: none` ile değil ekran dışına taşınarak gizleniyor (bazı botlar
+  `display: none` alanları atlar). İki kontrolün ikisi de yakaladığında
+  **başarı** dönüyor — bota "engellendin" demek yeni bir deneme davetidir.
+- **`reply_to` gönderenin adresi**: gelen kutusundan "Yanıtla" doğrudan
+  müşteriye gidiyor. Formun e-postaya göre tek gerçek avantajı bu.
+
+Alanlar: Ad Soyad\*, E-posta\*, Telefon, İlgilendiğiniz hizmet, Mesaj\*.
+Eski sitede yalnızca ilk ikisi ve mesaj vardı; telefon ve hizmet seçimi bu
+sayfa "Teklif Al" hedefi olduğu için eklendi ve ikisi de opsiyonel. Hizmet
+seçeneği `SERVICES`'ten türüyor — altı kalem bu sayfada ikinci kez yazılmıyor
+(§9'un tek kaynak kuralı).
+
+### Yeni token: `--field-bg`
+
+Form alanlarının zemini de yüzeyden gelmek zorunda (§2), yoksa form ileride
+koyu bir banda konduğunda beyaz kutular olarak kalırdı. `.surface-ink`
+`--color-ink-800`, `.surface-paper` ve `.on-paper` `--color-paper-0` bağlıyor.
+Odak halkası ayrıca tanımlanmadı — `:focus-visible` zaten yüzeyin
+`--focus`'undan geliyor (§7). Native `select` oku macOS'ta kenarlığı yok
+saydığı için `appearance` sıfırlandı ve ok gerçek bir ikon elemanıyla çizildi
+(`background-image` olsaydı rengi yüzeyden okuyamazdı).
+
+### Harita ve KVKK
+
+**Gömülü harita yok.** Adres metin olarak duruyor, yanında Google Maps'i
+dışarıda açan tek bir bağlantı var. Bir iframe ~500KB'lık üçüncü parti yük ve
+Google çerezi getirir (KVKK açısından da ayrı bir onay katmanı gerektirir),
+üstelik sayfanın tipografi + hairline diline yabancı bir dikdörtgendir.
+Randevusuz ziyaret alan bir ajans ofisi olmadığı için gömülü harita burada
+işlevden çok dekor olurdu.
+
+**KVKK: onay kutusu değil, tek satır bilgi notu** (gönder butonunun altında).
+Tek amaçlı bir iletişim formunda zorunlu checkbox gereksiz sürtünme; ayrıca
+linklenecek bir aydınlatma metni henüz yok. `/kvkk` sayfası yazıldığında bu
+satır ona bağlanır.
+
+### Eksik içerik — bilinçli boşluk
+
+**Sosyal medya adresleri.** Eski sitede Facebook / Instagram / LinkedIn /
+Pinterest bağlantıları vardı, brief bunları vermiyor. `app/content/socialLinks.ts`
+tek kaynak olarak kuruldu ama **boş**: uydurma URL kırık link demek olurdu.
+Dizi boş kaldığı sürece sayfa sosyal medya bölümünü hiç render etmiyor;
+adresler gelince yalnızca o dosya değişecek. (`contact.ts` de aynı sebeple
+ayrı bir modül — footer kurulduğunda telefon/adres iki yerde kopyalanmasın.)
+
 ## Kapsam dışı
 
 Bu doküman ve `app/globals.css` yalnızca tasarım sistemini kurar. Sayfa
