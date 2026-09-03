@@ -1279,6 +1279,90 @@
   }
 
   /* ==========================================================================
+     BLOG (/blog, /blog/[slug])
+     Kart yok, hairline satırlar — sitenin geri kalanıyla aynı dil (§4).
+     Renkler yüzeyden geliyor: liste her zaman surface-paper'da ama kural
+     sabit renk yazmıyor, diğer bölümlerle aynı disiplin.
+     ========================================================================== */
+
+  /* Tek sütun hairline satır listesi. .home-service-row'un ikonsuz kardeşi:
+     o satırda ikon vardı (.service-icon), burada yalnızca başlık + meta. */
+  .blog-row {
+    display: block;
+    padding-block: 2rem;
+    border-block-start: 1px solid var(--hairline);
+    transition: border-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-row:first-child {
+    border-block-start-width: 0;
+    padding-block-start: 0;
+  }
+
+  .blog-row:hover {
+    border-color: var(--accent-text);
+  }
+
+  .blog-row-title {
+    color: var(--fg-strong);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-row:hover .blog-row-title {
+    color: var(--accent-text);
+  }
+
+  /* Boş durum: yazı yoksa liste yerine tek bir bant. "Yakında" değil —
+     neyin yazılacağını söyleyen bir metin + iletişim CTA'sı. */
+  .blog-empty {
+    max-inline-size: var(--container-prose);
+    padding-block: 2.5rem;
+    border-block-start: 1px solid var(--hairline);
+  }
+
+  /* Yazı gövdesi: marked'in ürettiği ham HTML'e uygulanıyor (`.blog-prose`),
+     Tailwind Typography eklenmedi — sitede zaten yalnızca birkaç eleman
+     türü var (p, h2, ul/ol, a, strong/em), tek amaçlık bir kural seti
+     eklemek yeni bir bağımlılıktan daha az maliyetli. */
+  .blog-prose {
+    max-inline-size: var(--container-prose);
+  }
+
+  .blog-prose > * + * {
+    margin-block-start: 1.5rem;
+  }
+
+  .blog-prose h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    font-weight: var(--text-display-lg--font-weight);
+    color: var(--fg-strong);
+    margin-block-start: 3rem;
+  }
+
+  .blog-prose a {
+    color: var(--accent-text);
+    text-underline-offset: 0.2em;
+  }
+
+  .blog-prose ul,
+  .blog-prose ol {
+    padding-inline-start: 1.25rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .blog-prose li {
+    padding-block: 0;
+  }
+
+  .blog-prose strong {
+    color: var(--fg-strong);
+  }
+
+  /* ==========================================================================
      ANASAYFA (/)
      Hero'nun altındaki beş bant. Hero'nun .hero-* kurallarından ayrı: onlar
      her frame scroll motoru tarafından sürülüyor, buradakiler tamamen durağan.
