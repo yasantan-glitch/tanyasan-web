@@ -3,21 +3,24 @@ import Link from "next/link";
 
 import Hero from "./components/hero/Hero";
 import { NAV_CTA } from "./components/nav/navLinks";
+import { CASE_LEAD_SHOT, CASE_SUPPORT_SHOTS } from "./content/emlakCrmPro";
 import { PARTNERS } from "./content/partners";
 import { PORTFOLIO_ITEMS } from "./content/portfolio";
 import { SERVICES } from "./content/services";
 
 /**
- * Anasayfa — hero + beş bant. Brief §4'ün anasayfa sırasından (2) kısa
- * tanıtım, (3) hizmetler özeti, (5) portfolyo teaser, (6) partner rozetleri
- * ve (7) iletişim CTA'sı. Emlak CRM Pro vitrini (§4-4 / §5.2) kendi ekran
- * görüntülerini beklediği için henüz kurulmadı.
+ * Anasayfa — hero + altı bant. Brief §4'ün anasayfa sırasının tamamı:
+ * (2) kısa tanıtım, (3) hizmetler özeti, (4) Emlak CRM Pro vitrini,
+ * (5) portfolyo teaser, (6) partner rozetleri, (7) iletişim CTA'sı.
  *
  * YÜZEY RİTMİ — hero'nun her iki dalı da BEYAZ bitiyor (hareketli dalda
  * .hero-bg-wash = --color-paper-0, reduced-motion dalında
  * `surface-paper surface-paper-raised` section'ı). İlk bant o kareyi birebir
  * devralıyor, sonra sayfa aşağı doğru koyulaşıyor:
- *   paper-raised (#FFF) → paper (#FAFAFA) → ink → paper → ink-deep
+ *   paper-raised (#FFF) → paper (#FAFAFA) → ink-deep → ink → paper → ink-deep
+ * Emlak CRM Pro ile portfolyo bandı arasındaki ink-deep → ink, sayfanın
+ * tepesindeki #FFF → #FAFAFA kademesinin karşılığı: renk değişimi değil ton
+ * kademesi. İkisi birlikte sayfanın "vitrin bloğu"nu kuruyor.
  * Partner bandının açık zeminde olması bir tercih değil zorunluluk:
  * meta-ads-digital.png alfasız, zemini pişmiş beyaz (bkz. content/partners.ts).
  *
@@ -39,6 +42,23 @@ import { SERVICES } from "./content/services";
 const INTRO_PARAGRAPHS = [
   "20 yıla yakın tecrübeyle markaların görünen yüzünü tasarlıyor, arkada çalışan sistemini kuruyoruz. Kurumsal kimlikten reklam kampanyasına, web sitesinden işinizi yürüten yazılıma kadar hepsi tek ekipten çıkıyor.",
   "Antalya'da çalışıyoruz, Türkiye'nin her yerinden proje alıyoruz. İşimizin özeti üç kelime: dijitalde fark yaratın.",
+];
+
+/**
+ * Emlak CRM Pro bandının metni — brief §5.2'den birebir. Sayfa-yerel const
+ * (INTRO_PARAGRAPHS ile aynı gerekçe: tek tüketici). /portfolyo/emlak-crm-pro
+ * vaka sayfası kurulduğunda oranın metni çok daha uzun ve farklı olacak,
+ * ortak kaynağa çıkarılacak bir şey yok — paylaşılan tek şey ekran
+ * görüntüleri, onlar zaten content/emlakCrmPro.ts'te.
+ *
+ * §5.2'nin konumlandırma notu: bu bölüm ÜRÜN SATMIYOR, yazılım yeteneğini
+ * kanıtlıyor. Bu yüzden emlakcrmpro.com bağlantısı burada GEÇMİYOR — dış
+ * domain yalnızca vaka çalışması sayfasının sonunda, küçük bir bağlantı
+ * olarak yer alacak (/hizmetler ve /hakkimda'daki kuralın aynısı).
+ */
+const CASE_PARAGRAPHS = [
+  "Bir emlak ofisinin portföyünü, müşterilerini, danışman performansını ve muhasebesini tek sistemde topladık. Bugün gerçek bir ofis bu sistemle çalışıyor.",
+  "Harita üzerinde portföy yönetimi, otomatik müşteri-ilan eşleştirme, danışman hakediş takibi, çok para birimli muhasebe — hepsi sıfırdan tasarlandı ve kodlandı.",
 ];
 
 export default function Home() {
@@ -138,10 +158,104 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3 — Portfolyo öne çıkanlar. Sayfanın tek vitrin bandı: koyu zemin
-          (görseller ayrışıyor) ve --container-wide (metin bandı değil).
-          Düzen gerekçesi .home-portfolio-grid'in yorumunda: statik 3 sütun +
-          bir `span 2`, marquee yok.
+      {/* 3 — Öne çıkan iş: Emlak CRM Pro. Brief §4'ün 4. sırası, §5.2'nin
+          metni. Sitenin ana konumlandırma iddiasını (yazılım da bir hizmet
+          çizgisi) kanıtlayan bant — ajansın kendi geliştirdiği ürün, bu
+          yüzden portfolyo işlerinden daha ağırlıklı bir sunum alıyor.
+
+          YÜZEY ink-deep (#141414), iki gerekçeyle: (1) dört karenin üçü AÇIK
+          temalı, zemini kremimsi beyaz — açık bir bantta zemine akarlardı
+          (partners.ts'teki alfasız Meta logosu sorununun aynısı), koyu zeminde
+          ışıyan yüzeyler olarak ayrışıyorlar; (2) sayfanın en derin tonu bu
+          banda istenen ağırlığı veriyor. Alttaki portfolyo bandı `ink`, yani
+          ink-deep → ink bir TON KADEMESİ (renk değişimi değil).
+
+          Kareler LİNK DEĞİL — portfolyo bandındaki kararın aynısı, bandın tek
+          bağlantısı alttaki CTA ve o iç rotaya gidiyor. */}
+      <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
+        <div className="mx-auto max-w-(--container-wide)">
+          <p className="eyebrow text-accent-auto mb-6">Öne Çıkan İş</p>
+          <h2
+            className="font-display text-strong max-w-[20ch]"
+            style={{
+              fontSize: "var(--text-display-2xl)",
+              lineHeight: "var(--text-display-2xl--line-height)",
+              letterSpacing: "var(--text-display-2xl--letter-spacing)",
+              fontWeight: "var(--text-display-2xl--font-weight)",
+            }}
+          >
+            SADECE ANLATMIYORUZ, YAPIYORUZ.
+          </h2>
+          {CASE_PARAGRAPHS.map((paragraph, index) => (
+            <p
+              key={paragraph}
+              className={`max-w-(--container-prose) ${
+                index === 0 ? "text-lead mt-8" : "text-muted mt-6"
+              }`}
+            >
+              {paragraph}
+            </p>
+          ))}
+
+          {/* Açılış karesi bant genişliğinde. `preload` VERİLMİYOR (Next 16'da
+              `priority`nin yerini aldı) — bant katlanın çok altında, hero'nun
+              ilk boyaması bloklanmamalı. Kaynak PNG ~3330×1852; next/image
+              onu build'de AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor,
+              5.7MB'lık kaynak seti tarayıcıya hiç gitmiyor. */}
+          <figure className="mt-(--spacing-section-tight)">
+            <div className="home-case-frame">
+              <Image
+                src={CASE_LEAD_SHOT.src}
+                alt={CASE_LEAD_SHOT.alt}
+                fill
+                sizes="(max-width: 860px) 100vw, 1440px"
+                style={{ objectFit: "cover" }}
+              />
+            </div>
+            <figcaption className="home-case-caption eyebrow text-muted">
+              {CASE_LEAD_SHOT.caption}
+            </figcaption>
+          </figure>
+
+          {/* Üç destek karesi. Sıra §5.2'nin cümlesini takip ediyor: portföy
+              yönetimi → harita üzerinde analiz → raporlama. */}
+          <div className="home-case-grid mt-6">
+            {CASE_SUPPORT_SHOTS.map((shot) => (
+              <figure key={shot.src}>
+                <div className="home-case-frame">
+                  <Image
+                    src={shot.src}
+                    alt={shot.alt}
+                    fill
+                    sizes="(max-width: 860px) 100vw, 31vw"
+                    style={{ objectFit: "cover" }}
+                  />
+                </div>
+                <figcaption className="home-case-caption eyebrow text-muted">
+                  {shot.caption}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+
+          {/* /portfolyo/emlak-crm-pro henüz KURULMADI — /hizmetler ve
+              /hakkimda'daki CTA'lar da aynı adrese gidiyor, tutarlı. Bandın
+              tek ve birincil eylemi olduğu için .btn-accent (ghost bu
+              ağırlıktaki bir bantta zayıf kalıyordu). */}
+          <Link
+            href="/portfolyo/emlak-crm-pro"
+            className="btn btn-accent eyebrow mt-(--spacing-section-tight) inline-flex"
+          >
+            Projeyi İncele →
+          </Link>
+        </div>
+      </section>
+
+      {/* 4 — Portfolyo öne çıkanlar. Yukarıdaki vitrinle birlikte sayfanın
+          koyu bloğunu kuruyor: orası tek bir işin derinliği, burası işlerin
+          genişliği. Koyu zemin (görseller ayrışıyor) ve --container-wide
+          (metin bandı değil). Düzen gerekçesi .home-portfolio-grid'in
+          yorumunda: statik 3 sütun + bir `span 2`, marquee yok.
 
           Tile'lar link DEĞİL — tek tek vaka sayfaları yok, tıklanabilirlik
           ima edilmiyor. Bölümün tek bağlantısı alttaki CTA. */}
@@ -208,7 +322,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4 — Partner rozetleri. Eski sitede koyu zeminde dairesel rozetlerdi;
+      {/* 5 — Partner rozetleri. Eski sitede koyu zeminde dairesel rozetlerdi;
           §4'te daire ve pill olmadığı için sunum yeniden kuruldu: solda
           başlık, sağda üç hairline kare. Logolar düz <img> — gerekçe
           content/partners.ts'te (SVG + next/image). */}
@@ -260,7 +374,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5 — Kapanış. /hizmetler, /hakkimda ve /iletisim'in kapanış bandıyla
+      {/* 6 — Kapanış. /hizmetler, /hakkimda ve /iletisim'in kapanış bandıyla
           birebir aynı kalıp. Cümle anasayfaya özel: hero'nun kapanış sloganını
           (FİKİRDEN SONUCA, TEK EKİPLE) ve diğer üç bandın cümlelerini
           tekrarlamıyor, portfolyo bandından sonra doğal okunuyor. */}

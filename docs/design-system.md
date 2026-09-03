@@ -696,10 +696,10 @@ ayrı bir modül — footer kurulduğunda telefon/adres iki yerde kopyalanmasın
 
 ## 12. Anasayfa (`/`)
 
-Hero'nun altına brief §4'ün anasayfa sırasından beş bant kuruldu: kısa tanıtım,
-hizmetler özeti, portfolyo teaser, partner rozetleri, iletişim CTA'sı. Emlak
-CRM Pro vitrini (§4-4 / brief §5.2) kendi ekran görüntülerini beklediği için
-şimdilik yok.
+Hero'nun altına brief §4'ün anasayfa sırasının tamamı kuruldu — altı bant: kısa
+tanıtım, hizmetler özeti, Emlak CRM Pro vitrini, portfolyo teaser, partner
+rozetleri, iletişim CTA'sı. (Emlak CRM Pro bandı önce ekran görüntüleri
+olmadığı için ertelenmişti; kareler gelince eklendi.)
 
 **Yüzey ritmi hero'nun son karesinden devralınıyor.** Hero'nun her iki dalı da
 beyaz bitiyor — hareketli dalda `.hero-bg-wash` (`--color-paper-0`),
@@ -711,9 +711,15 @@ kesiği olmuyor. Sonra sayfa aşağı doğru koyulaşıyor:
 |---|---|---|---|
 | 1 | Kısa tanıtım | `surface-paper surface-paper-raised` | Hero'nun son karesinin devamı |
 | 2 | Hizmetler özeti | `surface-paper` | Renk değil ton kademesi; iki açık bandı ayırıyor |
-| 3 | Portfolyo | `surface-ink` | Görseller koyu zeminde ayrışıyor, sayfanın tek vitrini |
-| 4 | Partnerler | `surface-paper` | Zorunlu — aşağıdaki alfa notuna bakın |
-| 5 | İletişim CTA | `surface-ink surface-ink-deep` | Diğer üç sayfanın kapanış bandıyla aynı |
+| 3 | Emlak CRM Pro | `surface-ink surface-ink-deep` | Sayfanın en derin tonu = en ağır bandı; aşağıya bakın |
+| 4 | Portfolyo | `surface-ink` | Görseller koyu zeminde ayrışıyor; 3'ten ton kademesiyle ayrılıyor |
+| 5 | Partnerler | `surface-paper` | Zorunlu — aşağıdaki alfa notuna bakın |
+| 6 | İletişim CTA | `surface-ink surface-ink-deep` | Diğer üç sayfanın kapanış bandıyla aynı |
+
+3 ve 4 birlikte sayfanın **vitrin bloğunu** kuruyor: açık "kimiz / ne
+yapıyoruz" bloğundan sonra iki koyu bant, biri tek bir işin derinliği, öbürü
+işlerin genişliği. Aralarındaki `ink-deep` → `ink` bir renk değişimi değil ton
+kademesi — sayfanın tepesindeki `#FFF` → `#FAFAFA` adımının karşılığı.
 
 **Kart yok, yine hairline satır.** Brief §4 hizmetler özetini "6 kart" diye
 tarif ediyor ama §4'ün şekil dili kart grid'ini atıyor ve §9 `/hizmetler`'i
@@ -727,6 +733,90 @@ zaten var.
 `.hero-phase-icon` yeniden kullanılamadı — §9'daki sebebin aynısı: o kural
 `--color-accent`'i sabit yazıyor ve yalnızca koyu zeminde doğru. Açık zeminli
 bu bantta ikon `.service-icon`'dan geliyor.
+
+### Emlak CRM Pro vitrini (bant 3)
+
+Brief §4'ün 4. sırası, §5.2'nin metni. Sitenin ana konumlandırma iddiasını —
+yazılım da bir hizmet çizgisi — kanıtlayan bant: ajansın kendi geliştirdiği,
+bugün gerçek bir ofiste çalışan ürün. Bu yüzden portfolyo işlerinden daha
+ağırlıklı bir sunum alıyor (kendi bandı, en derin ton, `.btn-accent`).
+
+**Yüzeyin koyu olması bir tercih değil, görsellerin dayattığı bir sonuç.**
+Karelerin hepsi açık temalı ve zemini kremimsi beyaz; `#FAFAFA` üstünde kare
+kenarları zemine akar — `meta-ads-digital.png`'nin partner bandını açık zemine
+mecbur bırakmasının simetriği (aşağıdaki alfa notu). Koyu zeminde ışıyan
+yüzeyler olarak ayrışıyorlar, üstelik `ink-deep` bandın istenen ağırlığını da
+veriyor.
+
+**Çerçeve: gri pasparta, hairline değil.** İlk sürüm portfolyo bandının 1px
+hairline'ını kullanıyordu ve `#141414` üstünde yetmedi: karelerin kendi kenarı
+da açık olduğu için sınır kayboluyor, ekran görüntüsü zeminde yüzüyordu.
+İkinci denemede kenarlık **beyaz** (`--color-paper-0`) yapıldı ama bu kez ters
+yöne taştı — ekran görüntülerinin kendi açık içeriğiyle kaynaşıp zeminde sert
+bir beyaz blok gibi durdu. Kalın ve dolu bir **orta gri** kenarlığa geçildi:
+`--color-fg-on-ink-muted` (`#A4A5A8`, logodan — `.st1`), zaten koyu yüzeylerde
+muted metin/ikon için kullanılan token. Hem zeminden hem görüntülerin beyaz
+içeriğinden ayrışıyor; yeni hex icat edilmedi, gölge yok, köşe yarıçapı 0
+(§4). Kalınlık tek bir değişkenden (`--case-mat`) geliyor: açılış karesi
+`0.75rem`, destekler `0.5rem` (aynı piksel değeri 1440px ve ~464px
+genişlikte aynı oranı vermiyor), `≤860px`'te ikisi de `0.375rem`.
+
+Layout shift yok: Tailwind preflight `box-sizing: border-box` bağladığı için
+`aspect-ratio: 16 / 9` **kenarlık dâhil** dış kutuya uygulanıyor — çerçevenin
+dış ölçüsü ve grid geometrisi kalınlıktan bağımsız, değişen yalnızca içerideki
+kadraj. `.home-portfolio-frame`'e dokunulmadı; o bant kendi hairline idiomuyla
+çalışmaya devam ediyor.
+
+**Beş kare var, dördü kullanılıyor.** Dışarıda kalan
+`emlak-crm-pro-analys.png` (Raporlar — Danışmanlar). Gerekçe **editoryal**:
+`analys-2.png` (Raporlar — Portföy) zaten aynı ekranın kardeşi ve üç destek
+yuvasının ikisini tek bir bölüme harcamak bandın "tek sistemde topladık"
+iddiasını daraltıyor — üç yuva üç ayrı yeteneği gösteriyor. Bu kare önce
+*teknik* bir sebeple elenmişti (tooltip artefaktı + kesik satırlar); dosya
+4 Eylül 2026'da yenilendi, artefakt gitti ve kare açık temaya döndü, yani
+artık kullanıma hazır bir seçenek. Eklenmesi istenirse destek satırı 4 sütuna
+ya da 2×2'ye çıkar.
+
+**Düzen: bir büyük + üç destek. Cihaz çerçevesi / tarayıcı mockup'ı YOK.**
+Açılış karesi (yönetim paneli) bant genişliğinde, altında üç sütun: portföy
+yönetimi → harita üzerinde analiz → raporlar. Sıra §5.2'nin cümlesini takip
+ediyor. Sahte macOS trafik ışıkları §4'ün şekil diline (kart yok, gölge yok)
+aykırı ve brief §7'nin "atılacak" dediği şablon hissinin ta kendisi; üstelik
+karelerin kendi uygulama kabuğu (sidebar + üst bar) zaten var, kabuğu kabuğa
+sarmak olurdu. Çerçeve düz hairline.
+
+`.home-case-*` kuralları `.home-portfolio-*`'ın **ikizi değil kardeşi**:
+hairline çerçeve idiomu aynı, oran ve düzen başka. Portfolyo kareleri 1/1
+kampanya kadrajları, buradakiler 16/9 masaüstü arayüz görüntüleri — o kuralın
+sabit `aspect-ratio: 1 / 1`i uymuyordu. `≤860px`'te destek kareleri portfolyo
+gibi ikiye değil **tek** sütuna düşüyor: yarım telefon genişliğinde (~160px)
+yoğun bir arayüz karesi okunaksız bir lekeye dönüşüyor.
+
+**Ölçü ve performans.** Kaynak PNG'ler ~3330×1852 (≈1.80:1), toplamı ~5.7MB.
+Çerçeve 16/9 ve kadraj `object-fit: cover` — yan kırpma genişliğin %1'i
+(~17px/3336), görünmez; oran CSS'te sabit olduğu için layout shift yok.
+`next/image` + `fill` + `sizes` build'de AVIF/WebP'ye ve gerçek görüntü
+ölçüsüne indiriyor (açılış karesi ~1250px, destekler ~578px), 5.7MB'lık kaynak
+seti tarayıcıya hiç gitmiyor. **`preload` VERİLMİYOR** (Next 16'da
+`priority`nin yerini aldı): bant katlanın çok altında, hero'nun ilk boyaması
+bloklanmamalı — `next/image`in varsayılanı `loading="lazy"` kalıyor.
+
+**Kareler link değil**, portfolyo bandındaki kararın aynısı. Bandın tek
+bağlantısı `/portfolyo/emlak-crm-pro` CTA'sı — `/hizmetler` ve `/hakkimda`
+da aynı adrese gidiyor. **emlakcrmpro.com bu bantta geçmiyor**: brief §5.2
+dış domaini yalnızca vaka çalışması sayfasının sonuna, küçük bir bağlantı
+olarak koyuyor. Bölüm ürün satmıyor, yazılım yeteneğini kanıtlıyor.
+
+#### Eksik içerik — bilinçli boşluk
+
+**Teknoloji künyesi yok.** `NEXT.JS · POSTGRESQL · …` gibi mono bir satır
+bandın yazılım iddiasını güçlendirirdi (`.eyebrow`in zaten tarif edilen
+kullanımlarından biri, §tipografi) ama brief §5.1 bu stack'i *ajansın genel*
+teknolojileri olarak veriyor, Emlak CRM Pro'nunkiler olarak değil — ürünün
+gerçek stack'i bilinmiyor ve uydurulmadı. §10'daki yıl/kurum verisi ve
+§11'deki sosyal medya adresleriyle aynı pratik: veri gelmeden yer tutucu
+yazılmıyor. Stack doğrulandığında CTA'nın yanına tek satır mono künye olarak
+eklenecek; sayfada değişecek başka bir şey yok.
 
 **Portfolyo: statik grid, marquee değil.** Kayan şerit JS + DOM kopyası ister,
 `prefers-reduced-motion` için ayrı bir dal gerektirir ve hareketin tek sahibi
