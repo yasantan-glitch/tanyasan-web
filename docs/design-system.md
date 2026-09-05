@@ -471,7 +471,8 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   olmadığı için ayrı mobil varyant üretilemedi — ileride eklenirse
   `useHeroScroll`'daki tek `videoSrc` parametresi genişletilebilir.
 - **Reduced-motion:** Video, scrub ve rAF döngüsü hiç mount edilmez. Yerine
-  durağan poster hero + `.surface-ink` bir bölümde 6 hizmet ailesi hairline
+  `.hero-bg-static`'in düz koyu radial-gradient zemini (interaktif daldakiyle
+  birebir aynı class) + `.surface-ink` bir bölümde 6 hizmet ailesi hairline
   ayraçlı satırlar olarak (kart grid'i değil — bkz. §4) + faz 8'in kapanışı:
   kapanış mesajı ve CTA, kendi **açık** yüzeyinde
   (`.surface-paper .surface-paper-raised`) — hareketli dalın beyaz kapanışıyla
@@ -494,8 +495,12 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   doğru `h1 → h2` hiyerarşisiyle okuyabiliyor. Faz içeriğinde odaklanabilir
   öğe yok, dolayısıyla görünmez focus tuzağı oluşmuyor. Faz göstergesi
   dekoratif, `aria-hidden="true"`.
-- **`public/hero-poster.jpg`:** Videodan `t=8s` karesi (tarayıcı+canvas ile)
-  üretildi — reduced-motion fallback'i ve `<video>` ilk kare tutucusu için.
+- **`public/hero-poster.jpg` kaldırıldı.** Videodan (silinmiş `hero-network.mp4`,
+  bkz. §8 mobil notu) `t=8s` karesi olarak üretilmişti; reduced-motion
+  fallback'inde ham hâliyle görünüyordu ve altı ayrı hizmet klibine geçilen
+  mimaride (bu bölümün başı) hangi klibi temsil ettiği artık anlamsızdı —
+  hem interaktif dalda hem reduced-motion dalında `.hero-bg-static`'in aynı
+  düz zeminine geçildi, dosya ve referansları kaldırıldı.
 
 ## 9. Hizmetler sayfası (`/hizmetler`)
 
@@ -939,6 +944,104 @@ Yaratın".
 
 Anasayfada `metadata` tanımlanmadı: `layout.tsx`'in kök `title`/`description`'ı
 zaten "/" için yazılmış, burada tekrarlamak ikinci bir kaynak olurdu.
+
+---
+
+## 13. İmleç katmanı — hale, dağılma ve büyüteç
+
+`app/components/cursor/` altında iki dosya: `CursorLens.tsx` (kapı + iskelet)
+ve `useCursorLens.ts` (motor). Global kabuk katmanı olduğu için mount yeri
+`app/layout.tsx`'in en sonu — görsel olarak her şeyin üstünde (`--z-cursor:
+400`), DOM sırasında hiçbir odak durağının önünde değil.
+
+### Neden "gerçek mercek" CSS ile kurulamıyor
+
+`backdrop-filter` `blur / brightness / contrast / saturate / hue-rotate /
+invert / sepia / opacity / drop-shadow` alır — **`scale` almaz**. Yani
+arkasındaki rastgele DOM'u gerçekten büyüten bir mercek CSS'te yok. Onu
+kurmanın tek yolu sayfanın `transform: scale()` uygulanmış ikinci bir
+kopyasını daire içine kırpıp imlece bağlamak: layout/paint maliyeti ikiye
+katlanır, `position: fixed` öğeler, videolar ve formlar bozulur. (Firefox'un
+`-moz-element()`'i standart değil.) Bu yol reddedildi; efekt ikiye ayrıldı.
+
+**Mod 1 — hale + dağılma (varsayılan, her yerde).** Optik büyütme yok.
+İmlecin altındaki alan `backdrop-filter: saturate(1.22) contrast(1.03)` ile
+çok hafif berraklaşır — oran bilerek düşük, altındaki metnin okunurluğu
+bozulmamalı. Çevresinde yumuşak amber bir hale (`--color-accent`, radial
+gradyan + `mask-image` ile eriyen kenar; sert diskli bir baloncuk §4'ün
+"rahatsız etmeyen" ölçütünü karşılamazdı). Haleyi üç küçük kare uydu farklı
+lerp katsayılarıyla (0.22 / 0.15 / 0.10) takip eder. **Dağılma** budur:
+uydu ne kadar geride kaldıysa o kadar görünür ve o kadar bulanık; fare durunca
+gecikme sıfıra iner, üçü de halenin içinde eriyip kaybolur. Hero'nun faz-1
+çıkışındaki SCATTER dilinin (kayma + blur + opaklık düşüşü) minyatürü.
+
+**Mod 2 — büyüteç (yalnızca `[data-cursor-lens]` görsel çerçevelerinde).**
+Burada büyütme GERÇEK: lens, aynı görselin `background-image` olarak
+büyütülmüş bir kırpımını gösterir. Kaynak `img.currentSrc` — yani zaten
+indirilmiş ve decode edilmiş bitmap yeniden çizilir; ek ağ isteği yok, DOM
+kopyası yok (`ServiceImage`'in beş şeridinin tek isteğe çözülmesiyle aynı
+mantık). Çerçevelerdeki görseller `object-fit: cover` olduğu için kırpım
+hesabı cover ölçeğini birebir taklit eder; etmeseydi büyütülen kare altındaki
+görselden kaymış görünürdü. Kenarlarda arka plan konumu sınırlanır, lens hiç
+boş alan göstermez.
+
+İşaretli çerçeveler: `.home-portfolio-frame`, `.home-case-frame` (Emlak CRM
+Pro vitrini) ve `ServiceImage`'in `.service-media`'sı. Sonuncusunda motor
+`data-reveal`i de okur: şeritler henüz birleşmemişken (`pending`) lens
+açılmaz — yarım bir kareyi büyütmek birleşme efektini bozardı.
+
+### Şekil dili (§4)
+
+Büyüteç yumuşak köşeli bir **kare** (`--radius-lg`), daire değil: mercekten
+çok "kırpım çerçevesi" gibi okunuyor ve sitenin keskin diliyle sürtüşmüyor.
+Uydular 2px yarıçaplı kareler. Tek yuvarlak biçim, kenarı zaten görünmeyen
+radial hale. `mix-blend-mode` HİÇ kullanılmadı — koyu ve açık yüzeylerin aynı
+sayfada yan yana durduğu bu sitede blend modu öngörülemez sonuç verir; onun
+yerine düşük alfalı `--color-accent`, iki yüzeyde de nötr okunuyor.
+
+### Native imleç neden tamamen gizlenmiyor
+
+`cursor: none` yalnızca lens bölgelerinin İÇİNDE geçerli, o da motor gerçek
+bir fare olayı gördükten sonra (`html[data-cursor-lens-on]` o an yazılır) —
+JS hiç çalışmazsa hiçbir yerde imleç kaybolmaz. Site genelinde gizlemek üç
+somut zarar verirdi: rAF gecikmesinde sahte imleç gerçek tıklama noktasının
+gerisinde kalır ve kullanıcı ıskalar; metin I-beam'i, link eli ve form
+imleçleri anlamını kaybeder; `forced-colors`, eklenti veya bir JS hatası
+katmanı düşürdüğünde ekranda hiç imleç kalmaz. Katman bu yüzden native
+imlecin yerine değil YANINA kuruldu.
+
+### Performans ve kapatma
+
+- Kapı `CursorLens.tsx`'te: `(pointer: fine) and (prefers-reduced-motion:
+  no-preference)` eşleşmezse **hiç DOM kurulmaz**, dolayısıyla hiç dinleyici
+  de kurulmaz. Hero'daki `useReducedMotion` ile aynı `useSyncExternalStore`
+  pattern'i, server snapshot `false`.
+- İkinci güvence CSS'te ve JS'ten bağımsız çalışır (hidrasyondan önceki kare
+  dahil): `@media (pointer: coarse)` ve `prefers-reduced-motion` bloğunda
+  `.cursor-lens { display: none }`.
+- Üçüncü güvence: medya sorgusu dokunmatik ekranlı dizüstülerde yanıltabildiği
+  için katman, `pointerType === "mouse"` olan gerçek bir olay görülene dek
+  `visibility: hidden` kalır.
+- `pointermove` dinleyicisi **hiçbir zaman `setState` çağırmaz** — yalnızca
+  hedef koordinatı bir closure değişkenine yazar. Tek bir rAF döngüsü lerp
+  eder ve doğrudan `style.transform` yazar; 0.1px altındaki oynamalar
+  yazılmaz (`useHeroScroll`'daki `setLayerOpacity` disipliniyle aynı).
+- Döngüde layout'u zorlayan okuma yok: rect ve lens ölçüsü bölgeye **girişte
+  bir kez** alınır. Konum belge koordinatında saklandığı için scroll yeniden
+  ölçüm gerektirmez, yalnızca `resize` gerektirir.
+- Hero'dan bir adım ileri: **döngü sürekli dönmez.** Her şey hedefe oturduktan
+  ~320ms sonra kendini `cancelAnimationFrame` ile askıya alır ve `will-change`
+  bırakır; sonraki `pointermove` yeniden başlatır. Fare durduğunda bu
+  bileşenin maliyeti tam olarak sıfır.
+
+### Bir tuzak: backdrop root
+
+`.cursor-lens` kökünde `contain: paint` **yok** ve kapanma opaklıkla değil
+`visibility` ile yapılıyor. İkisi de bir *backdrop root* kurar; o durumda
+`.cursor-lens__glow`un `backdrop-filter`'ı sayfayı değil bu boş katmanı
+filtreler ve efekt sessizce kaybolur. Kökte yalnızca `contain: layout style`
+var — mutlak konumlu çocuklara kapsayıcı blok olmaya yetiyor, backdrop root
+kurmuyor.
 
 ---
 

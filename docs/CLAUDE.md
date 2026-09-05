@@ -122,8 +122,9 @@ ne kadar erken tamamlandığı) — bu değeri geciktirmek platoyu kısaltır.
 `prefers-reduced-motion: reduce` olduğunda `useHeroScroll` hiç mount
 edilmez (video/scrub/rAF döngüsü çalışmaz). Bunun yerine `HeroReduced`,
 **aynı `heroPhases.ts` verisinden** (`SERVICE_PHASES`) beslenen statik bir
-hizmet listesi render eder — video yerine `hero-poster.jpg` + hairline
-ayraçlı satırlar, en altta da faz 8'in kapanışı (slogan + CTA) kendi **açık**
+hizmet listesi render eder — video yerine `.hero-bg-static`'in düz koyu
+radial-gradient zemini (interaktif daldakiyle aynı) + hairline ayraçlı
+satırlar, en altta da faz 8'in kapanışı (slogan + CTA) kendi **açık**
 yüzeyinde. Ray, nokta ve küre bu dalda hiç render edilmez: üçü de yalnızca
 hareketten ibarettir, durağan hâlde anlam taşımazlar. İçerik
 iki yerde kopyalanmıyor; `heroPhases.ts`'e eklenen bir hizmet fazı otomatik

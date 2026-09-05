@@ -203,7 +203,7 @@ export default function Home() {
               onu build'de AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor,
               5.7MB'lık kaynak seti tarayıcıya hiç gitmiyor. */}
           <figure className="mt-(--spacing-section-tight)">
-            <div className="home-case-frame">
+            <div className="home-case-frame" data-cursor-lens>
               <Image
                 src={CASE_LEAD_SHOT.src}
                 alt={CASE_LEAD_SHOT.alt}
@@ -222,7 +222,7 @@ export default function Home() {
           <div className="home-case-grid mt-6">
             {CASE_SUPPORT_SHOTS.map((shot) => (
               <figure key={shot.src}>
-                <div className="home-case-frame">
+                <div className="home-case-frame" data-cursor-lens>
                   <Image
                     src={shot.src}
                     alt={shot.alt}
@@ -288,7 +288,7 @@ export default function Home() {
                     görsel onu cover ediyor. `preload` VERİLMİYOR (Next 16'da
                     `priority`nin yerini aldı) — bu görseller katlanın çok
                     altında, hero'nun ilk boyaması bloklanmamalı. */}
-                <div className="home-portfolio-frame">
+                <div className="home-portfolio-frame" data-cursor-lens>
                   <Image
                     src={item.src}
                     alt={item.alt}

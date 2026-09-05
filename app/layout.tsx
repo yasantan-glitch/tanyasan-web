@@ -3,6 +3,7 @@ import { Archivo, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "./components/nav/SiteHeader";
 import SkipLink from "./components/nav/SkipLink";
+import CursorLens from "./components/cursor/CursorLens";
 
 // Display: geniş ağırlık (100–900) ve genişlik (62–125) eksenine sahip
 // endüstriyel grotesk. Hero'da büyük boyutta logonun sert diyagonalleriyle
@@ -48,6 +49,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main id="icerik" className="flex-1">
           {children}
         </main>
+        {/* Global imleç katmanı. Fare yoksa veya hareket istenmiyorsa hiç DOM
+            kurmaz (bkz. CursorLens'teki medya sorgusu kapısı). En sonda
+            duruyor: görsel olarak her şeyin üstünde (--z-cursor), DOM
+            sırasında hiçbir odak durağının önüne geçmiyor. */}
+        <CursorLens />
       </body>
     </html>
   );

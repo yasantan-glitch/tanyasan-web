@@ -148,6 +148,9 @@
   --z-drawer-overlay: 200;
   --z-drawer: 210;
   --z-skip-link: 300;
+  /* İmleç katmanı her şeyin üstünde durur ama `pointer-events: none` —
+     hiçbir şeyin tıklanabilirliğini değiştirmez. */
+  --z-cursor: 400;
 
   /* ------------------------------------------------------------------
      ŞEKİL — keskin. Pill buton ve yumuşak gölge yok.
@@ -1674,6 +1677,126 @@
     text-align: center;
     text-wrap: balance;
   }
+
+  /* ---------------------------------------------------------------
+     İMLEÇ KATMANI
+     Per-frame değerler (transform, opacity, filter, background-position)
+     JS tarafından (useCursorLens) doğrudan yazılır; burada yalnızca statik
+     görünüm ve iki mod arasındaki geçiş var. Bkz. docs/design-system.md §13.
+     --------------------------------------------------------------- */
+  .cursor-lens {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-cursor);
+    pointer-events: none;
+    /* `paint` BİLEREK YOK. Paint containment (opacity<1 gibi) bir BACKDROP
+       ROOT kurar; o zaman .cursor-lens__glow'un backdrop-filter'ı sayfayı
+       değil bu boş katmanı filtrelerdi ve efekt sessizce kaybolurdu. Layout
+       containment yeterli: mutlak konumlu çocuklara yine kapsayıcı blok
+       oluyor ama backdrop root kurmuyor. */
+    contain: layout style;
+    /* Aynı gerekçeyle kapanma da opaklıkla DEĞİL görünürlükle yapılıyor —
+       0 ile 1 arasındaki her ara değer backdrop root demek. */
+    visibility: hidden;
+  }
+
+  /* Gerçek bir fare olayı görülene dek katman görünmez (bkz. useCursorLens'in
+     activate()'i) — dokunmatik ekranı da olan dizüstülerde medya sorgusu
+     yanıltabiliyor. */
+  .cursor-lens[data-active="true"] {
+    visibility: visible;
+  }
+
+  .cursor-lens__glow,
+  .cursor-lens__zoom,
+  .cursor-lens__shard {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    /* Negatif margin ile ortalanıyorlar: JS yalnızca imlecin ham koordinatını
+       yazar, transform'a `-50%` karışmaz. */
+    margin: 0;
+  }
+
+  .cursor-lens__glow {
+    --lens-glow-size: 56px;
+    inline-size: var(--lens-glow-size);
+    block-size: var(--lens-glow-size);
+    margin: calc(var(--lens-glow-size) / -2);
+    /* Sert kenarlı bir disk değil: hem gradyan hem mask yumuşak biterek
+       `backdrop-filter`in sınırını da eritiyor — §4'ün "rahatsız etmeyen"
+       ölçütü. Baloncuk değil, hafif bir aydınlanma. */
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-accent) 24%, transparent) 0%,
+      color-mix(in srgb, var(--color-accent) 9%, transparent) 48%,
+      transparent 72%
+    );
+    mask-image: radial-gradient(circle, #000 42%, transparent 72%);
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-out-quart);
+    /* Gerçek bir büyütme DEĞİL — CSS'te backdrop'u ölçekleyen bir filtre yok.
+       Altındaki alanı çok hafif berraklaştırarak "mercek altındaymış" hissi
+       veriyor; oran bilerek düşük, metin okunurluğu bozulmamalı. */
+    backdrop-filter: saturate(1.22) contrast(1.03);
+  }
+
+  .cursor-lens__shard {
+    --lens-shard-size: 6px;
+    inline-size: var(--lens-shard-size);
+    block-size: var(--lens-shard-size);
+    margin: calc(var(--lens-shard-size) / -2);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-accent);
+    /* Başlangıçta görünmez; opaklık ve blur gecikme mesafesinden sürülüyor. */
+    opacity: 0;
+  }
+
+  .cursor-lens__zoom {
+    --lens-zoom-size: 116px;
+    inline-size: var(--lens-zoom-size);
+    block-size: var(--lens-zoom-size);
+    margin: calc(var(--lens-zoom-size) / -2);
+    /* §4: pill/daire değil. Yumuşak köşeli kare mercekten çok "kırpım
+       çerçevesi" gibi okunuyor ve sitenin keskin diliyle sürtüşmüyor. */
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+    background-color: var(--color-ink-900);
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out-quart);
+  }
+
+  .cursor-lens[data-active="true"] .cursor-lens__glow {
+    opacity: 1;
+  }
+
+  .cursor-lens[data-mode="zoom"] .cursor-lens__zoom {
+    opacity: 1;
+  }
+
+  /* Büyüteç açıkken hale ve uydular çekilir — ikisi üst üste gelirse
+     büyütülen kare üzerinde amber bir sis kalıyor. `visibility` kullanılıyor
+     çünkü uyduların opaklığını her frame JS satır içi yazıyor. */
+  .cursor-lens[data-mode="zoom"] .cursor-lens__glow,
+  .cursor-lens[data-mode="zoom"] .cursor-lens__shard {
+    visibility: hidden;
+  }
+
+  /* Native imleç YALNIZCA burada gizlenir ve yalnızca motor gerçek bir fare
+     gördükten sonra (`[data-cursor-lens-on]` html'e o an yazılır). JS hiç
+     çalışmazsa hiçbir yerde imleç kaybolmaz. */
+  [data-cursor-lens-on] [data-cursor-lens] {
+    cursor: none;
+  }
+}
+
+/* Dokunmatik cihaz güvencesi. Motor zaten mount olmuyor (medya sorgusu
+   JS tarafında da okunuyor); bu kural hidrasyondan önceki kare için. */
+@media (pointer: coarse) {
+  .cursor-lens {
+    display: none;
+  }
 }
 
 /* Mobil — anlatı aynı 8 faz, mesafe ~%65'e iniyor ve tipografi bir kademe
@@ -1969,6 +2092,13 @@
        da elle düşürüyoruz — hiç oynamayacak bir geçiş için kompozitör
        katmanı ayrılmasın. */
     will-change: auto !important;
+  }
+
+  /* İmleç katmanı hareketten ibaret — kısılmış hâli yok, tamamen kapanır.
+     CursorLens bu sinyalde zaten hiç mount olmuyor; bu kural hidrasyondan
+     önceki kare ve sonradan açılan sistem tercihi için. */
+  .cursor-lens {
+    display: none !important;
   }
 
   .skip-link {

@@ -14,8 +14,6 @@ import {
 import { ORB_DOTS, ORB_VIEWBOX } from "./outroOrb";
 import { useHeroScroll } from "./useHeroScroll";
 
-const POSTER_SRC = "/hero-poster.jpg";
-
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 function subscribeReducedMotion(callback: () => void) {
@@ -227,8 +225,6 @@ function HeroInteractive() {
     >
       <div className="hero-stage">
         <div ref={stageInnerRef} className="absolute inset-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={POSTER_SRC} alt="" className="hero-media" />
           {/* Statik koyu zemin: intro fazı ve hizmet klipleri arası her
               boşlukta görünür. Hiç sürülmez — her video katmanı opacity:0'dan
               başlayıp yalnızca kendi fazında üzerine fade eder. */}
@@ -459,8 +455,11 @@ function HeroReduced() {
   return (
     <>
       <section className="hero-stage-static surface-ink">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={POSTER_SRC} alt="" className="hero-media" />
+        {/* İnteraktif daldaki zeminle aynı: düz koyu radial-gradient. Eskiden
+            burada artık var olmayan hero-network.mp4'ten üretilmiş bir poster
+            karesi vardı (bkz. git tarihi) — reduced-motion kullanıcısı için
+            fazla bir bilgi taşımıyordu, yalnızca zemindi. */}
+        <div className="hero-media hero-bg-static" aria-hidden="true" />
         <div className="hero-scrim" />
 
         <div className="absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">
