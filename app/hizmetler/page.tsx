@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ServiceImage } from "@/app/components/services/ServiceImage";
 import { NAV_CTA } from "@/app/components/nav/navLinks";
 import { SERVICES } from "@/app/content/services";
+import { SERVICE_MEDIA } from "@/app/content/serviceMedia";
 
 export const metadata: Metadata = {
   title: "Hizmetler — Tan Yasan Reklam ve Tasarım Ajansı",
@@ -13,10 +15,12 @@ export const metadata: Metadata = {
 /**
  * /hizmetler — brief §5'in altı hizmet metninin evi.
  *
- * MEDYA YOK: public/hero-videos/*.mp4 hero'nun imzası olarak kalıyor. Altı
- * klibi buraya da taşımak sayfayı ağırlaştırır ve hero'nun etkisini
- * sulandırırdı; sayfa tipografi + hairline ile kuruluyor (design-system §4:
- * kart grid'i yok).
+ * VİDEO YOK, GÖRSEL VAR: public/hero-videos/*.mp4 hero'nun imzası olarak
+ * kalıyor — altı klibi buraya taşımak hâlâ MB'larca indirme ve sulanmış bir
+ * imza demek. Ama sayfa artık medyasız değil: beş bölümde statik, optimize
+ * edilmiş birer görsel var (bkz. app/content/serviceMedia.ts). İkisi
+ * portfolyodan gerçek iş, üçü temsili. Yazılım bölümü bilinçli olarak
+ * görselsiz. Kart grid'i yok, çerçeve hairline (design-system §4, §9).
  *
  * layout.tsx zaten <main id="icerik"> sağlıyor — burada ikinci bir <main>
  * AÇILMAZ (/design-system'deki iç içe main bir hata, tekrarlanmıyor).
@@ -63,7 +67,11 @@ export default function HizmetlerPage() {
       {/* Altı hizmet, tam genişlik ve dönüşümlü yüzeyde. Renkler/hairline
           yüzeyden geliyor (surface-ink / surface-paper), bölüm içinde tek bir
           sabit renk yok. */}
-      {SERVICES.map((service, index) => (
+      {SERVICES.map((service, index) => {
+        // Yazılım kaleminde bu anahtar yok — bölüm tipografik hâliyle kalıyor.
+        const media = SERVICE_MEDIA[service.id];
+
+        return (
         <section
           key={service.id}
           id={service.id}
@@ -109,10 +117,16 @@ export default function HizmetlerPage() {
                   {service.cta.label} →
                 </Link>
               ) : null}
+
+              {/* Bölümün kapanışı: metin → kalemler → (CTA) → görsel. Sol
+                  başlık sütunu yapışkan kaldığı için sağ sütunun uzaması
+                  düzeni bozmuyor. */}
+              {media ? <ServiceImage {...media} /> : null}
             </div>
           </div>
         </section>
-      ))}
+        );
+      })}
 
       {/* Kapanış. Son hizmet bölümü koyu (index 5) — bu bant ondan
           ink-deep ile ayrılıyor. */}

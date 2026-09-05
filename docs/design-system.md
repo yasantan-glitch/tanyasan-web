@@ -501,11 +501,67 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
 
 Brief §5'in altı hizmet metninin evi. Üç karar taşıyor:
 
-**Medya yok.** `public/hero-videos/*.mp4` yalnızca hero'da kalıyor. Altı klibi
-bu sayfaya da taşımak (viewport'a girince yüklenen sessiz döngüler olarak bile)
-hem MB'larca indirme hem altı ayrı poster karesi üretmek demekti; daha önemlisi
-hero'nun tek görsel imzasını sulandırırdı. Sayfa tamamen tipografi + hairline:
-ilk yükte ağırlıksız, `prefers-reduced-motion` için ayrı dal gerekmiyor.
+**Medya: video yok, seçilmiş beş görsel var.** İlk sürümde bu madde "medya
+yok" idi ve gerekçesi şuydu: `public/hero-videos/*.mp4` yalnızca hero'da
+kalmalı, altı klibi buraya taşımak (viewport'a girince yüklenen sessiz
+döngüler olarak bile) hem MB'larca indirme hem altı ayrı poster karesi
+demekti; daha önemlisi hero'nun tek görsel imzasını sulandırırdı.
+
+**Bu gerekçe videolar için hâlâ aynen geçerli — klipler taşınmadı.** Değişen,
+"medya" ile "video"nun eşitlenmesiydi. Karar kullanıcının iki isteğiyle
+tersine çevrildi: (1) *gerçek işlerin görünürlüğü* — Grafik Tasarım ve Dijital
+Pazarlama, anlatıldıkları yerde portfolyodan gerçek bir işle kanıtlanmalı;
+(2) *görsel zenginlik* — altı bölümlük uzun tipografik bir sayfa scroll boyunca
+ritim istiyor. Statik, `next/image` ile AVIF/WebP'ye inen tek bir kare eski
+itirazın hiçbirini doğurmuyor: poster üretimi yok, otomatik oynatma yok,
+indirme videonun onda biri, hero'nun imzası (hareketli görüntü) tekil kalıyor.
+
+Beş bölümde görsel var, biri **bilinçli boşluk**: `yazilim`. O hizmet zaten
+anasayfadaki Emlak CRM Pro vitrinine ve bölüm içindeki
+`/portfolyo/emlak-crm-pro` CTA'sına bağlı; ikinci bir görsel aynı kanıtı
+tekrar ederdi. Eşleme `app/content/serviceMedia.ts`'te (`services.ts`'ten
+AYRI dosya: `services.ts`'i hero'nun `heroPhases.ts`'i de okuyor, portfolyo
+verisi hero bundle'ına girmesin). Grafik ve Dijital'in `alt` metni
+`portfolio.ts`'ten okunuyor — aynı görselin alt metni iki yerde yazılmıyor.
+
+### Parçalardan bütüne: şerit birleşme efekti
+
+Görsel bölüm viewport'a girince beş dikey şeritten birleşerek gelir
+(`app/components/services/ServiceImage.tsx` + `.service-media` /
+`.service-shard`, globals.css).
+
+- **Hero motoru buraya taşınmadı.** `useHeroScroll` her frame'de rAF ile
+  scrub edilen 8 fazlı bir anlatı sürüyor; burada bölüm başına TEK ATIŞLIK
+  bir tetik var: `IntersectionObserver` (`threshold: 0.25`), ilk kesişimde
+  `data-reveal="in"` ve `observer.disconnect()`. Scroll listener yok, rAF yok,
+  WebGL yok; birleşme bittikten sonra bölümün maliyeti sıfır ve geri scroll'da
+  efekt tekrar oynamaz. Gözlemci deseni `useScrolledPastSentinel`'den geliyor
+  (aynı gerekçe: ikinci bir scroll listener eklememek), ama o hook nav'a özel,
+  paylaşılmadı.
+- **Şerit mekaniği:** görselin beş kopyası üst üste durur, her biri
+  `clip-path: inset()` ile yalnızca kendi %20'lik dilimini gösterir (`--i`
+  React'ten inline stille gelir). `clip-path` elemanın kendi koordinat
+  sisteminde uygulanır, `transform` ondan sonra — şerit kaydığında içindeki
+  görüntü parçası da onunla kayar. Kesimlere 1px `--shard-bleed` payı
+  veriliyor, yoksa birleşme anında rasterlemeden dikey seam çizgileri kalıyor.
+  Beş kopya aynı `src`e çözüldüğü için tarayıcı tek istek atar.
+- **Koreografi:** bekleyen durumda şeritler `--shard-mag` (%22, ≤860px'te %12)
+  ile düzensiz çarpanlar (-1.2, 0.9, -0.65, 1, -0.8) çarpımı kadar dikeyde
+  kayık ve saydam; açılışta `transform: none` + `opacity: 1`, 900ms
+  `--ease-out-quart` ve şerit başına 70ms gecikme. Düzensiz çarpanlar bilinçli:
+  eşit kaymalar bir jaluzi gibi okunuyordu.
+- **`prefers-reduced-motion: reduce` tamamen CSS'te çözülüyor:** JS observer'ı
+  hiç kurmaz (durum `pending` kalır), şeritleri koşulsuz `transform: none /
+  opacity: 1` yapan globals.css'in reduce bloğudur. Bu bilinçli: medya sorgusu
+  JS'ten bağımsız çalışır, yani hidrasyondan önceki tek bir karede bile
+  dağınık hâl görünmez — durumu React'te `in`e çekmek aynı sonucu bir tur
+  fazladan render'la ve daha kırılgan biçimde üretirdi.
+- **Bilinçli kabul:** SSR'da başlangıç durumu `pending`, yani JS kapalı bir
+  tarayıcıda görseller görünmez. Sayfanın komşusu olan hero zaten tamamen
+  JS'e bağlı; ayrı bir no-script dalı bu sayfa için tutarsız bir istisna
+  olurdu. Erişilebilirlik tarafı JS'ten bağımsız: `alt` yalnızca ilk şeritte
+  duruyor (kalan dördü `aria-hidden`), yani ekran okuyucu görseli bir kez
+  okuyor.
 
 **Tam genişlik, dönüşümlü yüzey — kart grid'i değil.** Her hizmet kendi
 section'ı, `surface-paper` ↔ `surface-ink` dönüşümlü (§2, §4). Sol sütun

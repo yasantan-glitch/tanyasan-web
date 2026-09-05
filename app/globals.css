@@ -1064,6 +1064,109 @@
     border-block-end: 1px solid var(--hairline);
   }
 
+  /* --- Bölüm görseli: parçalardan bütüne birleşme ------------------------
+     Çerçeve .home-portfolio-frame'in KARDEŞİ, ikizi değil: aynı idiom (kart
+     yok, gölge yok, yarıçap yok — §4) ama oran veriden geliyor ve içeride
+     tek bir görsel değil, üst üste duran beş şerit var. Anasayfanın
+     kurallarına dokunulmadı.
+
+     Renkler yine sabit değil: bölüm surface-paper ↔ surface-ink arasında
+     dönüşüyor, kenarlık --hairline'dan zemin --field-bg'den okunuyor.
+
+     ŞERİT GEOMETRİSİ: beş kopya çerçeveyi tamamen kaplar, her biri
+     clip-path ile yalnızca kendi %20'lik dikey dilimini gösterir. `--i`
+     (0-4) React'ten inline stille geliyor. clip-path elemanın kendi
+     koordinat sisteminde uygulanır, transform ondan SONRA gelir — şerit
+     kaydığında içindeki görüntü parçası da onunla kayar; aranan "parça"
+     davranışı budur.
+
+     Şeritler viewport'a girene kadar dağınık ve saydam durur, girince
+     sırayla (70ms gecikmeyle) yerine oturur. Tetik JS tarafında tek atışlık
+     bir IntersectionObserver (ServiceImage.tsx) — sürekli scroll hesabı,
+     rAF döngüsü ve hero motorundan tek satır kod YOK. */
+  .service-media {
+    /* Kaymaların ortak büyüklüğü; şerit başına çarpan --shard-k'dan gelir.
+       Dar ekranda tek yerden küçültülüyor (≤860px bloğu). */
+    --shard-mag: 22%;
+    /* Kesim payı: şeritler iki yana 1px taşar, böylece birleştiklerinde
+       rasterlemeden doğan dikey seam çizgisi görünmez. Parçalar aynı
+       görselin aynı konumunu taşıdığı için binme yerinde fark edilmez. */
+    --shard-bleed: 1px;
+    position: relative;
+    overflow: clip;
+    margin-block-start: var(--spacing-section-tight);
+    max-inline-size: 44rem;
+    border: 1px solid var(--hairline);
+    background-color: var(--field-bg);
+  }
+
+  /* Kadraj kaynağın oranına en yakın değer: cover neredeyse hiç kırpmıyor. */
+  .service-media--3x2 {
+    aspect-ratio: 3 / 2;
+  }
+
+  .service-media--16x9 {
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Kare işler 44rem'de 704px yüksekliğe çıkıp bölümü eziyordu. */
+  .service-media--square {
+    aspect-ratio: 1 / 1;
+    max-inline-size: 30rem;
+  }
+
+  .service-shard {
+    position: absolute;
+    inset: 0;
+    /* %20'lik dilim + iki yana bleed. max(0px, …) kenar şeritlerde negatif
+       inset üretmemek için: clip-path negatif değeri her tarayıcıda aynı
+       yorumlamıyor. */
+    clip-path: inset(
+      0
+      max(0px, calc(100% - (var(--i) + 1) * 20% - var(--shard-bleed)))
+      0
+      max(0px, calc(var(--i) * 20% - var(--shard-bleed)))
+    );
+  }
+
+  /* Düzensiz çarpanlar bilinçli: eşit aralıklı kaymalar bir "jaluzi" gibi
+     okunuyordu, düzensizlik parçaların dağıldığı hissini veriyor. */
+  .service-shard:nth-child(1) {
+    --shard-k: -1.2;
+  }
+
+  .service-shard:nth-child(2) {
+    --shard-k: 0.9;
+  }
+
+  .service-shard:nth-child(3) {
+    --shard-k: -0.65;
+  }
+
+  .service-shard:nth-child(4) {
+    --shard-k: 1;
+  }
+
+  .service-shard:nth-child(5) {
+    --shard-k: -0.8;
+  }
+
+  .service-media[data-reveal="pending"] .service-shard {
+    transform: translate3d(0, calc(var(--shard-k) * var(--shard-mag)), 0);
+    opacity: 0;
+    /* Yalnızca bekleyen durumda: birleşme bitince katman ipucu düşüyor. */
+    will-change: transform;
+  }
+
+  .service-media[data-reveal="in"] .service-shard {
+    transform: none;
+    opacity: 1;
+    transition:
+      transform 900ms var(--ease-out-quart),
+      opacity 500ms linear;
+    transition-delay: calc(var(--i) * 70ms);
+  }
+
   /* ==========================================================================
      HAKKIMDA (/hakkimda) — sayfa gövdesi .service-grid/.service-head'i olduğu
      gibi yeniden kullanıyor; burada yalnızca ona ait olmayan üç kural var.
@@ -1623,6 +1726,11 @@
     white-space: nowrap;
   }
 
+  /* Dar ekranda görsel de dar: %22'lik kayma orada sıçrama gibi okunuyor. */
+  .service-media {
+    --shard-mag: 12%;
+  }
+
   /* Dar ekranda portre metnin ALTINA düşer: yanında 16rem'lik bir sütun
      kalmıyor, üstüne alınsa da giriş metnini fold'un dışına iterdi. */
   .about-hero {
@@ -1848,6 +1956,19 @@
 
   .nav-drawer[data-open="true"] {
     opacity: 1;
+  }
+
+  /* Görsel baştan TAM ve DURAĞAN. ServiceImage bu sinyalde observer'ı hiç
+     kurmaz, yani durum "pending" kalır — şeritleri yerine oturtan TEK yer
+     burasıdır. Medya sorgusu JS'ten bağımsız çalıştığı için hidrasyondan
+     önceki karede bile dağınık hâl görünmez. */
+  .service-shard {
+    transform: none !important;
+    opacity: 1 !important;
+    /* Durum "pending" kaldığı için (observer hiç kurulmadı) katman ipucunu
+       da elle düşürüyoruz — hiç oynamayacak bir geçiş için kompozitör
+       katmanı ayrılmasın. */
+    will-change: auto !important;
   }
 
   .skip-link {
