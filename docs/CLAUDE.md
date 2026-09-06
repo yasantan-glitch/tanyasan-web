@@ -281,3 +281,19 @@ servisi yok.
   render etmiyor, yer tutucu link yazılmamalı.
 
 Gerekçelerin tamamı için `docs/design-system.md` §11.
+
+# Kurulu Claude Code plugin/skill'leri
+
+- **nateherk-design (scroll-craft)** — project scope. Hero scroll motoru
+  (`useHeroScroll.ts`) için teknik/disiplin referansı; motor olarak
+  kullanılmıyor, yalnızca fikir ödünç alınıyor.
+- **design-dna** — project scope. Referans tasarımlardan token/stil/efekt
+  çıkarımı için.
+- **taste-skill, frontend-design** — user scope (bu makinedeki tüm
+  projelerde aktif, bilinçli tercih). Genel tasarım kalitesi rehberliği
+  sağlıyor; bu projenin `docs/design-system.md`'sindeki kararlarla
+  çelişirse `design-system.md` önceliklidir.
+
+Not: Bu eklentiler tasarım/kod önerilerini etkileyebilir ama projenin
+kendi `design-system.md` ve `services.ts` gibi tek-kaynak kurallarını
+geçersiz kılmaz — çelişki durumunda proje dokümantasyonu esas alınır.
