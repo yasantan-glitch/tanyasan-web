@@ -81,10 +81,6 @@ export function ServiceImage({ src, alt, ratio, sizes }: ServiceMedia) {
       ref={frameRef}
       className={`service-media ${RATIO_CLASS[ratio]}`}
       data-reveal={revealed ? "in" : "pending"}
-      // İmleç büyüteci bu çerçevede açılır. useCursorLens `data-reveal`i de
-      // okuyor: şeritler henüz birleşmemişken (pending) lens açılmaz, yarım
-      // bir kareyi büyütmek birleşme efektini bozardı.
-      data-cursor-lens
     >
       {Array.from({ length: SHARD_COUNT }, (_, i) => (
         <div

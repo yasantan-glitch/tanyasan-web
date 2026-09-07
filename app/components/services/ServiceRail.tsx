@@ -85,9 +85,29 @@ export default function ServiceRail({
       if (index < 0) return;
 
       // Bölümün dikey yolu: toplam yükseklik eksi pin'in kendi ekranı.
-      // Panel i, bu yolun i/(n-1) noktasında tam ortalanıyor.
       const travel = section.offsetHeight - window.innerHeight;
       if (travel <= 0) return;
+
+      // İKİ RAY, İKİ HESAP.
+      // /hizmetler'de panel = tam ekran, kayma doğrusal ve panel i yolun
+      // i/(n-1) noktasında tam ortalanıyor — aşağıdaki basit oran.
+      // Anasayfada ise solda SABİT bir başlık plakası var ve paneller onun
+      // altına girip kayboluyor: aynı oran, odaklanan paneli plakanın
+      // ALTINA sürebilirdi. Plaka varsa oranı indeksten değil GERÇEK
+      // GEOMETRİDEN çıkarıyoruz — panelin sol kenarı tam plakanın sağına
+      // gelsin. Plaka yoksa (/hizmetler) tek satır bile değişmiyor.
+      const lede = section.querySelector<HTMLElement>(".home-rail-lede");
+      let progress = index / Math.max(panelCount - 1, 1);
+
+      if (lede && lede.offsetParent !== null) {
+        // Track'in kat edeceği toplam yatay yol (CSS'teki home-rail-slide
+        // ile aynı büyüklük, ama ölçülerek — keyframe'i JS'te kopyalamıyoruz).
+        const slide = track.scrollWidth - section.clientWidth;
+        // Panelin track içindeki konumu zaten plaka genişliği kadar
+        // padding'li; onu geri çıkarınca istenen kayma miktarı çıkıyor.
+        const wanted = panel.offsetLeft - lede.offsetWidth;
+        progress = slide > 0 ? Math.min(Math.max(wanted / slide, 0), 1) : 0;
+      }
 
       // `section.offsetTop` DEĞİL: offsetTop, en yakın KONUMLANMIŞ ata'ya
       // görelidir. Anasayfada ray'i saran bant `.seam` (position: relative)
@@ -95,7 +115,7 @@ export default function ServiceRail({
       // yanlış bir konuma sıçratır. `getBoundingClientRect` + `scrollY`
       // konumlanmış ata zincirinden bağımsız, her zaman belge-mutlak.
       const sectionTop = section.getBoundingClientRect().top + window.scrollY;
-      const top = sectionTop + (travel * index) / Math.max(panelCount - 1, 1);
+      const top = sectionTop + travel * progress;
 
       // `instant`: odak hareketi anlık olmalı. Yumuşak kaydırma sırasında
       // kullanıcı bir kez daha Tab'a basarsa iki animasyon çakışır ve odak

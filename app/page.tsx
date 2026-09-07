@@ -146,38 +146,46 @@ export default function Home() {
           çerçeveli bir satır, yalnızca yatayda kayıyor.
 
           /hizmetler'in tam-ekran ray'inden (ServiceRail + .rail-*) KASITLI
-          OLARAK FARKLI ÖLÇEKTE: burada aynı anda ~2.5 panel görünür (özet,
-          "raftan geçiş"), orada tek panel tam ekran (bölüm, "adım adım
-          okuma"). İkisi aynı jesti iki kez kullanmasın diye böyle ayrıldı.
+          OLARAK FARKLI ÖLÇEKTE: orada tek panel TÜM ekranı kaplar (bir
+          bölüm, "adım adım okuma"), burada panel tam YÜKSEKLİKTE ama dar
+          bir şerit ve aynı anda 2-3 tanesi görünür (bir raf, "yanından
+          geçiş"). İkisi aynı jesti iki kez kullanmasın diye böyle ayrıldı.
           Gerekçe: docs/design-system.md §16.
 
-          Başlık ve kapanış CTA'sı dikey kalıyor — ray ikisinin arasında bir
-          ada, /hizmetler'deki kuralın aynısı. Ray, max-w-(--container-site)
-          sarmalayıcısının DIŞINDA: track'in tam genişliği kısıtlanmamalı. */}
+          BANDIN BAŞLIĞI ARTIK RAY'İN İÇİNDE ve pin'li: sol üst köşede
+          sabit durup panellerin geçtiği "başlangıç çizgisi"ni kuruyor
+          (mekanik globals.css `.home-rail-lede` yorumunda). Kapanış CTA'sı
+          dikey kalıyor. Ray, max-w-(--container-site) sarmalayıcısının
+          DIŞINDA: track'in tam genişliği kısıtlanmamalı. */}
       <section className="surface-paper seam px-(--spacing-gutter) py-(--spacing-section-loose)">
-        <div className="mx-auto max-w-(--container-site)">
-          <SectionMarker index={2} label="Hizmetler" flip />
-          <h2
-            className="font-display text-strong max-w-[22ch]"
-            data-enter="mask"
-            style={{
-              fontSize: "var(--text-display-2xl)",
-              lineHeight: "var(--text-display-2xl--line-height)",
-              letterSpacing: "var(--text-display-2xl--letter-spacing)",
-              fontWeight: "var(--text-display-2xl--font-weight)",
-            }}
-          >
-            ALTI HİZMET ÇİZGİSİ, TEK EKİP
-          </h2>
-        </div>
-
         <ServiceRail
           panelCount={SERVICES.length}
           panelSelector=".home-rail-panel"
-          className="home-rail mt-(--spacing-section-tight)"
+          className="home-rail"
           style={{ "--home-rail-panels": SERVICES.length } as React.CSSProperties}
         >
+          {/* Başlık ray'in DIŞINDA değil, pin'lenen pencerenin İÇİNDE.
+              Sabit kalabilmesinin tek yolu bu: sticky, ancak kendi uzun
+              scroll bağlamının içinde bir işe yarar. Dikey fallback'te
+              (viewport düz bir div) sıradan bir başlık bloğu olarak,
+              bugünkü hizasında akar — `mx-auto max-w-(--container-site)`
+              iç sarmalayıcı o hizayı koruyor. */}
           <div className="home-rail-viewport">
+            <div className="home-rail-lede">
+              <div className="mx-auto max-w-(--container-site)">
+                <SectionMarker index={2} label="Hizmetler" flip />
+                {/* Punto artık inline değil CSS'te (.home-rail-lede__title):
+                    dikey hâlde display-2xl, pin'li dar sütunda display-xl.
+                    Inline style ikisini birden ifade edemezdi. */}
+                <h2
+                  className="home-rail-lede__title font-display text-strong"
+                  data-enter="mask"
+                >
+                  ALTI HİZMET ÇİZGİSİ, TEK EKİP
+                </h2>
+              </div>
+            </div>
+
             <div className="home-rail-track">
               {SERVICES.map((service, index) => (
                 <HomeRailPanel
@@ -251,7 +259,7 @@ export default function Home() {
                 bloklanmamalı. Kaynak PNG ~3330×1852; next/image onu build'de
                 AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor. */}
             <figure className="home-case-split__media">
-              <div className="home-case-frame" data-cursor-lens>
+              <div className="home-case-frame">
                 <Image
                   src={CASE_LEAD_SHOT.src}
                   alt={CASE_LEAD_SHOT.alt}
@@ -266,23 +274,32 @@ export default function Home() {
             </figure>
 
             <div className="home-case-split__flow">
+              {/* `data-enter` YOK — bandın imza hareketi diyafram (bkz.
+                  globals.css `case-aperture`), yalnızca ekranlar hareket
+                  ediyor. Metin ilk karede zaten okunur durumda: sakin
+                  kalması bandın hareketini iki yere bölmüyor, tek bir
+                  odak noktası bırakıyor (frontend-design'ın "spend your
+                  boldness in one place" ilkesi). */}
               {CASE_PARAGRAPHS.map((paragraph, index) => (
                 <p
                   key={paragraph}
                   className={`max-w-(--container-prose) ${
                     index === 0 ? "text-lead" : "text-muted mt-6"
                   }`}
-                  data-enter
                 >
                   {paragraph}
                 </p>
               ))}
 
               {/* Üç destek karesi. Sıra §5.2'nin cümlesini takip ediyor:
-                  portföy yönetimi → harita üzerinde analiz → raporlama. */}
+                  portföy yönetimi → harita üzerinde analiz → raporlama.
+                  `data-enter` de YOK (yukarıdaki notla aynı gerekçe) —
+                  destek eklenseydi figürün kendisi enter-rise ile
+                  yükselirken içindeki img aynı anda diyaframla açılırdı,
+                  aynı görsel alanda iki çakışan hareket (§8). */}
               {CASE_SUPPORT_SHOTS.map((shot) => (
-                <figure key={shot.src} data-enter>
-                  <div className="home-case-frame" data-cursor-lens>
+                <figure key={shot.src}>
+                  <div className="home-case-frame">
                     <Image
                       src={shot.src}
                       alt={shot.alt}
@@ -359,7 +376,7 @@ export default function Home() {
                     görsel onu cover ediyor. `preload` VERİLMİYOR (Next 16'da
                     `priority`nin yerini aldı) — bu görseller katlanın çok
                     altında, hero'nun ilk boyaması bloklanmamalı. */}
-                <div className="home-portfolio-frame" data-cursor-lens>
+                <div className="home-portfolio-frame">
                   <Image
                     src={item.src}
                     alt={item.alt}

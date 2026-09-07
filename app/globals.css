@@ -155,9 +155,6 @@
   --z-drawer-overlay: 200;
   --z-drawer: 210;
   --z-skip-link: 300;
-  /* İmleç katmanı her şeyin üstünde durur ama `pointer-events: none` —
-     hiçbir şeyin tıklanabilirliğini değiştirmez. */
-  --z-cursor: 400;
 
   /* ------------------------------------------------------------------
      ŞEKİL — keskin. Pill buton ve yumuşak gölge yok.
@@ -197,14 +194,21 @@
   --rail-travel: 90vh;
 
   /* Anasayfa özet rayı — /hizmetler'in tam-ekran rayından farklı ölçek.
-     Panel genişliği aynı anda ~2.5 panel görünecek şekilde seçildi (özet
-     "raftan geçiş" hissi); tam ekran panel burada bir bölüm gibi ağırlık
-     kazanır, oysa bu bant bir özet. Sticky yüksekliği sabit (viewport'un
-     tamamı değil) çünkü panel içeriği kısa — bir ekranı pin'lemek boşuna
-     boşluk bırakırdı. Travel kısa (55vh, /hizmetler'in 90vh'ının altında):
-     panel başına okunacak metin azken uzun bir yol scroll'u ağırlaştırır. */
-  --home-rail-panel-w: 38vw;
-  --home-rail-sticky-h: 30rem;
+     ORADA tek panel TÜM ekranı kaplar (bir bölüm, "adım adım okuma");
+     BURADA panel tam YÜKSEKLİKTE ama dar bir ŞERİT, aynı anda 2-3 tanesi
+     görünür (bir raf, "yanından geçiş"). Aynı jest iki kez kurulmuyor.
+
+     `--home-rail-lede-w` bandın sol üst köşesindeki SABİT başlığın sütun
+     genişliği ve aynı zamanda "başlangıç çizgisi"nin x konumu: paneller
+     sola kayarken bu sütunun altına girip görünmez oluyor (bkz. gated
+     bloktaki `.home-rail-lede`). Track bu genişlik kadar sağdan başlıyor
+     ki ilk panel çizginin altından değil, sağından doğsun.
+
+     Travel kısa (55vh, /hizmetler'in 90vh'ının altında): panel başına
+     okunacak metin azken uzun bir yol scroll'u ağırlaştırır. */
+  --home-rail-panel-w: clamp(19rem, 26vw, 30rem);
+  --home-rail-lede-w: clamp(16rem, 24vw, 25rem);
+  --home-rail-sticky-h: calc(100svh - var(--nav-h));
   --home-rail-travel: 55vh;
 }
 
@@ -1610,13 +1614,28 @@
     flex-direction: column;
   }
 
-  .home-rail-panel {
-    /* Düzensiz işaret+genlik — .service-shard'daki --shard-k ile aynı
-       disiplin: eşit aralıklı bir zigzag mekanik/testere dişi gibi okunur,
-       düzensiz genlik "elle yerleştirilmiş" hissi verir. */
-    --panel-y: calc(var(--panel-k, 0) * clamp(0.5rem, 2vh, 1.75rem));
+  /* Sabit başlık bloğu. Taban hâlde (dikey liste) sıradan bir başlık
+     bloğu: ray'in üstünde durur, bugünkü hizasını `mx-auto
+     max-w-(--container-site)` iç sarmalayıcısı koruyor. Pin'lenmesi ve
+     "başlangıç çizgisi" olması SADECE gated blokta. */
+  .home-rail-lede {
+    margin-block-end: var(--spacing-section-tight);
   }
 
+  .home-rail-lede__title {
+    max-inline-size: 22ch;
+    font-size: var(--text-display-2xl);
+    line-height: var(--text-display-2xl--line-height);
+    letter-spacing: var(--text-display-2xl--letter-spacing);
+    font-weight: var(--text-display-2xl--font-weight);
+  }
+
+  /* Düzensiz işaret+genlik — .service-shard'daki --shard-k ile aynı
+     disiplin: eşit aralıklı bir zigzag mekanik/testere dişi gibi okunur,
+     düzensiz genlik "elle yerleştirilmiş" hissi verir. `--panel-k` yalnızca
+     gated blokta okunuyor (panel İÇERİĞİNİN dikey parallax'ı); taban hâlde
+     hiç hareket yok, tablo burada duruyor çünkü tek yerde toplanmış
+     olması onu okunur kılıyor. */
   .home-rail-panel:nth-child(1) {
     --panel-k: -1;
   }
@@ -1644,7 +1663,15 @@
   /* Taban (dikey liste): görsel içeriğin altında, tam genişlikte bir satır.
      `.home-service-row`'un grid'i `auto 1fr` (ikon | metin) — üçüncü çocuk
      olarak eklenen bu blok örtük ikinci satıra düşer, `1/-1` onu iki
-     sütuna birden yayar. */
+     sütuna birden yayar.
+
+     İÇERİK ARTIK HER ZAMAN GÖRÜNÜR — hover'la açılan bir çerçeve YOK
+     (eski `data-open`/fade-scale geçişi kaldırıldı). ServiceImage
+     /hizmetler'deki gibi baştan mount ediliyor, "parçadan bütüne"
+     birleşme kendi IntersectionObserver'ıyla tek seferlik oynuyor; bu
+     blok yalnızca ölçü/kırpma tanımlıyor, görünürlük ServiceImage'in
+     kendi `data-reveal`ine bırakılıyor (globals.css'te `.service-media`
+     kuralları). */
   .home-rail-panel__media {
     grid-column: 1 / -1;
     margin-block-start: 1.5rem;
@@ -1653,26 +1680,12 @@
     background-color: var(--field-bg);
   }
 
-  /* Çerçeve (kenarlık + zemin) HER ZAMAN görünür — "burada bir şey var,
-     hover'la aç" ipucu. Yalnızca İÇERİK (ServiceImage'in kendi kökü)
-     gizli/açık arasında geçiş yapıyor; ikisini ayırmasaydık boş panelde
-     hiçbir çerçeve kalmaz, dolgusuz bir boşluk gibi görünürdü. */
   .home-rail-panel__media > .service-media {
     max-inline-size: none;
     inline-size: 100%;
     block-size: 100%;
     margin-block-start: 0;
     border: none;
-    opacity: 0;
-    transform: scale(0.96);
-    transition:
-      opacity var(--duration-slow) var(--ease-out-quart),
-      transform var(--duration-slow) var(--ease-out-quart);
-  }
-
-  .home-rail-panel__media[data-open="true"] > .service-media {
-    opacity: 1;
-    transform: none;
   }
 
   /* Portfolyo vitrini. Üç sütun + tek bir `span 2` kare = 9 hücre, yani sekiz
@@ -1734,12 +1747,11 @@
      CİHAZ ÇERÇEVESİ / TARAYICI MOCKUP'I YOK: §4'ün şekil dili kart, gölge ve
      pill'i atıyor, sahte trafik ışıkları da brief §7'nin "atılacak" dediği
      şablon hissi. Üstelik karelerin kendi uygulama kabuğu (sidebar + üst bar)
-     zaten var — kabuğu kabuğa sarmak olurdu. */
-  .home-case-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.5rem;
-  }
+     zaten var — kabuğu kabuğa sarmak olurdu.
+
+     `.home-case-grid` — bant `.home-case-split`e (sabitlenen medya + akan
+     metin) geçtiğinde ölü kaldı, page.tsx artık hiç basmıyor. Kaldırıldı;
+     bkz. `.home-case-split__flow figure .home-case-frame` aşağıda. */
 
   /* next/image `fill` için konumlanmış çerçeve (parent position: relative
      ZORUNLU). Oran burada veriliyor: kaynak kareler ≈1.80:1, çerçeve 16/9 —
@@ -1777,8 +1789,11 @@
   }
 
   /* Destek kareleri açılış karesinin üçte biri genişliğinde; 12px orada
-     paspartayı orantısız kalınlaştırıyordu. */
-  .home-case-grid .home-case-frame {
+     paspartayı orantısız kalınlaştırıyordu. Seçici `.home-case-split__flow`
+     kapsamına bağlı — ölü `.home-case-grid` yerine bugün gerçekten basılan
+     ata; önceki seçici hiç eşleşmiyordu ve destek kareleri sessizce açılış
+     karesiyle aynı 0.75rem'i alıyordu. */
+  .home-case-split__flow figure .home-case-frame {
     --case-mat: 0.5rem;
   }
 
@@ -2028,117 +2043,6 @@
     display: none;
   }
 
-  /* ---------------------------------------------------------------
-     İMLEÇ KATMANI
-     Per-frame değerler (transform, opacity, filter, background-position)
-     JS tarafından (useCursorLens) doğrudan yazılır; burada yalnızca statik
-     görünüm ve iki mod arasındaki geçiş var. Bkz. docs/design-system.md §13.
-     --------------------------------------------------------------- */
-  .cursor-lens {
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-cursor);
-    pointer-events: none;
-    /* `paint` BİLEREK YOK. Paint containment (opacity<1 gibi) bir BACKDROP
-       ROOT kurar; o zaman .cursor-lens__glow'un backdrop-filter'ı sayfayı
-       değil bu boş katmanı filtrelerdi ve efekt sessizce kaybolurdu. Layout
-       containment yeterli: mutlak konumlu çocuklara yine kapsayıcı blok
-       oluyor ama backdrop root kurmuyor. */
-    contain: layout style;
-    /* Aynı gerekçeyle kapanma da opaklıkla DEĞİL görünürlükle yapılıyor —
-       0 ile 1 arasındaki her ara değer backdrop root demek. */
-    visibility: hidden;
-  }
-
-  /* Gerçek bir fare olayı görülene dek katman görünmez (bkz. useCursorLens'in
-     activate()'i) — dokunmatik ekranı da olan dizüstülerde medya sorgusu
-     yanıltabiliyor. */
-  .cursor-lens[data-active="true"] {
-    visibility: visible;
-  }
-
-  .cursor-lens__glow,
-  .cursor-lens__zoom,
-  .cursor-lens__shard {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 0;
-    /* Negatif margin ile ortalanıyorlar: JS yalnızca imlecin ham koordinatını
-       yazar, transform'a `-50%` karışmaz. */
-    margin: 0;
-  }
-
-  .cursor-lens__glow {
-    --lens-glow-size: 56px;
-    inline-size: var(--lens-glow-size);
-    block-size: var(--lens-glow-size);
-    margin: calc(var(--lens-glow-size) / -2);
-    /* Sert kenarlı bir disk değil: hem gradyan hem mask yumuşak biterek
-       `backdrop-filter`in sınırını da eritiyor — §4'ün "rahatsız etmeyen"
-       ölçütü. Baloncuk değil, hafif bir aydınlanma. */
-    background: radial-gradient(
-      circle,
-      color-mix(in srgb, var(--color-accent) 24%, transparent) 0%,
-      color-mix(in srgb, var(--color-accent) 9%, transparent) 48%,
-      transparent 72%
-    );
-    mask-image: radial-gradient(circle, #000 42%, transparent 72%);
-    opacity: 0;
-    transition: opacity var(--duration-base) var(--ease-out-quart);
-    /* Gerçek bir büyütme DEĞİL — CSS'te backdrop'u ölçekleyen bir filtre yok.
-       Altındaki alanı çok hafif berraklaştırarak "mercek altındaymış" hissi
-       veriyor; oran bilerek düşük, metin okunurluğu bozulmamalı. */
-    backdrop-filter: saturate(1.22) contrast(1.03);
-  }
-
-  .cursor-lens__shard {
-    --lens-shard-size: 6px;
-    inline-size: var(--lens-shard-size);
-    block-size: var(--lens-shard-size);
-    margin: calc(var(--lens-shard-size) / -2);
-    border-radius: var(--radius-sm);
-    background-color: var(--color-accent);
-    /* Başlangıçta görünmez; opaklık ve blur gecikme mesafesinden sürülüyor. */
-    opacity: 0;
-  }
-
-  .cursor-lens__zoom {
-    --lens-zoom-size: 116px;
-    inline-size: var(--lens-zoom-size);
-    block-size: var(--lens-zoom-size);
-    margin: calc(var(--lens-zoom-size) / -2);
-    /* §4: pill/daire değil. Yumuşak köşeli kare mercekten çok "kırpım
-       çerçevesi" gibi okunuyor ve sitenin keskin diliyle sürtüşmüyor. */
-    border-radius: var(--radius-lg);
-    border: 1px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
-    background-color: var(--color-ink-900);
-    background-repeat: no-repeat;
-    opacity: 0;
-    transition: opacity var(--duration-fast) var(--ease-out-quart);
-  }
-
-  .cursor-lens[data-active="true"] .cursor-lens__glow {
-    opacity: 1;
-  }
-
-  .cursor-lens[data-mode="zoom"] .cursor-lens__zoom {
-    opacity: 1;
-  }
-
-  /* Büyüteç açıkken hale ve uydular çekilir — ikisi üst üste gelirse
-     büyütülen kare üzerinde amber bir sis kalıyor. `visibility` kullanılıyor
-     çünkü uyduların opaklığını her frame JS satır içi yazıyor. */
-  .cursor-lens[data-mode="zoom"] .cursor-lens__glow,
-  .cursor-lens[data-mode="zoom"] .cursor-lens__shard {
-    visibility: hidden;
-  }
-
-  /* Native imleç YALNIZCA burada gizlenir ve yalnızca motor gerçek bir fare
-     gördükten sonra (`[data-cursor-lens-on]` html'e o an yazılır). JS hiç
-     çalışmazsa hiçbir yerde imleç kaybolmaz. */
-  [data-cursor-lens-on] [data-cursor-lens] {
-    cursor: none;
-  }
 }
 
 /* ==========================================================================
@@ -2157,9 +2061,8 @@
          [data-enter] { ... }
 
    İSİM NEDEN `data-enter`, `data-reveal` DEĞİL: `data-reveal` ZATEN
-   ServiceImage'in (parçadan bütüne şerit efekti) durum attribute'u ve
-   useCursorLens onu okuyor ("pending" iken büyüteç açılmıyor). Buraya da
-   `data-reveal` yazılsaydı global kural o çerçevelere de bir yükselme
+   ServiceImage'in (parçadan bütüne şerit efekti) durum attribute'u. Buraya
+   da `data-reveal` yazılsaydı global kural o çerçevelere de bir yükselme
    animasyonu bindirirdi. İki sistem, iki ad.
 
    Bu iki koşuldan biri sağlanmazsa BU BLOKTAKİ HİÇBİR KURAL GÖRÜLMEZ ve
@@ -2225,6 +2128,30 @@
   }
 }
 
+/* DİYAFRAM — Emlak CRM Pro bandının imza hareketi. Bkz. `.home-case-frame
+   > img` ve docs/design-system.md §12.
+
+   `enter-mask`in yatay ekseninde simetrik kardeşi: o alttan tek yönde açılır
+   (bir giriş), bu ortadan iki yönde açılır (bir ODAK anı — karanlıkta bir
+   yarıktan ışık taşıyor). Aynı disiplin (clip-path + transform TEK
+   animasyonda, §8), farklı jest; ServiceImage'in dikey şeritleriyle
+   (parçadan bütüne) karıştırılmasın — o BEŞ kopya birleştiriyor, bu TEK
+   görüntüyü bir yarıktan açıyor.
+
+   Renk YOK: dört ekran görüntüsünün kendi aksanı (turuncu, mavi, mor —
+   ölçüldü, hiçbiri site paletinden değil) zaten birbirinden ayrı; bir amber
+   tint veya glow eklemek o kaosla çarpışırdı. Jest saf geometri. */
+@keyframes case-aperture {
+  from {
+    clip-path: inset(46% 0 46% 0);
+    transform: scale(1.06);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+  }
+}
+
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     [data-enter] {
@@ -2266,6 +2193,43 @@
       animation: enter-word linear both;
       animation-timeline: --statement;
       animation-range: cover var(--w-from) cover var(--w-to);
+    }
+
+    /* ---- Emlak CRM Pro: diyafram ------------------------------------
+       Animasyon ÇERÇEVEYE (.home-case-frame) değil İÇİNDEKİ img'e
+       uygulanıyor: paspartanın (gri kenarlık) her zaman tam ve durağan
+       durması gerekiyor — ServiceImage'in "çerçeve her zaman görünür,
+       yalnızca içerik açılır" disipliniyle aynı ayrım. Frame'e uygulansaydı
+       transform kenarlığı da ölçeklerdi.
+
+       Açılış karesi STICKY (`.home-case-split__media`): kendi `view()`'i
+       bu yüzden sürekli scrub İÇİN kullanılmıyor (pin'lendiği anda kendi
+       viewport kesişimi sabitlenir, bkz. ServiceRail.tsx'teki aynı not) —
+       ama burada zaten İSTENEN şey sürekli bir scrub değil, TEK SEFERLİK
+       bir giriş: `entry` menzili yalnızca elemanın viewport'a GİRİŞ
+       fazını (pin'lenmeden hemen önceki kısa dilimi) ölçüyor, `both` fill
+       tamamlandıktan sonra `to` karesinde kalıyor. Yani sticky olması bu
+       menzil için bir sorun değil — tam aradığımız "bir kez aç, pin'liyken
+       öylece dursun" davranışını bedavaya veriyor. */
+    .home-case-frame > img {
+      animation: case-aperture linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 65%;
+    }
+
+    /* Üç destek karesi kademeli açılıyor — data-enter-stagger'daki --enter-i
+       deseniyle aynı disiplin (globals.css, yukarıda), farklı bir mekanizma:
+       burada sıra `nth-of-type` ile sabit (destek kareleri sayıca sabit ve
+       DOM sırası services.ts'teki gibi değişmiyor), --enter-i icat
+       edilmedi. Her sonraki kare bir miktar geriden başlayıp geriden bitiyor
+       — art arda değil, üst üste binerek (aynı gerekçe: SplitWords'teki
+       OVERLAP, kesik kesik değil dalga gibi okunmalı). */
+    .home-case-split__flow figure:nth-of-type(2) .home-case-frame > img {
+      animation-range: entry 12% entry 77%;
+    }
+
+    .home-case-split__flow figure:nth-of-type(3) .home-case-frame > img {
+      animation-range: entry 24% entry 89%;
     }
 
     /* ---- /hizmetler yatay ray ------------------------------------
@@ -2394,74 +2358,129 @@
         view-timeline: --home-rail block;
       }
 
+      /* Pin'lenen pencere. Tam ekran yüksekliğinde: paneller artık kart
+         değil, tavandan tabana uzanan ŞERİTLER. `overflow: clip` ekranın
+         sağından çıkanı, `.home-rail-lede` ise solundan çıkanı yutuyor. */
       .home-rail-viewport {
         position: sticky;
-        inset-block-start: calc(var(--nav-h) + 2rem);
+        inset-block-start: var(--nav-h);
         block-size: var(--home-rail-sticky-h);
         overflow: clip;
-        display: flex;
-        align-items: center;
+        display: block;
+      }
+
+      /* ---- SABİT BAŞLIK = BAŞLANGIÇ ÇİZGİSİ ---------------------
+         Başlık `position: fixed` DEĞİL. Fixed, bandın başladığı ve bittiği
+         anı bilmez; bırakma noktasını JS'le takip etmek gerekirdi. Başlık
+         zaten pin'lenmiş olan viewport'un İÇİNDE mutlak konumlu bir katman:
+         viewport pin'liyken başlık da pin'li, bant bitince ikisi birlikte
+         serbest kalıyor — tek satır JS yok.
+
+         MASKELEME NEDEN clip-path DEĞİL
+         clip-path'i track'e versem her karede (transform ile birlikte) yeni
+         bir kırpma bölgesi hesaplanırdı; viewport'a versem başlığı da
+         kırpardı, çünkü başlık aynı kutunun içinde. Bunun yerine plaka
+         bandın kendi zeminini OPAK boyuyor ve panellerin üstünde duruyor
+         (z-index 2 > track'in 1'i). Sola kayan panel plakanın altına girip
+         örtülüyor; kullanıcı için sonuç kırpmayla birebir aynı, maliyeti
+         sıfır.
+
+         ZEMİN RENGİ: bandı saran section `.surface-paper`, yani
+         `--color-paper-50`. Plaka opak olmak zorunda olduğu için tokenı
+         doğrudan okuyor — bandın yüzeyi değişirse BURASI DA DEĞİŞMELİ. */
+      .home-rail-lede {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        inline-size: var(--home-rail-lede-w);
+        z-index: 2;
+        margin-block-end: 0;
+        padding-block: 3rem;
+        padding-inline-end: 2rem;
+        background-color: var(--color-paper-50);
+        /* Çizginin kendisi. Panel tam burada kaybolur. */
+        border-inline-end: 1px solid var(--hairline);
+      }
+
+      /* Başlık artık ~25rem'lik bir sütunda: bir kademe küçülüyor ve
+         genişlik kısıtını sütuna bırakıyor (22ch burada dar kalırdı). */
+      .home-rail-lede__title {
+        max-inline-size: none;
+        font-size: var(--text-display-xl);
+        line-height: var(--text-display-xl--line-height);
+        letter-spacing: var(--text-display-xl--letter-spacing);
+        font-weight: var(--text-display-xl--font-weight);
       }
 
       .home-rail-track {
         flex-direction: row;
         align-items: stretch;
-        inline-size: calc(var(--home-rail-panels) * var(--home-rail-panel-w));
+        block-size: 100%;
+        inline-size: calc(
+          var(--home-rail-lede-w) + var(--home-rail-panels) * var(--home-rail-panel-w)
+        );
+        /* İlk panel çizginin SAĞINDAN doğsun. `box-sizing: border-box`
+           (preflight) sayesinde içerik kutusu tam 6 × panel genişliği
+           kalıyor, paneller birebir oturuyor. */
+        padding-inline-start: var(--home-rail-lede-w);
         animation: home-rail-slide linear both;
         animation-timeline: --home-rail;
         animation-range: contain 0% contain 100%;
       }
 
+      /* Tam yükseklik şerit. Kutu YOK: `border: 0` ile
+         `.home-service-row`'un üst hairline'ı da sıfırlanıyor, geriye
+         yalnızca paneller arasındaki dikey ayraç kalıyor. */
       .home-rail-panel {
         inline-size: var(--home-rail-panel-w);
         flex: 0 0 var(--home-rail-panel-w);
-        padding: 2rem;
-        border: 1px solid var(--hairline);
-        /* Yatayda paneller birbirinden AYRI kartlar — dikey listenin "üst
-           hairline = ayraç" mantığı burada geçersiz, dört kenar da kart
-           kenarlığı. */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 1.5rem;
+        block-size: 100%;
+        padding: 3rem 2rem;
+        border: 0;
+        border-inline-start: 1px solid var(--hairline);
         transition: border-color var(--duration-base) var(--ease-out-quart);
-        /* Asimetrik konum + parallax. Y sabit kalır (panel scroll boyunca
-           hep aynı yükseklikte durur), X salınır (--panel-k işaretine göre
-           bazı paneller "geride", bazıları "önde" kayıyormuş hissi verir).
-           İkisi TEK transform'da: aynı elemana iki ayrı hareket yazılmıyor
-           (§8 kuralı). */
-        animation: home-rail-panel-drift linear both;
+      }
+
+      /* İlk panelin sol ayracı, `.home-rail-lede`nin sağ kenarındaki
+         başlangıç çizgisiyle aynı x'te doğar ve 2px'lik bir kalınlaşma
+         yaratırdı. Rayın dış kenarları ayraç değil; ikisi de kalkıyor. */
+      .home-rail-panel:first-child {
+        border-inline-start-width: 0;
+      }
+
+      /* ZİGZAG. Tam yükseklikle çakışmıyor, tersine ancak burada okunur
+         oluyor: DOM sırası ikon → metin → görsel; tek panellerde bu sıra
+         yukarıdan aşağı (başlık üstte, görsel altta), çift panellerde
+         `column-reverse` ile tersine dönüyor. `space-between` ikisini de
+         şeridin iki ucuna yaslıyor, ortada nefes kalıyor. */
+      .home-rail-panel:nth-child(even) {
+        flex-direction: column-reverse;
+      }
+
+      /* PARALLAX — panelin KENDİSİ değil, İÇERİĞİ kayıyor.
+         Eski hâlde `--panel-k` panelin kendi X/Y ofsetiydi; ayrı ayrı
+         kartlarda bu sorunsuzdu. Uç uca dizili şeritlerde panelin kendisini
+         oynatmak komşularla bindirir ve ayraç çizgilerini titretir. Aynı
+         işaret/genlik şimdi panelin üç çocuğuna dikey bir kayma olarak
+         veriliyor: şerit geometrisi taş gibi dururken içerik "kimi geride,
+         kimi önde" akıyor. Asimetri imzası duruyor, kırılan bir şey yok. */
+      .home-rail-panel > * {
+        animation: home-rail-content-drift linear both;
         animation-timeline: --home-rail;
         animation-range: contain 0% contain 100%;
       }
 
-      /* .home-service-row:first-child dikey listede ilk satırın üst
-         hairline'ını sıfırlıyordu (liste ayracı gereksizdi). Burada her
-         panel kendi kartı — ilk panel de dört kenarını korumalı. */
-      .home-rail-panel:first-child {
-        border-block-start-width: 1px;
-      }
-
-      /* Yatayda medya gerçek bir bileşen: dikey fallback'teki gibi tam
-         genişlik bir satır değil, kartın kendi iç akışında normal bir
-         blok. Grid-column artık anlamsız (panel grid değil, iki üst-üste
-         blok) ama zararsız — 1/-1 tek sütunlu bir bağlamda no-op.
-
-         YÜKSEKLİK KAPAKLANIYOR: `--home-rail-sticky-h` sabit ve kısa
-         (30rem); kare (1/1) oranlı bir servis görseli, sarmalayıcının
-         genişliğine (~594px) göre kendi yüksekliğini de 594px yapmaya
-         çalışıyor, bu da başlık+kalemlerle birlikte paneli sticky
-         pencereden taşırıyordu (ölçülen toplam: 889px / 480px pencere).
-         `max-block-size` genişliği SABİT bırakıp yüksekliği kırpıyor —
-         `object-fit: cover` (ServiceImage'in kendi img'i) farkı sorunsuz
-         kapatıyor, kadraj biraz daha sıkı kırpılıyor ama görsel bozulmuyor.
-         Yan etki OLUMLU: altı servisin oranı (3/2, 1/1, 16/9) farklı, kapak
-         hepsini aynı kart yüksekliğine getiriyor. */
+      /* Görsel artık gerçekten yer bulabiliyor (pencere 30rem değil, tam
+         ekran). Yine de kapaklanıyor: altı servisin oranı farklı (3/2, 1/1,
+         16/9) ve `object-fit: cover` hepsini aynı şerit ritmine getiriyor. */
       .home-rail-panel__media {
-        margin-block-start: 1.25rem;
-        max-block-size: 11rem;
-      }
-
-      /* Kalem satırı yatayda gizli — sebebi yukarıdaki yükseklik notu.
-         Dikey fallback'te (bu kural hiç görülmediği için) görünür kalıyor. */
-      .home-rail-panel__items {
-        display: none;
+        margin-block-start: 0;
+        inline-size: 100%;
+        max-block-size: min(38vh, 20rem);
       }
     }
   }
@@ -2480,42 +2499,48 @@
 
 /* Anasayfa ray'inin yolu: track'in TOPLAM genişliğinin sağ kenarı
    viewport'un sağ kenarına gelene kadar kayıyor (`/hizmetler`'deki gibi
-   "son panelin SOLU viewport'un soluna" değil). Panel genişliği (38vw)
-   100vw'den küçük olduğu için o hesapla son panelden sonra track bitip
-   sağda boş bir şerit kalırdı — burada kayma tam track'in sonunda durur,
-   boşluk hiç açılmaz. */
+   "son panelin SOLU viewport'un soluna" değil). Panel genişliği 100vw'den
+   küçük olduğu için o hesapla son panelden sonra track bitip sağda boş bir
+   şerit kalırdı — burada kayma tam track'in sonunda durur.
+
+   Track genişliği başlık sütununu da içeriyor (`padding-inline-start`),
+   çıkarılan da 100vw değil GERÇEK pencere genişliği: bandı saran section
+   iki yandan `--spacing-gutter` kadar içeride, 100vw çıkarmak track'i erken
+   durdurup sağda o kadar boşluk bırakırdı.
+
+   Bandın sonunda ilk iki-üç panel başlık plakasının altında kalmış olur —
+   istenen bu: çizgiyi geçen kaybolur. */
 @keyframes home-rail-slide {
   from {
     transform: translate3d(0, 0, 0);
   }
   to {
     transform: translate3d(
-      calc(-1 * (var(--home-rail-panels) * var(--home-rail-panel-w) - 100vw)),
+      calc(
+        -1 *
+          (
+            var(--home-rail-lede-w) + var(--home-rail-panels) *
+              var(--home-rail-panel-w) -
+              (100vw - 2 * var(--spacing-gutter))
+          )
+      ),
       0,
       0
     );
   }
 }
 
-/* Panel başına asimetrik konum + parallax. Y SABİT (from/to'da aynı) —
-   panel scroll boyunca hep aynı yükseklikte durur, yalnızca X salınır.
-   `--panel-k`'nin işareti panelin hangi yöne "geride/önde" kaydığını,
-   büyüklüğü ne kadar belirgin kayacağını belirliyor (globals.css'teki
-   nth-child tablosu, .service-shard'ın --shard-k'sıyla aynı disiplin). */
-@keyframes home-rail-panel-drift {
+/* Panel İÇERİĞİNİN asimetrik dikey parallax'ı. `--panel-k`'nin işareti
+   içeriğin hangi yöne süzüldüğünü, büyüklüğü ne kadar belirgin olacağını
+   belirliyor (globals.css'teki nth-child tablosu, .service-shard'ın
+   --shard-k'sıyla aynı disiplin). Panelin kendisi HİÇ oynamıyor — gerekçe
+   `.home-rail-panel > *` kuralının yorumunda. */
+@keyframes home-rail-content-drift {
   from {
-    transform: translate3d(calc(var(--panel-k, 0) * -1.1rem), var(--panel-y, 0px), 0);
+    transform: translate3d(0, calc(var(--panel-k, 0) * 1.25rem), 0);
   }
   to {
-    transform: translate3d(calc(var(--panel-k, 0) * 1.1rem), var(--panel-y, 0px), 0);
-  }
-}
-
-/* Dokunmatik cihaz güvencesi. Motor zaten mount olmuyor (medya sorgusu
-   JS tarafında da okunuyor); bu kural hidrasyondan önceki kare için. */
-@media (pointer: coarse) {
-  .cursor-lens {
-    display: none;
+    transform: translate3d(0, calc(var(--panel-k, 0) * -1.25rem), 0);
   }
 }
 
@@ -2742,21 +2767,13 @@
     background-color: var(--hairline);
   }
 
-  /* Emlak CRM Pro destek kareleri TEK sütuna düşer, portfolyo gibi ikiye
-     değil: 16/9 yoğun bir masaüstü arayüz karesi yarım telefon genişliğinde
-     (~160px) okunaksız bir lekeye dönüşüyordu. */
-  .home-case-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
   /* Pasparta inceliyor: telefon genişliğinde 12px kenarlık görüntünün
      kendisinden yer çalıyor, üstelik dar ekranda bant zaten kenar boşluğuyla
      (--spacing-gutter) çevrili — ayrışma için o kadarına gerek kalmıyor.
-     Tek sütuna düşen destek kareleri artık açılış karesiyle aynı genişlikte,
-     bu yüzden ikisi de aynı değeri alıyor. */
-  .home-case-frame,
-  .home-case-grid .home-case-frame {
+     `.home-case-split` zaten ≤860px'te tek sütuna düşüyor (yukarıda), destek
+     kareleri açılış karesiyle aynı genişlikte oluyor — bu yüzden ikisi de
+     aynı değeri alsın diye tek, koşulsuz bir seçici yeterli. */
+  .home-case-frame {
     --case-mat: 0.375rem;
   }
 
@@ -2893,13 +2910,6 @@
        da elle düşürüyoruz — hiç oynamayacak bir geçiş için kompozitör
        katmanı ayrılmasın. */
     will-change: auto !important;
-  }
-
-  /* İmleç katmanı hareketten ibaret — kısılmış hâli yok, tamamen kapanır.
-     CursorLens bu sinyalde zaten hiç mount olmuyor; bu kural hidrasyondan
-     önceki kare ve sonradan açılan sistem tercihi için. */
-  .cursor-lens {
-    display: none !important;
   }
 
   .skip-link {

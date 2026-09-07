@@ -1,7 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { ServiceImage } from "@/app/components/services/ServiceImage";
 import type { ServiceMedia } from "@/app/content/serviceMedia";
@@ -10,38 +8,28 @@ import type { ServiceMedia } from "@/app/content/serviceMedia";
  * Anasayfa hizmet ray'inin tek paneli. `.home-service-row` ile AYNI iç
  * markup ve CSS sınıflarını taşıyor (ikon | başlık+kalemler) — ray CSS
  * desteklenmediğinde / prefers-reduced-motion'da / ≤860px'te panel bu
- * sınıfların üstünden bugünkü dikey satır görünümüne düşer. Ray'e özgü
- * olan tek şey görselin HOVER İLE MOUNT OLMASI, bkz. aşağıdaki not.
+ * sınıfların üstünden bugünkü dikey satır görünümüne düşer.
  *
- * GÖRSEL NEDEN "GİZLE" DEĞİL "MOUNT ETME"
- * Görseli CSS'le (`opacity:0`) gizleyip DOM'da hep tutmak daha basit
- * olurdu ama ServiceImage'in kendi IntersectionObserver'ı scroll
- * kesişiminde tetiklenir — panel scroll ile görünür olur olmaz shard efekti
- * (kullanıcı hiç hover etmeden, arka planda) oynar ve biterdi; hover
- * geldiğinde zaten birleşmiş bir görsel bulunurdu. İstenen şey bu değil:
- * "görsel görününce shard efekti tetiklenmeli". Çözüm görseli hover'a kadar
- * hiç DOM'a yazmamak — mount anı = görünme anı = IO'nun ilk tetiklendiği
- * an, üçü çakışıyor. `opened` hiç `false`'a dönmediği için (tek yönlü
- * kapı), ServiceImage bir kez mount olduktan sonra kalır ve kendi tek
- * atışlık kuralını doğal olarak koruyor — burada ayrıca bir "tekrar
- * oynatma" kilidi gerekmiyor.
+ * GÖRSEL — /hizmetler'deki ServiceImage'İN AYNISI, HOVER YOK
+ * Önceki sürüm görseli hover'a kadar hiç mount etmiyordu (kullanıcı
+ * dokunana kadar birleşme efekti hiç oynamasın diye). Artık istenen şey
+ * bunun tam tersi: panel ray içinde scroll ile görünür olur olmaz efekt
+ * KENDİLİĞİNDEN oynasın — tıpkı /hizmetler'de olduğu gibi. Bu yüzden
+ * `<ServiceImage>` burada da /hizmetler'deki gibi BAŞTAN mount ediliyor;
+ * "ne zaman görünür olacağı" sorusunun cevabı artık component'in dışında,
+ * ServiceImage'in kendi IntersectionObserver'ında (bkz. ServiceImage.tsx).
+ *
+ * Bu component artık client olmak ZORUNDA DEĞİL — `"use client"` ve
+ * hover/focus state'i kalktı, geriye yalnızca sunucuda render edilebilen
+ * bir markup kaldı (ServiceImage kendi client sınırını zaten taşıyor).
  *
  * DOKUNMATİK / REDUCED-MOTION FALLBACK
- * `(hover: hover) and (prefers-reduced-motion: no-preference)` yanlışsa
- * (dokunmatik cihaz VEYA azaltılmış hareket) `gated` false'a düşer ve görsel
- * baştan mount edilir — hover'a hiç ihtiyaç duyulmaz. Reduced-motion'da
- * ServiceImage'in kendi IO'su hiç kurulmuyor zaten (bkz. ServiceImage.tsx),
- * şeritler CSS'in reduce bloğuyla dursun. Dokunmatikte IO normal çalışır,
- * panel scroll ile göründüğünde shard efekti /hizmetler'deki gibi oynar.
- *
- * SSR/hidrasyon: başlangıç durumu `gated:true, opened:false` (görsel
- * gizli) — matchMedia sonucu bilinmeden önce en güvenli varsayım budur ve
- * sunucu çıktısıyla eşleşir. Etki devreye girince dokunmatik/reduced-motion
- * kullanıcılarında görsel bir kare içinde belirir (flaş-gösterme), tersi
- * (flaş-gizleme) daha kötü bir izlenim bırakırdı.
+ * Ayrıca bir şey KURULMUYOR — ServiceImage bunu zaten kendi başına
+ * hallediyor: reduced-motion'da observer hiç kurulmuyor, şeritler
+ * globals.css'in reduce bloğuyla dururken görünür kalıyor; dokunmatikte
+ * IO normal çalışıyor ve panel scroll ile göründüğünde efekt
+ * /hizmetler'deki gibi oynuyor.
  */
-
-const GATE_QUERY = "(hover: hover) and (prefers-reduced-motion: no-preference)";
 
 type Props = {
   id: string;
@@ -67,19 +55,6 @@ export default function HomeRailPanel({
   total,
   media,
 }: Props) {
-  const [gated, setGated] = useState(true);
-  const [opened, setOpened] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia(GATE_QUERY);
-    const sync = () => setGated(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
-  const visible = !gated || opened;
-
   return (
     <Link
       href={`/hizmetler#${id}`}
@@ -90,8 +65,6 @@ export default function HomeRailPanel({
       // ezer — iki ayrı hareket aynı anda çakışmıyor, yalnızca hangi modda
       // hangisinin geçerli olduğu değişiyor.
       data-enter
-      onPointerEnter={() => setOpened(true)}
-      onFocus={() => setOpened(true)}
     >
       <div className="service-icon" aria-hidden="true">
         {icon}
@@ -114,12 +87,8 @@ export default function HomeRailPanel({
       </div>
 
       {media ? (
-        <div
-          className="home-rail-panel__media"
-          data-open={visible ? "true" : "false"}
-          style={{ aspectRatio: media.ratio }}
-        >
-          {visible ? <ServiceImage {...media} /> : null}
+        <div className="home-rail-panel__media">
+          <ServiceImage {...media} />
         </div>
       ) : null}
     </Link>
