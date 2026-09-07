@@ -62,7 +62,14 @@ export function ServiceImage({ src, alt, ratio, sizes }: ServiceMedia) {
       },
       // Bölümün dörtte biri göründüğünde: görsel ekrana tam girmeden
       // başlıyor, kullanıcı birleşmenin ortasına düşmüyor.
-      { threshold: 0.25, rootMargin: "0px 0px -10% 0px" }
+      //
+      // rootMargin HER İKİ EKSENDE daraltılıyor. /hizmetler artık yatay bir
+      // ray: paneller yandan giriyor, dolayısıyla yalnızca dikey eksene
+      // ayarlanmış bir kenar boşluğu orada hiçbir şey yapmıyordu. Ray'de
+      // kırpmayı .rail-viewport'un `overflow: clip`i yapıyor — ekran dışı
+      // paneller gerçekten "kesişmiyor" sayılıyor, bu yüzden gözlemci yatayda
+      // da doğru çalışıyor.
+      { threshold: 0.25, rootMargin: "0px -10% -10% -10%" }
     );
     observer.observe(frame);
 

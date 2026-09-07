@@ -521,13 +521,20 @@ ritim istiyor. Statik, `next/image` ile AVIF/WebP'ye inen tek bir kare eski
 itirazın hiçbirini doğurmuyor: poster üretimi yok, otomatik oynatma yok,
 indirme videonun onda biri, hero'nun imzası (hareketli görüntü) tekil kalıyor.
 
-Beş bölümde görsel var, biri **bilinçli boşluk**: `yazilim`. O hizmet zaten
-anasayfadaki Emlak CRM Pro vitrinine ve bölüm içindeki
-`/portfolyo/emlak-crm-pro` CTA'sına bağlı; ikinci bir görsel aynı kanıtı
-tekrar ederdi. Eşleme `app/content/serviceMedia.ts`'te (`services.ts`'ten
-AYRI dosya: `services.ts`'i hero'nun `heroPhases.ts`'i de okuyor, portfolyo
-verisi hero bundle'ına girmesin). Grafik ve Dijital'in `alt` metni
-`portfolio.ts`'ten okunuyor — aynı görselin alt metni iki yerde yazılmıyor.
+**Altı bölümün altısında da görsel var.** İlk sürümde `yazilim` bilinçli bir
+boşluktu: o hizmet zaten anasayfadaki Emlak CRM Pro vitrinine ve bölüm
+içindeki `/portfolyo/emlak-crm-pro` CTA'sına bağlıydı, ikinci bir görsel aynı
+kanıtı tekrar ederdi. §16'daki anasayfa ray'i eklenince bu karar tersine
+döndü: ray da aynı tabloyu okuyor ve altı panelden birinin görselsiz kalması
+ray'in kendi ritmini bozuyordu (beşte bir boş panel). Çözüm bir portfolyo
+kanıtı değil, **sembolik** bir kare: kod editörü ekran görüntüsü
+(`public/images/hizmetler/yazilim.jpg`) — hizmetin doğasının görsel
+kısaltması, belirli bir işin ispatı değil.
+
+Eşleme `app/content/serviceMedia.ts`'te (`services.ts`'ten AYRI dosya:
+`services.ts`'i hero'nun `heroPhases.ts`'i de okuyor, portfolyo verisi hero
+bundle'ına girmesin). Grafik ve Dijital'in `alt` metni `portfolio.ts`'ten
+okunuyor — aynı görselin alt metni iki yerde yazılmıyor.
 
 ### Parçalardan bütüne: şerit birleşme efekti
 

@@ -2,10 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Hero from "./components/hero/Hero";
+import HomeRailPanel from "./components/home/HomeRailPanel";
+import SplitWords from "./components/motion/SplitWords";
 import { NAV_CTA } from "./components/nav/navLinks";
+import ServiceRail from "./components/services/ServiceRail";
 import { CASE_LEAD_SHOT, CASE_SUPPORT_SHOTS } from "./content/emlakCrmPro";
 import { PARTNERS } from "./content/partners";
 import { PORTFOLIO_ITEMS } from "./content/portfolio";
+import { SERVICE_MEDIA } from "./content/serviceMedia";
 import { SERVICES } from "./content/services";
 
 /**
@@ -61,6 +65,34 @@ const CASE_PARAGRAPHS = [
   "Harita üzerinde portföy yönetimi, otomatik müşteri-ilan eşleştirme, danışman hakediş takibi, çok para birimli muhasebe — hepsi sıfırdan tasarlandı ve kodlandı.",
 ];
 
+/**
+ * Bandın başındaki hairline + numaralı işaret. Sayfa-yerel: yalnızca anasayfa
+ * kullanıyor ve altı bandın sırası bu sayfanın kendi anlatısı — /hizmetler'in
+ * `NN / 06` sayacı hizmetlerin sırasını sayıyor, bu ise bölümleri. İkisini
+ * ortak bir bileşene bağlamak iki farklı anlamı tek yere bağlamak olurdu.
+ *
+ * `flip` bandın hizasını ters çevirir; alternasyonun gerekçesi
+ * globals.css `.section-marker` yorumunda.
+ */
+function SectionMarker({
+  index,
+  label,
+  flip,
+}: {
+  index: number;
+  label: string;
+  flip?: boolean;
+}) {
+  return (
+    <div className={`section-marker${flip ? " section-marker--flip" : ""}`}>
+      <span className="eyebrow section-marker__index">
+        {String(index).padStart(2, "0")}
+      </span>
+      <span className="eyebrow section-marker__label">{label}</span>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <>
@@ -70,48 +102,64 @@ export default function Home() {
           /hakkimda ve /iletisim'deki gibi olduğu gibi kullanılıyor (≤860px'te
           tek sütuna düşüyor). Zemin #FFFFFF, yani hero'nun son karesiyle aynı
           — iki bant arasında renk sıçraması olmuyor. */}
-      <section className="surface-paper surface-paper-raised px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="service-grid mx-auto max-w-(--container-site)">
-          <div className="service-head">
-            <p className="eyebrow text-accent-auto">Kimiz</p>
-            <h2 className="service-title font-display text-strong">
-              TASARIM VE
-              <br />
-              YAZILIM, TEK ELDEN
-            </h2>
-          </div>
+      <section className="surface-paper surface-paper-raised px-(--spacing-gutter) pt-(--spacing-section-snug) pb-(--spacing-section-loose)">
+        <div className="mx-auto max-w-(--container-site)">
+          <SectionMarker index={1} label="Kimiz" />
 
-          <div>
-            {INTRO_PARAGRAPHS.map((paragraph, index) => (
-              <p
-                key={paragraph}
-                className={`max-w-(--container-prose) ${
-                  index === 0 ? "text-lead" : "text-muted mt-6"
-                }`}
-              >
-                {paragraph}
+          <div className="service-grid">
+            <div className="service-head">
+              <h2 className="service-title font-display text-strong" data-enter="mask">
+                TASARIM VE
+                <br />
+                YAZILIM, TEK ELDEN
+              </h2>
+            </div>
+
+            <div>
+              {/* Sayfanın imza hareketi: ilk paragraf kelime kelime koyulaşır.
+                  Diğerleri normal akış — jest tekrar edilirse jest olmaktan
+                  çıkar, süs olur. */}
+              <p className="home-statement">
+                <SplitWords text={INTRO_PARAGRAPHS[0]} />
               </p>
-            ))}
 
-            <Link href="/hakkimda" className="btn btn-ghost eyebrow mt-10 inline-flex">
-              Hakkımızda →
-            </Link>
+              {INTRO_PARAGRAPHS.slice(1).map((paragraph) => (
+                <p
+                  key={paragraph}
+                  className="text-muted mt-8 max-w-(--container-prose)"
+                  data-enter
+                >
+                  {paragraph}
+                </p>
+              ))}
+
+              <Link href="/hakkimda" className="btn btn-ghost eyebrow mt-10 inline-flex">
+                Hakkımızda →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 2 — Hizmetler özeti. Brief §4 "6 kart" diyor ama design-system §4
-          kart grid'ini açıkça atıyor; /hizmetler de altı kalemi hairline
-          ayraçlı satırlarla kurdu. Aynı dil burada özet ölçüsünde: sayaç,
-          ikon, başlık ve kalemler tek mono satırda.
+      {/* 2 — Hizmetler özeti, YATAY RAY. Brief §4 "6 kart" diyor ama
+          design-system §4 kart grid'ini açıkça atıyor; panel yine hairline
+          çerçeveli bir satır, yalnızca yatayda kayıyor.
 
-          Her satır /hizmetler#<id>'ye giden bir link — o çapalar sayfada
-          zaten var (.service-index aynı hedefleri kullanıyor). */}
-      <section className="surface-paper px-(--spacing-gutter) py-(--spacing-section)">
+          /hizmetler'in tam-ekran ray'inden (ServiceRail + .rail-*) KASITLI
+          OLARAK FARKLI ÖLÇEKTE: burada aynı anda ~2.5 panel görünür (özet,
+          "raftan geçiş"), orada tek panel tam ekran (bölüm, "adım adım
+          okuma"). İkisi aynı jesti iki kez kullanmasın diye böyle ayrıldı.
+          Gerekçe: docs/design-system.md §16.
+
+          Başlık ve kapanış CTA'sı dikey kalıyor — ray ikisinin arasında bir
+          ada, /hizmetler'deki kuralın aynısı. Ray, max-w-(--container-site)
+          sarmalayıcısının DIŞINDA: track'in tam genişliği kısıtlanmamalı. */}
+      <section className="surface-paper seam px-(--spacing-gutter) py-(--spacing-section-loose)">
         <div className="mx-auto max-w-(--container-site)">
-          <p className="eyebrow text-accent-auto mb-6">Hizmetler</p>
+          <SectionMarker index={2} label="Hizmetler" flip />
           <h2
             className="font-display text-strong max-w-[22ch]"
+            data-enter="mask"
             style={{
               fontSize: "var(--text-display-2xl)",
               lineHeight: "var(--text-display-2xl--line-height)",
@@ -121,34 +169,37 @@ export default function Home() {
           >
             ALTI HİZMET ÇİZGİSİ, TEK EKİP
           </h2>
+        </div>
 
-          <div className="mt-(--spacing-section-tight)">
-            {SERVICES.map((service, index) => (
-              <Link
-                key={service.id}
-                href={`/hizmetler#${service.id}`}
-                className="home-service-row border-hairline"
-              >
-                <div className="service-icon" aria-hidden="true">
-                  <service.icon strokeWidth={1.5} />
-                </div>
-
-                <div>
-                  <p className="eyebrow text-accent-auto">
-                    {String(index + 1).padStart(2, "0")} /{" "}
-                    {String(SERVICES.length).padStart(2, "0")}
-                  </p>
-                  <h3 className="home-service-title service-title font-display mt-2">
-                    {service.title}
-                  </h3>
-                  <p className="eyebrow text-muted mt-4">
-                    {service.items.join(" · ")}
-                  </p>
-                </div>
-              </Link>
-            ))}
+        <ServiceRail
+          panelCount={SERVICES.length}
+          panelSelector=".home-rail-panel"
+          className="home-rail mt-(--spacing-section-tight)"
+          style={{ "--home-rail-panels": SERVICES.length } as React.CSSProperties}
+        >
+          <div className="home-rail-viewport">
+            <div className="home-rail-track">
+              {SERVICES.map((service, index) => (
+                <HomeRailPanel
+                  key={service.id}
+                  id={service.id}
+                  // İkon burada (server component) render ediliyor ve hazır
+                  // JSX olarak geçiyor — `service.icon` bir bileşen
+                  // fonksiyonu, ham hâliyle client component'e prop
+                  // olamıyor.
+                  icon={<service.icon strokeWidth={1.5} />}
+                  title={service.title}
+                  items={service.items}
+                  index={index}
+                  total={SERVICES.length}
+                  media={SERVICE_MEDIA[service.id]}
+                />
+              ))}
+            </div>
           </div>
+        </ServiceRail>
 
+        <div className="mx-auto max-w-(--container-site)">
           <Link
             href="/hizmetler"
             className="btn btn-ghost eyebrow mt-(--spacing-section-tight) inline-flex"
@@ -172,11 +223,12 @@ export default function Home() {
 
           Kareler LİNK DEĞİL — portfolyo bandındaki kararın aynısı, bandın tek
           bağlantısı alttaki CTA ve o iç rotaya gidiyor. */}
-      <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
+      <section className="surface-ink surface-ink-deep seam px-(--spacing-gutter) py-(--spacing-section-loose)">
         <div className="mx-auto max-w-(--container-wide)">
-          <p className="eyebrow text-accent-auto mb-6">Öne Çıkan İş</p>
+          <SectionMarker index={3} label="Öne Çıkan İş" />
           <h2
             className="font-display text-strong max-w-[20ch]"
+            data-enter="mask"
             style={{
               fontSize: "var(--text-display-2xl)",
               lineHeight: "var(--text-display-2xl--line-height)",
@@ -186,68 +238,76 @@ export default function Home() {
           >
             SADECE ANLATMIYORUZ, YAPIYORUZ.
           </h2>
-          {CASE_PARAGRAPHS.map((paragraph, index) => (
-            <p
-              key={paragraph}
-              className={`max-w-(--container-prose) ${
-                index === 0 ? "text-lead mt-8" : "text-muted mt-6"
-              }`}
-            >
-              {paragraph}
-            </p>
-          ))}
 
-          {/* Açılış karesi bant genişliğinde. `preload` VERİLMİYOR (Next 16'da
-              `priority`nin yerini aldı) — bant katlanın çok altında, hero'nun
-              ilk boyaması bloklanmamalı. Kaynak PNG ~3330×1852; next/image
-              onu build'de AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor,
-              5.7MB'lık kaynak seti tarayıcıya hiç gitmiyor. */}
-          <figure className="mt-(--spacing-section-tight)">
-            <div className="home-case-frame" data-cursor-lens>
-              <Image
-                src={CASE_LEAD_SHOT.src}
-                alt={CASE_LEAD_SHOT.alt}
-                fill
-                sizes="(max-width: 860px) 100vw, 1440px"
-                style={{ objectFit: "cover" }}
-              />
+          {/* Bandın tepe noktası olma biçimi: açılış karesi solda SABİTLENİYOR,
+              metin ve üç destek karesi sağdan yanından akıyor. Böylece ürünün
+              kendisi ekranda kalırken anlatı ilerliyor.
+
+              ≤860px'te ve sticky yokken tek sütuna düşer; sıralama bugünküyle
+              aynı (medya → metin → destek kareleri). */}
+          <div className="home-case-split mt-(--spacing-section-tight)">
+            {/* Açılış karesi. `preload` VERİLMİYOR (Next 16'da `priority`nin
+                yerini aldı) — bant katlanın çok altında, hero'nun ilk boyaması
+                bloklanmamalı. Kaynak PNG ~3330×1852; next/image onu build'de
+                AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor. */}
+            <figure className="home-case-split__media">
+              <div className="home-case-frame" data-cursor-lens>
+                <Image
+                  src={CASE_LEAD_SHOT.src}
+                  alt={CASE_LEAD_SHOT.alt}
+                  fill
+                  sizes="(max-width: 860px) 100vw, 48vw"
+                  style={{ objectFit: "cover" }}
+                />
+              </div>
+              <figcaption className="home-case-caption eyebrow text-muted">
+                {CASE_LEAD_SHOT.caption}
+              </figcaption>
+            </figure>
+
+            <div className="home-case-split__flow">
+              {CASE_PARAGRAPHS.map((paragraph, index) => (
+                <p
+                  key={paragraph}
+                  className={`max-w-(--container-prose) ${
+                    index === 0 ? "text-lead" : "text-muted mt-6"
+                  }`}
+                  data-enter
+                >
+                  {paragraph}
+                </p>
+              ))}
+
+              {/* Üç destek karesi. Sıra §5.2'nin cümlesini takip ediyor:
+                  portföy yönetimi → harita üzerinde analiz → raporlama. */}
+              {CASE_SUPPORT_SHOTS.map((shot) => (
+                <figure key={shot.src} data-enter>
+                  <div className="home-case-frame" data-cursor-lens>
+                    <Image
+                      src={shot.src}
+                      alt={shot.alt}
+                      fill
+                      sizes="(max-width: 860px) 100vw, 42vw"
+                      style={{ objectFit: "cover" }}
+                    />
+                  </div>
+                  <figcaption className="home-case-caption eyebrow text-muted">
+                    {shot.caption}
+                  </figcaption>
+                </figure>
+              ))}
+
+              {/* /portfolyo/emlak-crm-pro henüz KURULMADI — /hizmetler ve
+                  /hakkimda'daki CTA'lar da aynı adrese gidiyor, tutarlı.
+                  Bandın tek ve birincil eylemi olduğu için .btn-accent. */}
+              <Link
+                href="/portfolyo/emlak-crm-pro"
+                className="btn btn-accent eyebrow mt-(--spacing-section-tight) inline-flex"
+              >
+                Projeyi İncele →
+              </Link>
             </div>
-            <figcaption className="home-case-caption eyebrow text-muted">
-              {CASE_LEAD_SHOT.caption}
-            </figcaption>
-          </figure>
-
-          {/* Üç destek karesi. Sıra §5.2'nin cümlesini takip ediyor: portföy
-              yönetimi → harita üzerinde analiz → raporlama. */}
-          <div className="home-case-grid mt-6">
-            {CASE_SUPPORT_SHOTS.map((shot) => (
-              <figure key={shot.src}>
-                <div className="home-case-frame" data-cursor-lens>
-                  <Image
-                    src={shot.src}
-                    alt={shot.alt}
-                    fill
-                    sizes="(max-width: 860px) 100vw, 31vw"
-                    style={{ objectFit: "cover" }}
-                  />
-                </div>
-                <figcaption className="home-case-caption eyebrow text-muted">
-                  {shot.caption}
-                </figcaption>
-              </figure>
-            ))}
           </div>
-
-          {/* /portfolyo/emlak-crm-pro henüz KURULMADI — /hizmetler ve
-              /hakkimda'daki CTA'lar da aynı adrese gidiyor, tutarlı. Bandın
-              tek ve birincil eylemi olduğu için .btn-accent (ghost bu
-              ağırlıktaki bir bantta zayıf kalıyordu). */}
-          <Link
-            href="/portfolyo/emlak-crm-pro"
-            className="btn btn-accent eyebrow mt-(--spacing-section-tight) inline-flex"
-          >
-            Projeyi İncele →
-          </Link>
         </div>
       </section>
 
@@ -259,11 +319,12 @@ export default function Home() {
 
           Tile'lar link DEĞİL — tek tek vaka sayfaları yok, tıklanabilirlik
           ima edilmiyor. Bölümün tek bağlantısı alttaki CTA. */}
-      <section className="surface-ink px-(--spacing-gutter) py-(--spacing-section)">
+      <section className="surface-ink seam px-(--spacing-gutter) py-(--spacing-section)">
         <div className="mx-auto max-w-(--container-wide)">
-          <p className="eyebrow text-accent-auto mb-6">Portfolyo</p>
+          <SectionMarker index={4} label="Portfolyo" flip />
           <h2
             className="font-display text-strong max-w-[20ch]"
+            data-enter="mask"
             style={{
               fontSize: "var(--text-display-2xl)",
               lineHeight: "var(--text-display-2xl--line-height)",
@@ -273,16 +334,26 @@ export default function Home() {
           >
             KURUMSAL KİMLİKTEN KAMPANYAYA
           </h2>
-          <p className="text-lead text-muted mt-8 max-w-(--container-prose)">
+          <p
+            className="text-lead text-muted mt-8 max-w-(--container-prose)"
+            data-enter
+          >
             Farklı sektörlerden seçilmiş sekiz iş — logo ve kurumsal kimlik
             çalışmalarından sosyal medya kampanyalarına.
           </p>
 
-          <div className="home-portfolio-grid mt-(--spacing-section-tight)">
-            {PORTFOLIO_ITEMS.map((item) => (
+          {/* Kademeli giriş: --enter-i her karonun menzilini kaydırıyor,
+              sıra sütun sütun akıyor. Gerekçe globals.css'te
+              [data-enter-stagger] kuralında. */}
+          <div
+            className="home-portfolio-grid mt-(--spacing-section-tight)"
+            data-enter-stagger
+          >
+            {PORTFOLIO_ITEMS.map((item, index) => (
               <figure
                 key={item.src}
                 className={item.wide ? "home-portfolio-item--wide" : undefined}
+                style={{ "--enter-i": index % 3 } as React.CSSProperties}
               >
                 {/* fill + sizes: çerçevenin oranı CSS'te (1/1, geniş olan 2/1),
                     görsel onu cover ediyor. `preload` VERİLMİYOR (Next 16'da
@@ -326,14 +397,16 @@ export default function Home() {
           §4'te daire ve pill olmadığı için sunum yeniden kuruldu: solda
           başlık, sağda üç hairline kare. Logolar düz <img> — gerekçe
           content/partners.ts'te (SVG + next/image). */}
-      <section className="surface-paper px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="service-grid mx-auto max-w-(--container-site)">
+      <section className="surface-paper seam px-(--spacing-gutter) py-(--spacing-section-snug)">
+        <div className="mx-auto max-w-(--container-site)">
+          <SectionMarker index={5} label="İş Ortaklıkları" />
+          <div className="service-grid">
           <div className="service-head">
-            <p className="eyebrow text-accent-auto">İş Ortaklıkları</p>
             {/* Eski sitedeki başlık, brief §7'nin istediği yazım düzeltmesiyle
                 ("tecbrübeyle" → "tecrübeyle"). */}
             <h2
-              className="font-display text-strong mt-4 max-w-[18ch]"
+              className="font-display text-strong max-w-[18ch]"
+              data-enter="mask"
               style={{
                 fontSize: "var(--text-display-xl)",
                 lineHeight: "var(--text-display-xl--line-height)",
@@ -346,15 +419,21 @@ export default function Home() {
           </div>
 
           <div>
-            <p className="text-lead max-w-(--container-prose)">
+            <p className="text-lead max-w-(--container-prose)" data-enter>
               Meta ve Google Ads tarafında sertifikalı iş ortağıyız; Yandex
               Direct kampanyalarını da aynı ekip yürütüyor. Reklam bütçesi
               ölçülebilir hedeflerle harcanır.
             </p>
 
-            <ul className="home-partners mt-(--spacing-section-tight)">
-              {PARTNERS.map((partner) => (
-                <li key={partner.src}>
+            <ul
+              className="home-partners mt-(--spacing-section-tight)"
+              data-enter-stagger
+            >
+              {PARTNERS.map((partner, index) => (
+                <li
+                  key={partner.src}
+                  style={{ "--enter-i": index } as React.CSSProperties}
+                >
                   <figure className="home-partner-tile border-hairline">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -371,29 +450,39 @@ export default function Home() {
               ))}
             </ul>
           </div>
+          </div>
         </div>
       </section>
 
-      {/* 6 — Kapanış. /hizmetler, /hakkimda ve /iletisim'in kapanış bandıyla
-          birebir aynı kalıp. Cümle anasayfaya özel: hero'nun kapanış sloganını
-          (FİKİRDEN SONUCA, TEK EKİPLE) ve diğer üç bandın cümlelerini
-          tekrarlamıyor, portfolyo bandından sonra doğal okunuyor. */}
-      <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-site) flex-wrap items-end justify-between gap-8">
-          <p
-            className="font-display text-strong max-w-[18ch]"
-            style={{
-              fontSize: "var(--text-display-xl)",
-              lineHeight: "var(--text-display-xl--line-height)",
-              letterSpacing: "var(--text-display-xl--letter-spacing)",
-              fontWeight: "var(--text-display-xl--font-weight)",
-            }}
-          >
-            SIRADAKİ İŞ SİZİNKİ OLSUN.
-          </p>
-          <Link href={NAV_CTA.href} className="btn btn-accent eyebrow">
-            {NAV_CTA.label}
-          </Link>
+      {/* 6 — Kapanış. Cümle anasayfaya özel: hero'nun kapanış sloganını
+          (FİKİRDEN SONUCA, TEK EKİPLE) ve diğer bantların cümlelerini
+          tekrarlamıyor, portfolyo bandından sonra doğal okunuyor.
+
+          YÜZEY: sayfanın tek doygun anı. Diğer sayfaların kapanış bandı
+          ink-deep kalıyor — bu, anasayfanın VARIŞ noktası ve tekrarlanırsa
+          varış olmaktan çıkar. Kontrast ve muted-ton kısıtı için
+          globals.css `.surface-accent`. Buton .btn-ink: amber üstüne amber
+          görünmez olurdu. */}
+      <section className="surface-accent seam px-(--spacing-gutter) py-(--spacing-section-loose)">
+        <div className="mx-auto max-w-(--container-site)">
+          <SectionMarker index={6} label="İletişim" flip />
+          <div className="flex flex-wrap items-end justify-between gap-8">
+            <p
+              className="font-display max-w-[16ch]"
+              data-enter="mask"
+              style={{
+                fontSize: "var(--text-display-2xl)",
+                lineHeight: "var(--text-display-2xl--line-height)",
+                letterSpacing: "var(--text-display-2xl--letter-spacing)",
+                fontWeight: "var(--text-display-2xl--font-weight)",
+              }}
+            >
+              SIRADAKİ İŞ SİZİNKİ OLSUN.
+            </p>
+            <Link href={NAV_CTA.href} className="btn btn-ink eyebrow">
+              {NAV_CTA.label}
+            </Link>
+          </div>
         </div>
       </section>
     </>

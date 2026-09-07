@@ -7,16 +7,22 @@ import { PORTFOLIO_ITEMS } from "@/app/content/portfolio";
  * konsaydı portfolyo verisi de hero'nun bundle'ına girerdi; oysa bu tablonun
  * tek tüketicisi `app/hizmetler/page.tsx`.
  *
- * `yazilim` ANAHTARI BİLİNÇLİ OLARAK YOK: o hizmet zaten anasayfadaki Emlak
- * CRM Pro vitrinine ve bölüm içindeki `/portfolyo/emlak-crm-pro` CTA'sına
- * bağlı. İkinci bir görsel aynı kanıtı tekrar ederdi. Bkz. design-system §9.
+ * `yazilim` ARTIK VAR (kod editörü karesi, `public/images/hizmetler/
+ * yazilim.jpg`) — önceki sürümde bilinçli boşluktu (o hizmet zaten anasayfadaki
+ * Emlak CRM Pro vitrinine ve `/portfolyo/emlak-crm-pro` CTA'sına bağlıydı,
+ * ikinci bir görsel aynı kanıtı tekrarlardı). Kullanıcı kararıyla değişti:
+ * anasayfadaki hover-ile-açılan ray (`HomeRailPanel`) da bu tabloyu okuyor ve
+ * altı panelin altısının da görseli olması gerekiyordu — beşte biri boş bir
+ * ray, ray'in kendi ritmini bozardı. Bkz. docs/design-system.md §9, §16.
  *
- * İki kaynak var:
+ * Üç kaynak var:
  *  - GERÇEK İŞ (grafik, dijital): `portfolio.ts`'ten geliyor, `alt` metni de
  *    oradan okunuyor — aynı görselin alt metni iki yerde yazılmıyor.
  *  - TEMSİLİ (web, foto, danismanlik): `public/images/hizmetler/` altındaki
  *    Unsplash kareleri. Bu üçünde vitrine çıkacak bir portfolyo işi yok;
  *    görsel iddia değil, atmosfer taşıyor.
+ *  - SEMBOLİK (yazilim): kod editörü karesi — belirli bir işin kanıtı değil,
+ *    hizmetin doğasının (yazılım/kod) görsel kısaltması.
  */
 export interface ServiceMedia {
   /** `public/` köküne göre yol. */
@@ -77,6 +83,12 @@ export const SERVICE_MEDIA: Readonly<Record<string, ServiceMedia>> = {
   danismanlik: {
     src: "/images/hizmetler/danismanlik-egitim.jpg",
     alt: "Ahşap bir masa etrafında not alarak toplantı yapan küçük ekip",
+    ratio: "3/2",
+    sizes: "(max-width: 860px) 100vw, 704px",
+  },
+  yazilim: {
+    src: "/images/hizmetler/yazilim.jpg",
+    alt: "React bileşenlerinin ve import satırlarının göründüğü koyu temalı bir kod editörü ekranı",
     ratio: "3/2",
     sizes: "(max-width: 860px) 100vw, 704px",
   },

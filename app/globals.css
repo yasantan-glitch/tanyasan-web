@@ -109,6 +109,13 @@
   --spacing-section-tight: clamp(3rem, 1.5rem + 4vw, 5.5rem);
   --spacing-gutter: clamp(1.25rem, 0.75rem + 2vw, 3rem);
 
+  /* Ritim kademeleri. Önceden her bant aynı --spacing-section'ı kullanıyordu;
+     her şey eşit vurguluysa hiçbir şey vurgulu olmuyordu. `snug` dipnot
+     nitelikli bantlar (partnerler) için, `loose` bir bölümün gerçekten
+     nefes alması gereken yerler için. Gerekçe: docs/design-system.md §12. */
+  --spacing-section-snug: clamp(2.75rem, 1.5rem + 3.5vw, 5rem);
+  --spacing-section-loose: clamp(6rem, 2.5rem + 10vw, 13rem);
+
   --container-site: 80rem; /* 1280 — ana içerik */
   --container-wide: 90rem; /* 1440 — tam genişlik vitrin */
   --container-prose: 36rem; /* ~68ch — uzun metin sütunu */
@@ -169,6 +176,36 @@
   --duration-deliberate: 700ms;
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Uzun mesafeli scroll girişleri için. --ease-out-quart bu iş için fazla
+     yumuşak: 40px'ten fazla yol alan bir element onunla "varmış" gibi
+     durmuyor, sürükleniyor gibi duruyor. expo sonu daha keskin kapatır. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Scroll'a bağlı girişlerin varsayılan menzili. `entry 8%` = element
+     viewport'a %8 girdiğinde başlar, `cover 34%` = kendi yolunun %34'ünde
+     tamamlanır. Menzil token olarak duruyor ki tüm bölümler aynı anda,
+     tek yerden ayarlanabilsin. */
+  --enter-range-start: entry 8%;
+  --enter-range-end: cover 34%;
+
+  /* /hizmetler yatay rayında panel BAŞINA düşen dikey scroll yolu.
+     Panel sayısı içerikten geliyor (SERVICES.length → --rail-panels,
+     satır içi yazılıyor), bu yüzden hizmet eklenince bütçe kendiliğinden
+     büyür — ikinci bir yerde senkronlanacak sayı yok.
+     90vh: bir panelin okunması için gereken yol. Daha kısası paneli
+     "geçiliyor" gibi gösteriyor, daha uzunu scroll'u ağırlaştırıyor. */
+  --rail-travel: 90vh;
+
+  /* Anasayfa özet rayı — /hizmetler'in tam-ekran rayından farklı ölçek.
+     Panel genişliği aynı anda ~2.5 panel görünecek şekilde seçildi (özet
+     "raftan geçiş" hissi); tam ekran panel burada bir bölüm gibi ağırlık
+     kazanır, oysa bu bant bir özet. Sticky yüksekliği sabit (viewport'un
+     tamamı değil) çünkü panel içeriği kısa — bir ekranı pin'lemek boşuna
+     boşluk bırakırdı. Travel kısa (55vh, /hizmetler'in 90vh'ının altında):
+     panel başına okunacak metin azken uzun bir yol scroll'u ağırlaştırır. */
+  --home-rail-panel-w: 38vw;
+  --home-rail-sticky-h: 30rem;
+  --home-rail-travel: 55vh;
 }
 
 /* ==========================================================================
@@ -208,6 +245,30 @@
 
   .surface-paper-raised {
     background-color: var(--color-paper-0);
+  }
+
+  /* Sayfanın TEK doygun yüzeyi — yalnızca anasayfanın kapanış bandı.
+     #1C1C1C / #E8AE30 = 8.5:1 (AAA); dokümandaki ölçülmüş çiftin tersi,
+     kontrast simetrik olduğu için güvenli. Gerekçe: docs/design-system.md §12.
+
+     DİKKAT — bu yüzeyin MUTED TONU YOK: --fg-muted bilerek --fg-strong ile
+     aynı bağlanmış. Amber zemin üzerinde 4.5:1'i geçen ile 8.5:1 arasındaki
+     aralık çok dar; oraya sıkışan her kahve tonu ya eşiğin altında kalıyor
+     (#6B4E14 = 3.8:1) ya da "muted" okunmuyor. Bu bant tek cümle ve tek
+     butondan ibaret olduğu için muted tona ihtiyacı yok. İleride muted metin
+     gereken bir bölüm bu yüzeyi KULLANMAMALI.
+
+     .btn-accent burada görünmez olur (amber üstüne amber) — bu yüzeyde
+     .btn-ink kullanılır. */
+  .surface-accent {
+    background-color: var(--color-accent);
+    color: var(--color-ink-900);
+    --hairline: color-mix(in srgb, #1c1c1c 24%, transparent);
+    --focus: var(--color-ink-900);
+    --accent-text: var(--color-ink-900);
+    --fg-strong: var(--color-ink-900);
+    --fg-muted: var(--color-ink-900);
+    --field-bg: var(--color-paper-0);
   }
 
   /* Açık zemin bir renkten değil MEDYADAN geldiğinde (faz 8'in beyaz zeminli
@@ -1521,6 +1582,99 @@
     color: var(--accent-text);
   }
 
+  /* ---------------------------------------------------------------
+     ANASAYFA HİZMET RAY'İ
+     Gerekçe: docs/design-system.md §16.
+
+     TABAN KURALLAR (bu blok): `.home-rail-panel` `.home-service-row`
+     sınıfını da taşıyor, yani grid/padding/hairline/hover hepsi yukarıdan
+     geliyor. Burada yalnızca EK olan iki şey var: görsel bloğunun
+     yerleşimi (fallback'te içeriğin ALTINDA, tam genişlikte) ve panel
+     başına düzensiz katsayı (`--panel-k`) — asimetrik dikey ofset ve
+     parallax'ın kaynağı, hem taban hem yatay modda kullanılıyor.
+
+     BU KURALLAR ÜÇ DURUMUN HEPSİNDE GEÇERLİ: destek yok / reduced-motion /
+     ≤860px. Yatay/pinned deneyim (sticky, view-timeline, drift) SADECE
+     aşağıdaki `@supports (animation-timeline: view()) { @media
+     (prefers-reduced-motion: no-preference) { @media (min-width: 861px) {
+     … } } }` içinde EKLENİYOR — üçü de sağlanmazsa panel burada tarif
+     edilen düzende, yani bugünkü dikey listenin birebir aynısında kalır.
+     Mobilde de BİLİNÇLİ OLARAK yatay bir carousel'e geçilmiyor (farklı
+     olarak /hizmetler'de geçiliyor): bu bant zaten bir özet, gerçek yatay
+     deneyim /hizmetler'de veriliyor; aynı jesti telefonda iki kez kurmak
+     gereksiz karmaşıklık ve test yüzeyi ekler. */
+  /* Taban: dikey yığın (bugünkü liste). Yatay/pinned hâl SADECE gated
+     blokta (@supports+@media, aşağıda) `flex-direction: row`'a döner. */
+  .home-rail-track {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .home-rail-panel {
+    /* Düzensiz işaret+genlik — .service-shard'daki --shard-k ile aynı
+       disiplin: eşit aralıklı bir zigzag mekanik/testere dişi gibi okunur,
+       düzensiz genlik "elle yerleştirilmiş" hissi verir. */
+    --panel-y: calc(var(--panel-k, 0) * clamp(0.5rem, 2vh, 1.75rem));
+  }
+
+  .home-rail-panel:nth-child(1) {
+    --panel-k: -1;
+  }
+
+  .home-rail-panel:nth-child(2) {
+    --panel-k: 0.7;
+  }
+
+  .home-rail-panel:nth-child(3) {
+    --panel-k: -0.55;
+  }
+
+  .home-rail-panel:nth-child(4) {
+    --panel-k: 1;
+  }
+
+  .home-rail-panel:nth-child(5) {
+    --panel-k: -0.8;
+  }
+
+  .home-rail-panel:nth-child(6) {
+    --panel-k: 0.5;
+  }
+
+  /* Taban (dikey liste): görsel içeriğin altında, tam genişlikte bir satır.
+     `.home-service-row`'un grid'i `auto 1fr` (ikon | metin) — üçüncü çocuk
+     olarak eklenen bu blok örtük ikinci satıra düşer, `1/-1` onu iki
+     sütuna birden yayar. */
+  .home-rail-panel__media {
+    grid-column: 1 / -1;
+    margin-block-start: 1.5rem;
+    overflow: clip;
+    border: 1px solid var(--hairline);
+    background-color: var(--field-bg);
+  }
+
+  /* Çerçeve (kenarlık + zemin) HER ZAMAN görünür — "burada bir şey var,
+     hover'la aç" ipucu. Yalnızca İÇERİK (ServiceImage'in kendi kökü)
+     gizli/açık arasında geçiş yapıyor; ikisini ayırmasaydık boş panelde
+     hiçbir çerçeve kalmaz, dolgusuz bir boşluk gibi görünürdü. */
+  .home-rail-panel__media > .service-media {
+    max-inline-size: none;
+    inline-size: 100%;
+    block-size: 100%;
+    margin-block-start: 0;
+    border: none;
+    opacity: 0;
+    transform: scale(0.96);
+    transition:
+      opacity var(--duration-slow) var(--ease-out-quart),
+      transform var(--duration-slow) var(--ease-out-quart);
+  }
+
+  .home-rail-panel__media[data-open="true"] > .service-media {
+    opacity: 1;
+    transform: none;
+  }
+
   /* Portfolyo vitrini. Üç sütun + tek bir `span 2` kare = 9 hücre, yani sekiz
      iş tam üç sıraya oturuyor, boş hücre kalmıyor. Marquee/kayan şerit
      bilinçli olarak tercih EDİLMEDİ: JS + DOM kopyası ister, reduced-motion
@@ -1533,6 +1687,15 @@
 
   .home-portfolio-item--wide {
     grid-column: span 2;
+  }
+
+  /* Editoryal kaydırma. Sekiz kare tam üç sıraya oturduğu için grid katı bir
+     tabloya benziyordu; orta sütunu aşağı iterek ızgara kırılıyor.
+     Kırpma DEĞİŞMİYOR — oranlara dokunulmadı, yalnızca dikey ofset. Karelerin
+     hangi görseli taşıdığından bağımsız güvenli. ≤860px'te iptal (2 sütunda
+     ofset boşluk bırakır). */
+  .home-portfolio-grid > :nth-child(3n + 2) {
+    margin-block-start: 3rem;
   }
 
   /* next/image `fill` için konumlanmış çerçeve (parent position: relative
@@ -1679,6 +1842,193 @@
   }
 
   /* ---------------------------------------------------------------
+     BÖLÜM OMURGASI
+     Her bandın başındaki tam genişlikte hairline + numaralı işaret.
+     Altı bandı "bant"tan "bölüm"e çeviren tek şey bu satır: sayfaya
+     okunabilir bir sıra veriyor ve nerede olduğunu söylüyor.
+     Yeni renk yok — mevcut .eyebrow ve --hairline.
+
+     Hizalama bantlar arasında ters çevriliyor (--flip). Hepsi aynı
+     hizada olsaydı satırlar bir tablo sütunu gibi okunurdu; alternasyon
+     sayfayı aşağı doğru sallayarak ritim veriyor.
+     --------------------------------------------------------------- */
+  .section-marker {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5rem;
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: 1rem;
+    margin-block-end: var(--spacing-section-tight);
+  }
+
+  .section-marker--flip {
+    flex-direction: row-reverse;
+  }
+
+  .section-marker__index {
+    color: var(--accent-text);
+  }
+
+  .section-marker__label {
+    color: var(--fg-muted);
+  }
+
+  /* ---------------------------------------------------------------
+     DİKİŞ (seam) — sert kesim yerine yükselen yüzey
+     Bölüm yüzey değiştirdiğinde (paper → ink gibi) sabit bir y'de
+     yatay bıçak kesiği oluşuyordu. `.seam`, bölümün KENDİ zeminini
+     kendinden önce bir şerit olarak boyar; şerit scroll'a bağlı olarak
+     alttan yukarı açılır, yani yeni yüzey eskisini karşılamaya yükselir.
+
+     `background-color: inherit` — şerit bölümün kendi zemin rengini
+     alır, ikinci bir yerde renk tanımlanmaz. Yüzey sınıfı değişirse
+     şerit kendiliğinden takip eder.
+
+     Animasyon desteklenmiyorsa şerit `scaleY(1)`de durur: kesim
+     yalnızca --seam-h kadar yukarı taşınmış olur, bozulma yok.
+     --------------------------------------------------------------- */
+  .seam {
+    --seam-h: 4rem;
+    position: relative;
+  }
+
+  .seam::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: calc(-1 * var(--seam-h) + 1px);
+    block-size: var(--seam-h);
+    background-color: inherit;
+    transform-origin: bottom;
+    pointer-events: none;
+  }
+
+  /* ---------------------------------------------------------------
+     TANITIM STATEMENT'I — sayfanın imza hareketi
+     Kelimeler scroll ile SIRAYLA koyulaşır. Hero'nun faz 1'de metni
+     dağıtmasının tersi bir jest: sayfa dağıtarak açılıyor, toplayarak
+     devam ediyor.
+
+     Sürülen şey opaklık DEĞİL renk — gerekçe enter-word keyframe'inde.
+     --------------------------------------------------------------- */
+  .home-statement {
+    /* Kelimelerin okuyacağı adlandırılmış zaman çizgisi. Kelimeler bu
+       elemanın torunu olduğu için timeline-scope gerekmiyor. */
+    view-timeline: --statement block;
+
+    /* Puntoyu display ile lead arasına oturtuyor: --text-display-2xl bu
+       uzunlukta bir paragrafta sütunu taşırıyor, --text-lead ise kelime
+       kelime koyulaşmayı fark ettirmeyecek kadar küçük kalıyor. */
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 1rem + 1.6vw, 2.1rem);
+    line-height: 1.28;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    text-wrap: pretty;
+    /* Animasyonsuz durağan hâl: metin tam okunur, koyu. Substrat hiç
+       çalışmazsa görünen budur. */
+    color: var(--fg-strong);
+    max-inline-size: 26ch;
+  }
+
+  .home-statement__word {
+    /* inline-block DEĞİL — kelimeler satır sonunda normal sarmalı. */
+    color: var(--fg-strong);
+  }
+
+  /* ---------------------------------------------------------------
+     EMLAK CRM PRO — sabitlenen medya, ilerleyen metin
+     Bandın tepe noktası olması için düzen değişti: açılış karesi sol
+     sütunda SABİTLENİYOR, üç destek karesi ve metin sağ sütunda onun
+     yanından akıyor. Referansın "pinned media" deseni; bizde fake
+     tarayıcı çerçevesi YOK (§12 mockup'ları reddediyor).
+
+     ≤860px ve sticky desteklenmeyen yerde tek sütuna düşer ve bugünkü
+     sıralamanın aynısı olur — fallback ayrıca yazılmadı, akışın kendisi.
+     --------------------------------------------------------------- */
+  .home-case-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--spacing-section-tight);
+    align-items: start;
+  }
+
+  .home-case-split__media {
+    position: sticky;
+    inset-block-start: calc(var(--nav-h) + 2rem);
+  }
+
+  .home-case-split__flow > figure + figure {
+    margin-block-start: var(--spacing-section-tight);
+  }
+
+  /* ---------------------------------------------------------------
+     /hizmetler YATAY RAY
+     Gerekçe: docs/design-system.md §15.
+
+     Altı hizmet paneli, dikey scroll'a bağlı olarak YATAY kayar.
+     Başlık bandı ve kapanış CTA'sı dikey kalır — ray ikisinin arasında
+     bir ada.
+
+     ÜÇ DURUM, TEK FALLBACK. Aşağıdaki düzen (dikey liste) hem
+     `animation-timeline` desteklenmediğinde, hem prefers-reduced-motion
+     açıkken, hem de ≤860px'te geçerlidir. Yatay hâl bunların ÜSTÜNE
+     yazılır, altına değil: yani ray hiç çalışmasa sayfa bugünkü
+     hâlinde, eksiksiz okunur durumda kalır.
+     --------------------------------------------------------------- */
+  .rail-track {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rail-panel {
+    padding-block: var(--spacing-section);
+    padding-inline: var(--spacing-gutter);
+  }
+
+  /* Panel içi düzen `.service-grid`in aynısı ama başlık YAPIŞKAN DEĞİL:
+     yatay hâlde panel kırpılmış bir konteynerin içinde durur, orada
+     dikey sticky'nin tutunacağı bir scroll ekseni yok. */
+  .rail-panel__grid {
+    display: grid;
+    grid-template-columns: minmax(14rem, 22rem) 1fr;
+    gap: var(--spacing-section-tight);
+    align-items: start;
+    margin-inline: auto;
+    max-inline-size: var(--container-site);
+  }
+
+  /* Medyası olmayan panel (bugün hiçbiri değil, serviceMedia.ts'e bağlı)
+     metin sütununu tek başına kullanır. */
+  .rail-panel__media:empty {
+    display: none;
+  }
+
+  /* DİKEY (fallback) düzende medya üçüncü bir SÜTUN değil, metin
+     sütununun ALTINDAKİ satırdır — aksi halde iki sütunlu ızgarada
+     ikinci satırın ilk hücresine, yani dar başlık sütununun altına
+     düşerdi. Yatayda bu geçersiz kılınıyor (orada gerçekten üçüncü
+     sütun). Mobilde tek sütun olduğu için zaten etkisiz. */
+  .rail-panel__media {
+    grid-column: 2;
+    margin-block-start: var(--spacing-section-tight);
+  }
+
+  /* Mobil: native yatay carousel. Pinned scroll DEĞİL — dokunmatikte
+     scroll hijack'i momentum'u öldürür ve iOS Safari'nin dinamik
+     toolbar'ı 100svh'yi scroll ortasında değiştirip pin'i desenkronize
+     eder. Burada parmak hareketi GERÇEK yatay scroll'dur.
+
+     NOT: design-system.md "scroll-snap kullanmıyoruz" diyor; o kural
+     hero'nun plato mekanizması bağlamında yazılmıştı (scroll'u ele
+     geçirmemek için). Burada snap scroll'u ele geçirmiyor, native
+     hareketi hizalıyor. Bilinçli istisna — §15'te gerekçesiyle. */
+  .rail-dots {
+    display: none;
+  }
+
+  /* ---------------------------------------------------------------
      İMLEÇ KATMANI
      Per-frame değerler (transform, opacity, filter, background-position)
      JS tarafından (useCursorLens) doğrudan yazılır; burada yalnızca statik
@@ -1788,6 +2138,376 @@
      çalışmazsa hiçbir yerde imleç kaybolmaz. */
   [data-cursor-lens-on] [data-cursor-lens] {
     cursor: none;
+  }
+}
+
+/* ==========================================================================
+   HAREKET SUBSTRATI — hero DIŞINDAKİ her şey
+   Gerekçe: docs/design-system.md §14.
+
+   Hero'nun kendi motoru var (rAF + scroll listener + per-frame stil yazımı).
+   Sayfanın geri kalanı İKİNCİ bir motor kurmaz; scroll'a bağlı CSS
+   animasyonlarını kullanır. Sonuç: JS yok, ikinci scroll listener yok,
+   compositor'da çalışır, main thread'de per-frame iş sıfır.
+
+   ÜÇ KATLI KORUMA — sırası önemli:
+
+     @supports (animation-timeline: view())     ← tarayıcı desteği
+       @media (prefers-reduced-motion: no-preference)  ← kullanıcı tercihi
+         [data-enter] { ... }
+
+   İSİM NEDEN `data-enter`, `data-reveal` DEĞİL: `data-reveal` ZATEN
+   ServiceImage'in (parçadan bütüne şerit efekti) durum attribute'u ve
+   useCursorLens onu okuyor ("pending" iken büyüteç açılmıyor). Buraya da
+   `data-reveal` yazılsaydı global kural o çerçevelere de bir yükselme
+   animasyonu bindirirdi. İki sistem, iki ad.
+
+   Bu iki koşuldan biri sağlanmazsa BU BLOKTAKİ HİÇBİR KURAL GÖRÜLMEZ ve
+   element normal akışta, tam görünür, son hâlinde durur. Yani:
+
+     Elementin animasyonsuz durağan hâli ZATEN DOĞRU OLMAK ZORUNDA.
+
+   Bu, `.service-shard`'ın bugünkü reduced-motion çözümüyle aynı felsefe ama
+   `!important` gerektirmiyor — ve reduced-motion'ı unutmak yapısal olarak
+   imkânsız: yeni bir jest eklerken zaten bu bloğun içine yazıyorsun.
+
+   `both` fill'in gizli faydası: menzil başlamadan önce element `from`
+   karesinde tutulur. Yani "önce görünür, sonra zıplayıp gizlenir" olmaz.
+   ========================================================================== */
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.6vh, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Maskeli açılım — başlıklar için. §8'in "maskeler girişler içindir"
+   disiplini: metin alttan açılır, blok hâlinde fade OLMAZ. clip-path ve
+   transform birlikte çalışır ki harfler maskenin içinde bir miktar yol
+   alsın; ikisi eşit hızda giderse maske görünmez olur. */
+@keyframes enter-mask {
+  from {
+    clip-path: inset(105% 0 -5% 0);
+    transform: translate3d(0, 0.9em, 0);
+  }
+  to {
+    clip-path: inset(-5% 0 -5% 0);
+    transform: none;
+  }
+}
+
+/* Kelime kelime çözülme — tanıtım statement'ı. Opaklık DEĞİL renk sürülür:
+   opaklıkla yapılsaydı kelimeler zeminden "belirir", renkle yapılınca metin
+   hep oradadır ve okundukça koyulaşır. İkincisi okuma jesti, birincisi
+   sadece bir efekt. */
+@keyframes enter-word {
+  from {
+    color: var(--fg-muted);
+  }
+  to {
+    color: var(--fg-strong);
+  }
+}
+
+/* Dikiş şeridi alttan yukarı açılır — yeni yüzey eskisini karşılamaya
+   yükseliyor. Bkz. `.seam`. */
+@keyframes seam-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-enter] {
+      animation: enter-rise linear both;
+      animation-timeline: view();
+      animation-range: var(--enter-range-start) var(--enter-range-end);
+    }
+
+    [data-enter="mask"] {
+      animation-name: enter-mask;
+      animation-timing-function: var(--ease-out-expo);
+    }
+
+    /* Kademeli giriş. --enter-i elemente satır içi yazılır (0, 1, 2 …) ve
+       menzilin başlangıcını öteler. Gecikmeyle DEĞİL menzille yapılıyor:
+       scroll'a bağlı bir animasyonda `animation-delay` zaman cinsindendir ve
+       hiçbir şey ifade etmez — kademe scroll mesafesi cinsinden olmalı. */
+    [data-enter-stagger] > * {
+      animation: enter-rise linear both;
+      animation-timeline: view();
+      animation-range: entry calc(6% + var(--enter-i, 0) * 5%)
+        cover calc(30% + var(--enter-i, 0) * 5%);
+    }
+
+    /* Dikiş. `view()` DEĞİL kendi bölümünün girişi sürüyor: şerit bölümün
+       üstünde durduğu için kendi `view()`'i bölümden farklı bir menzil
+       verirdi. entry 0% → entry 100% = şerit tam viewport'a girerken açılır. */
+    .seam::before {
+      animation: seam-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+
+    /* Kelime kelime çözülme. Menzil her kelimeye SUNUCUDA hesaplanıp
+       --w-from / --w-to custom property'leri olarak yazılıyor (bkz.
+       SplitWords.tsx) — böylece kelime sayısı ne olursa olsun cümle
+       statement'ın kendi scroll yolunun tamamına yayılıyor. */
+    .home-statement__word {
+      animation: enter-word linear both;
+      animation-timeline: --statement;
+      animation-range: cover var(--w-from) cover var(--w-to);
+    }
+
+    /* ---- /hizmetler yatay ray ------------------------------------
+       Yalnızca >860px'te ve yalnızca burada kuruluyor. Dışarıda kalan
+       her durum yukarıdaki dikey listeye düşer.
+
+       Bölüm yüksekliği = bir ekran (pin süresi) + panel başına yol.
+       `scroll-timeline` bölümün KENDİ scroll ilerlemesini adlandırıyor;
+       track onu okuyup tek bir translate3d ile kayıyor. Tek transform,
+       tek compositor katmanı, JS yok. */
+    @media (min-width: 861px) {
+      .rail {
+        block-size: calc(100svh + var(--rail-panels) * var(--rail-travel));
+        /* `scroll-timeline` DEĞİL `view-timeline`: scroll-timeline elemanın
+           KENDİ scroll konteynerini sürer ve `.rail` bir scroll konteyneri
+           değil (overflow: visible) — o zaman çizgisi ölü doğuyordu.
+           view-timeline bölümün viewport'tan GEÇİŞİNİ ölçer, aradığımız da
+           bu. */
+        view-timeline: --rail block;
+      }
+
+      .rail-viewport {
+        position: sticky;
+        inset-block-start: var(--nav-h);
+        block-size: calc(100svh - var(--nav-h));
+        /* `clip`, `hidden` DEĞİL: hidden programatik olarak
+           kaydırılabilir bir kutu yaratır ve tarayıcı ekran dışı bir
+           panele Tab'lanınca onu kaydırıp pin'i bozar. `clip` o kapıyı
+           kapatıyor — klavye çözümü ServiceRail.tsx'te. */
+        overflow: clip;
+        display: flex;
+        align-items: center;
+      }
+
+      .rail-track {
+        flex-direction: row;
+        inline-size: calc(var(--rail-panels) * 100vw);
+        animation: rail-slide linear both;
+        animation-timeline: --rail;
+        /* `contain` = bölümün viewport'u TAMAMEN kapladığı aralık, yani
+           tam olarak pin'in sürdüğü süre. Varsayılan `cover` aralığı
+           bölümün ekrana girmeye başladığı andan çıktığı ana kadar sürer;
+           onunla ray, sahne daha pin'lenmeden kaymaya başlıyor ve son
+           panel ekranın ortasındayken bitiyordu. */
+        animation-range: contain 0% contain 100%;
+      }
+
+      .rail-panel {
+        inline-size: 100vw;
+        flex: 0 0 100vw;
+        padding-block: 0;
+        max-block-size: 100%;
+      }
+
+      /* ÜÇ SÜTUN — yatayın en önemli düzen kararı.
+         Dikeyde bir hizmet bölümü istediği kadar uzayabilir; yatayda
+         panelin yüksekliği SABİT (bir ekran) ve genişliği bol. İki
+         sütunlu dikey düzen buraya olduğu gibi taşındığında metin
+         sütunu ekranı taşırıyor, sağdaki yarım ekran ise boş kalıyordu.
+         Üçüncü sütun (medya) yüksekliği yarıya indiriyor ve boşluğu
+         kullanıyor.
+
+         Konteyner --container-wide'a çıkıyor (--container-site değil):
+         1280px geniş ekranda panelin üçte birini boş bırakıyordu. Ama
+         sınır TAMAMEN kaldırılmıyor ve içerik ortalanıyor — bunun
+         sebebi düzen değil GEÇİŞ: paneller kenar kenara dayalı olsaydı
+         kayma sırasında bir panelin gövdesi diğerinin başlık sütunuyla
+         yan yana düşer ve kırık okunurdu. Kalan kenar boşluğu, iki ada
+         arasındaki sudur — geçiş oradan geçer. */
+      .rail-panel__grid {
+        grid-template-columns:
+          minmax(11rem, 15rem)
+          minmax(0, 1fr)
+          minmax(0, 1.05fr);
+        gap: clamp(2rem, 3vw, 4rem);
+        max-inline-size: var(--container-wide);
+        align-items: start;
+      }
+
+      /* Medyası olmayan panelde metin sütunu ikiyi birden alır. */
+      .rail-panel__grid:has(.rail-panel__media:empty) {
+        grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr);
+      }
+
+      /* Dikey ritim sıkışıyor: --spacing-section-tight (48–88px) bir
+         ekrana sığması gereken panelde tek başına yüksekliğin %10'unu
+         yiyor. */
+      .rail-panel .service-items {
+        margin-block-start: 2rem;
+        max-inline-size: none;
+      }
+
+      /* Yatayda medya gerçekten üçüncü sütun — dikey fallback'teki
+         "metnin altındaki satır" yerleşimi burada geçersiz. */
+      .rail-panel__media {
+        grid-column: auto;
+        margin-block-start: 0;
+      }
+
+      .rail-panel .service-media {
+        margin-block-start: 0;
+        max-inline-size: none;
+      }
+
+      /* Görsel de ekran yüksekliğine uymalı — 3/2 bir kare, geniş
+         sütunda 700px'e çıkıp paneli taşırıyordu. */
+      .rail-panel .service-media--3x2,
+      .rail-panel .service-media--16x9,
+      .rail-panel .service-media--square {
+        max-block-size: calc(100svh - var(--nav-h) - 12rem);
+        max-inline-size: none;
+        aspect-ratio: auto;
+        block-size: calc(100svh - var(--nav-h) - 12rem);
+      }
+
+      /* ---- Anasayfa hizmet ray'i --------------------------------
+         Aynı üç koşul (destek + no-preference + min-width) altında,
+         /hizmetler'in rayıyla aynı bloğu paylaşıyor — ikinci bir
+         @supports/@media sarmalayıcı açmaya gerek yok. İsimler
+         `.home-rail-*`, tamamen ayrı: bu blok /hizmetler'in yukarıdaki
+         hiçbir kuralına dokunmuyor. */
+      .home-rail {
+        block-size: calc(
+          var(--home-rail-sticky-h) + var(--home-rail-panels) * var(--home-rail-travel)
+        );
+        view-timeline: --home-rail block;
+      }
+
+      .home-rail-viewport {
+        position: sticky;
+        inset-block-start: calc(var(--nav-h) + 2rem);
+        block-size: var(--home-rail-sticky-h);
+        overflow: clip;
+        display: flex;
+        align-items: center;
+      }
+
+      .home-rail-track {
+        flex-direction: row;
+        align-items: stretch;
+        inline-size: calc(var(--home-rail-panels) * var(--home-rail-panel-w));
+        animation: home-rail-slide linear both;
+        animation-timeline: --home-rail;
+        animation-range: contain 0% contain 100%;
+      }
+
+      .home-rail-panel {
+        inline-size: var(--home-rail-panel-w);
+        flex: 0 0 var(--home-rail-panel-w);
+        padding: 2rem;
+        border: 1px solid var(--hairline);
+        /* Yatayda paneller birbirinden AYRI kartlar — dikey listenin "üst
+           hairline = ayraç" mantığı burada geçersiz, dört kenar da kart
+           kenarlığı. */
+        transition: border-color var(--duration-base) var(--ease-out-quart);
+        /* Asimetrik konum + parallax. Y sabit kalır (panel scroll boyunca
+           hep aynı yükseklikte durur), X salınır (--panel-k işaretine göre
+           bazı paneller "geride", bazıları "önde" kayıyormuş hissi verir).
+           İkisi TEK transform'da: aynı elemana iki ayrı hareket yazılmıyor
+           (§8 kuralı). */
+        animation: home-rail-panel-drift linear both;
+        animation-timeline: --home-rail;
+        animation-range: contain 0% contain 100%;
+      }
+
+      /* .home-service-row:first-child dikey listede ilk satırın üst
+         hairline'ını sıfırlıyordu (liste ayracı gereksizdi). Burada her
+         panel kendi kartı — ilk panel de dört kenarını korumalı. */
+      .home-rail-panel:first-child {
+        border-block-start-width: 1px;
+      }
+
+      /* Yatayda medya gerçek bir bileşen: dikey fallback'teki gibi tam
+         genişlik bir satır değil, kartın kendi iç akışında normal bir
+         blok. Grid-column artık anlamsız (panel grid değil, iki üst-üste
+         blok) ama zararsız — 1/-1 tek sütunlu bir bağlamda no-op.
+
+         YÜKSEKLİK KAPAKLANIYOR: `--home-rail-sticky-h` sabit ve kısa
+         (30rem); kare (1/1) oranlı bir servis görseli, sarmalayıcının
+         genişliğine (~594px) göre kendi yüksekliğini de 594px yapmaya
+         çalışıyor, bu da başlık+kalemlerle birlikte paneli sticky
+         pencereden taşırıyordu (ölçülen toplam: 889px / 480px pencere).
+         `max-block-size` genişliği SABİT bırakıp yüksekliği kırpıyor —
+         `object-fit: cover` (ServiceImage'in kendi img'i) farkı sorunsuz
+         kapatıyor, kadraj biraz daha sıkı kırpılıyor ama görsel bozulmuyor.
+         Yan etki OLUMLU: altı servisin oranı (3/2, 1/1, 16/9) farklı, kapak
+         hepsini aynı kart yüksekliğine getiriyor. */
+      .home-rail-panel__media {
+        margin-block-start: 1.25rem;
+        max-block-size: 11rem;
+      }
+
+      /* Kalem satırı yatayda gizli — sebebi yukarıdaki yükseklik notu.
+         Dikey fallback'te (bu kural hiç görülmediği için) görünür kalıyor. */
+      .home-rail-panel__items {
+        display: none;
+      }
+    }
+  }
+}
+
+/* Track'in yolu: ilk panelin solu → son panelin sağı. `100vw` çıkarılıyor
+   çünkü son panel ekranı doldurduğunda hareket bitmeli. */
+@keyframes rail-slide {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(-1 * (var(--rail-panels) - 1) * 100vw), 0, 0);
+  }
+}
+
+/* Anasayfa ray'inin yolu: track'in TOPLAM genişliğinin sağ kenarı
+   viewport'un sağ kenarına gelene kadar kayıyor (`/hizmetler`'deki gibi
+   "son panelin SOLU viewport'un soluna" değil). Panel genişliği (38vw)
+   100vw'den küçük olduğu için o hesapla son panelden sonra track bitip
+   sağda boş bir şerit kalırdı — burada kayma tam track'in sonunda durur,
+   boşluk hiç açılmaz. */
+@keyframes home-rail-slide {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(
+      calc(-1 * (var(--home-rail-panels) * var(--home-rail-panel-w) - 100vw)),
+      0,
+      0
+    );
+  }
+}
+
+/* Panel başına asimetrik konum + parallax. Y SABİT (from/to'da aynı) —
+   panel scroll boyunca hep aynı yükseklikte durur, yalnızca X salınır.
+   `--panel-k`'nin işareti panelin hangi yöne "geride/önde" kaydığını,
+   büyüklüğü ne kadar belirgin kayacağını belirliyor (globals.css'teki
+   nth-child tablosu, .service-shard'ın --shard-k'sıyla aynı disiplin). */
+@keyframes home-rail-panel-drift {
+  from {
+    transform: translate3d(calc(var(--panel-k, 0) * -1.1rem), var(--panel-y, 0px), 0);
+  }
+  to {
+    transform: translate3d(calc(var(--panel-k, 0) * 1.1rem), var(--panel-y, 0px), 0);
   }
 }
 
@@ -1936,9 +2656,90 @@
     gap: 1rem;
   }
 
+  /* Editoryal ofset iptal: iki sütunda 3n+2 ritmi tutmuyor, kaydırılan kare
+     sıranın ortasında boşluk bırakıyor. */
+  .home-portfolio-grid > :nth-child(3n + 2) {
+    margin-block-start: 0;
+  }
+
   .home-service-row {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+
+  /* Emlak CRM Pro tek sütuna düşer ve medya SABİTLENMEZ: dar ekranda
+     sticky bir kare viewport'un yarısını kalıcı işgal ederdi. */
+  .home-case-split {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-section-tight);
+  }
+
+  .home-case-split__media {
+    position: static;
+  }
+
+  .home-statement {
+    max-inline-size: none;
+  }
+
+  /* Dikiş şeridi inceliyor: 4rem, telefon yüksekliğinin belirgin bir
+     dilimi ve önceki bandın alt dolgusunu yiyordu. */
+  .seam {
+    --seam-h: 2rem;
+  }
+
+  /* ---- /hizmetler: native snap carousel -------------------------
+     Masaüstündeki pinned ray burada YOK. Yatay fikir korunuyor ama
+     mekanizma cihaza ait: gerçek yatay scroll, gerçek momentum,
+     hijack yok. Gerekçe: docs/design-system.md §15.
+
+     `prefers-reduced-motion` bunu KAPATMIYOR ve kapatmamalı — bu bir
+     animasyon değil, bir düzen. Kullanıcının parmağı neyi ne kadar
+     hareket ettireceğine kendisi karar veriyor; snap yalnızca
+     bıraktığı yeri hizalıyor. */
+  .rail-track {
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* Kenar boşluğu track'te, panelde değil: panelin kendi dolgusu
+       snap hizasını kaydırırdı. */
+    scroll-padding-inline: var(--spacing-gutter);
+    -webkit-overflow-scrolling: touch;
+    /* Scrollbar gizlenmiyor — yatay kaydırılabilir olduğunun tek
+       görsel ipucu o ve altındaki nokta göstergesi. */
+  }
+
+  .rail-panel {
+    inline-size: 86vw;
+    flex: 0 0 86vw;
+    scroll-snap-align: start;
+    padding-block: var(--spacing-section-tight);
+    /* %86 genişlik bilinçli: bir sonraki panelin kenarı ekranda kalır,
+       yani "sağda devamı var" bilgisi düzenin kendisinden okunur. */
+  }
+
+  .rail-panel__grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-section-tight);
+  }
+
+  /* Tek sütunda "ikinci sütun" diye bir şey yok. */
+  .rail-panel__media {
+    grid-column: auto;
+    margin-block-start: 0;
+  }
+
+  .rail-dots {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-block-start: 1.5rem;
+  }
+
+  .rail-dots span {
+    inline-size: 0.375rem;
+    block-size: 0.375rem;
+    background-color: var(--hairline);
   }
 
   /* Emlak CRM Pro destek kareleri TEK sütuna düşer, portfolyo gibi ikiye

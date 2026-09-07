@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ServiceImage } from "@/app/components/services/ServiceImage";
+import ServiceRail from "@/app/components/services/ServiceRail";
 import { NAV_CTA } from "@/app/components/nav/navLinks";
 import { SERVICES } from "@/app/content/services";
 import { SERVICE_MEDIA } from "@/app/content/serviceMedia";
@@ -17,10 +18,10 @@ export const metadata: Metadata = {
  *
  * VİDEO YOK, GÖRSEL VAR: public/hero-videos/*.mp4 hero'nun imzası olarak
  * kalıyor — altı klibi buraya taşımak hâlâ MB'larca indirme ve sulanmış bir
- * imza demek. Ama sayfa artık medyasız değil: beş bölümde statik, optimize
- * edilmiş birer görsel var (bkz. app/content/serviceMedia.ts). İkisi
- * portfolyodan gerçek iş, üçü temsili. Yazılım bölümü bilinçli olarak
- * görselsiz. Kart grid'i yok, çerçeve hairline (design-system §4, §9).
+ * imza demek. Sayfa medyasız değil: altı bölümün altısında da statik, optimize
+ * edilmiş birer görsel var (bkz. app/content/serviceMedia.ts) — ikisi
+ * portfolyodan gerçek iş, üçü temsili, biri (yazılım) sembolik bir kod editörü
+ * karesi. Kart grid'i yok, çerçeve hairline (design-system §4, §9).
  *
  * layout.tsx zaten <main id="icerik"> sağlıyor — burada ikinci bir <main>
  * AÇILMAZ (/design-system'deki iç içe main bir hata, tekrarlanmıyor).
@@ -64,69 +65,119 @@ export default function HizmetlerPage() {
         </div>
       </section>
 
-      {/* Altı hizmet, tam genişlik ve dönüşümlü yüzeyde. Renkler/hairline
-          yüzeyden geliyor (surface-ink / surface-paper), bölüm içinde tek bir
-          sabit renk yok. */}
-      {SERVICES.map((service, index) => {
-        // Yazılım kaleminde bu anahtar yok — bölüm tipografik hâliyle kalıyor.
-        const media = SERVICE_MEDIA[service.id];
+      {/* Altı hizmet, YATAY RAY. Dikey scroll panelleri yana kaydırır;
+          başlık bandı ve kapanış CTA'sı dikey kalır, ray ikisinin arasında
+          bir ada. Hareketin tamamı CSS'te (globals.css `rail-slide` +
+          `scroll-timeline`) — JS yalnızca klavye köprüsü için, gerekçesi
+          ServiceRail.tsx'te.
 
-        return (
-        <section
-          key={service.id}
-          id={service.id}
-          className={`service-section px-(--spacing-gutter) py-(--spacing-section) ${
-            index % 2 === 0 ? "surface-paper" : "surface-ink"
-          }`}
-        >
-          <div className="service-grid mx-auto max-w-(--container-site)">
-            <div className="service-head">
-              <p className="eyebrow text-accent-auto">
-                {String(index + 1).padStart(2, "0")} / {String(SERVICES.length).padStart(2, "0")}
-              </p>
-              <div className="service-icon" aria-hidden="true">
-                <service.icon strokeWidth={1.5} />
-              </div>
-              <h2 className="service-title font-display text-strong">{service.title}</h2>
-            </div>
+          --rail-panels İÇERİKTEN geliyor: hizmet eklenince hem ray genişliği
+          hem scroll bütçesi kendiliğinden büyür, senkronlanacak ikinci bir
+          sayı yok.
 
-            <div>
-              <p className="text-lead max-w-(--container-prose)">{service.lead}</p>
-              {service.body.map((paragraph) => (
-                <p key={paragraph} className="text-muted mt-6 max-w-(--container-prose)">
-                  {paragraph}
-                </p>
-              ))}
+          Yüzey artık panel başına DÖNÜŞMÜYOR. Yatayda dönüşümlü zemin, her
+          panel geçişinde tam ekran bir renk çakması demek — dikeyde ritim
+          olan şey yatayda göz yoruyor. Ray tek yüzeyde (ink) duruyor;
+          panelleri birbirinden ayıran şey sayaç ve hairline. */}
+      <ServiceRail
+        panelCount={SERVICES.length}
+        className="rail surface-ink"
+        style={{ "--rail-panels": SERVICES.length } as React.CSSProperties}
+      >
+        <div className="rail-viewport">
+          <div className="rail-track">
+            {SERVICES.map((service, index) => {
+              // Altı kalemin altısında da bir görsel var (serviceMedia.ts).
+              const media = SERVICE_MEDIA[service.id];
 
-              <ul className="service-items">
-                {service.items.map((item) => (
-                  <li key={item} className="border-hairline">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              {/* Yalnızca yazılım kaleminde. Brief §5.2: emlakcrmpro.com
-                  bağlantısı SADECE vaka çalışması sayfasının sonunda yer
-                  alacak — buradaki hedef iç rota. */}
-              {service.cta ? (
-                <Link
-                  href={service.cta.href}
-                  className="btn btn-ghost eyebrow mt-10 inline-flex"
+              return (
+                <article
+                  key={service.id}
+                  id={service.id}
+                  className="rail-panel service-section"
                 >
-                  {service.cta.label} →
-                </Link>
-              ) : null}
+                  <div className="rail-panel__grid">
+                    <div className="service-head">
+                      <p className="eyebrow text-accent-auto">
+                        {String(index + 1).padStart(2, "0")} /{" "}
+                        {String(SERVICES.length).padStart(2, "0")}
+                      </p>
+                      <div className="service-icon" aria-hidden="true">
+                        <service.icon strokeWidth={1.5} />
+                      </div>
+                      <h2 className="service-title font-display text-strong">
+                        {service.title}
+                      </h2>
+                    </div>
 
-              {/* Bölümün kapanışı: metin → kalemler → (CTA) → görsel. Sol
-                  başlık sütunu yapışkan kaldığı için sağ sütunun uzaması
-                  düzeni bozmuyor. */}
-              {media ? <ServiceImage {...media} /> : null}
-            </div>
+                    <div>
+                      <p className="text-lead max-w-(--container-prose)">
+                        {service.lead}
+                      </p>
+                      {service.body.map((paragraph) => (
+                        <p
+                          key={paragraph}
+                          className="text-muted mt-6 max-w-(--container-prose)"
+                        >
+                          {paragraph}
+                        </p>
+                      ))}
+
+                      <ul className="service-items">
+                        {service.items.map((item) => (
+                          <li key={item} className="border-hairline">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* Yalnızca yazılım kaleminde. Brief §5.2:
+                          emlakcrmpro.com bağlantısı SADECE vaka çalışması
+                          sayfasının sonunda — buradaki hedef iç rota. */}
+                      {service.cta ? (
+                        <Link
+                          href={service.cta.href}
+                          className="btn btn-ghost eyebrow mt-10 inline-flex"
+                        >
+                          {service.cta.label} →
+                        </Link>
+                      ) : null}
+
+                    </div>
+
+                    {/* Üçüncü sütun. Yatayda panelin yüksekliği bir ekranla
+                        sınırlı; görseli metnin ALTINA koymak paneli
+                        taşırıyordu, YANINA koymak hem sığdırıyor hem geniş
+                        ekranda boş kalan sağ yarıyı kullanıyor.
+
+                        "Parçadan bütüne" efekti korunuyor: panel görünür
+                        olunca tetikleniyor. Yatayda da çalışır çünkü
+                        .rail-viewport ekran dışı panelleri kırpıyor ve
+                        IntersectionObserver onları "kesişmiyor" görüyor.
+
+                        `media ? … : null` ve `:empty` kuralı KALIYOR: altı
+                        kalemin altısında da bugün görsel var ama tablo
+                        içerikten okunuyor (serviceMedia.ts) — ileride bir
+                        anahtar eksilirse panel sessizce iki sütuna dönsün,
+                        boş bir çerçeve göstermesin. */}
+                    <div className="rail-panel__media">
+                      {media ? <ServiceImage {...media} /> : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-        </section>
-        );
-      })}
+
+          {/* Yalnızca mobilde görünür: yatay kaydırılabilirliğin görsel
+              ipucu. Masaüstünde ray zaten scroll'la sürülüyor. */}
+          <div className="rail-dots" aria-hidden="true">
+            {SERVICES.map((service) => (
+              <span key={service.id} />
+            ))}
+          </div>
+        </div>
+      </ServiceRail>
 
       {/* Kapanış. Son hizmet bölümü koyu (index 5) — bu bant ondan
           ink-deep ile ayrılıyor. */}
