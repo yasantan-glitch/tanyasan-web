@@ -156,7 +156,17 @@ export default function Home() {
           sabit durup panellerin geçtiği "başlangıç çizgisi"ni kuruyor
           (mekanik globals.css `.home-rail-lede` yorumunda). Kapanış CTA'sı
           dikey kalıyor. Ray, max-w-(--container-site) sarmalayıcısının
-          DIŞINDA: track'in tam genişliği kısıtlanmamalı. */}
+          DIŞINDA: track'in tam genişliği kısıtlanmamalı.
+
+          BAŞLIĞIN KENDİ GİRİŞİ VAR: bant açılır açılmaz köşede hazır
+          durmuyor, ilk "geliş" payında (bkz. `--home-rail-arrive-share`,
+          `.home-rail-lede__inner` — globals.css) sayfanın dikey ortasında
+          belirip yukarı çıkıyor, sonra sola kayıp bu köşeye oturuyor.
+          Paneller de AYNI geliş payında ekranın sağ dışından sola süzülerek
+          geliyor (`.home-rail-panel`in `home-rail-panels-enter`i) — başlık
+          sola kaymaya başladığı anda raf içeri girer, ikisi çakışmadan
+          birlikte yerine oturur; ancak ondan sonra bugünkü yatay ray akışı
+          devralır. */}
       <section className="surface-paper seam px-(--spacing-gutter) py-(--spacing-section-loose)">
         <ServiceRail
           panelCount={SERVICES.length}
@@ -172,15 +182,18 @@ export default function Home() {
               iç sarmalayıcı o hizayı koruyor. */}
           <div className="home-rail-viewport">
             <div className="home-rail-lede">
-              <div className="mx-auto max-w-(--container-site)">
+              {/* `.home-rail-lede__inner` gelişi taşıyan katman (globals.css
+                  `home-rail-lede-arrive`) — dikey fallback'te animasyon hiç
+                  tanımlı değil, bu yüzden `mx-auto max-w-(--container-site)`
+                  bugünkü hizasını aynen koruyor. `data-enter="mask"` YOK
+                  artık: geliş fazının kendisi başlığın girişi, ikinci bir
+                  reveal jesti aynı scroll aralığında üst üste binmesin. */}
+              <div className="home-rail-lede__inner mx-auto max-w-(--container-site)">
                 <SectionMarker index={2} label="Hizmetler" flip />
                 {/* Punto artık inline değil CSS'te (.home-rail-lede__title):
                     dikey hâlde display-2xl, pin'li dar sütunda display-xl.
                     Inline style ikisini birden ifade edemezdi. */}
-                <h2
-                  className="home-rail-lede__title font-display text-strong"
-                  data-enter="mask"
-                >
+                <h2 className="home-rail-lede__title font-display text-strong">
                   ALTI HİZMET ÇİZGİSİ, TEK EKİP
                 </h2>
               </div>

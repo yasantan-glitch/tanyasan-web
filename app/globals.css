@@ -210,6 +210,20 @@
   --home-rail-lede-w: clamp(16rem, 24vw, 25rem);
   --home-rail-sticky-h: calc(100svh - var(--nav-h));
   --home-rail-travel: 55vh;
+
+  /* BAŞLIĞIN "GELİŞ" PAYI. Bandın tek view-timeline'ı iki ÇAKIŞMAYAN
+     dilime bölünüyor: ilk `share` kadarı başlığın gelişi (dikey çıkış →
+     sola kayma), kalanı panellerin yatay rayı. Sayı bir ORAN olarak
+     yazılıyor çünkü `animation-range` yüzde ister; `.home-rail`in
+     yüksekliği de bu orandan türetiliyor (bkz. gated blok), böylece
+     panel başına düşen gerçek yol `--home-rail-travel` olarak KALIYOR ve
+     geliş payı bandın üstüne EKLENİYOR. Tek kaynak burası — JS
+     (ServiceRail'in klavye köprüsü) de bu değişkeni okuyor.
+
+     0.2: ~%20, altı panellik bantta yaklaşık 80vh'lik bir geliş. Daha
+     kısası iki fazı birbirine yapıştırıyor, daha uzunu bandın başında
+     hiçbir şeyin olmadığı bir boşluk gibi okunuyor. */
+  --home-rail-arrive-share: 0.2;
 }
 
 /* ==========================================================================
@@ -2351,9 +2365,16 @@
          @supports/@media sarmalayıcı açmaya gerek yok. İsimler
          `.home-rail-*`, tamamen ayrı: bu blok /hizmetler'in yukarıdaki
          hiçbir kuralına dokunmuyor. */
+      /* Yükseklik artık İKİ payı topluyor: geliş (başlığın dikey çıkış +
+         yatay kayması) ve ray (panellerin yatay akışı). Panel başına düşen
+         gerçek yol `--home-rail-travel` DEĞİŞMİYOR — geliş payı `1 - share`
+         ile bölerek ÜSTÜNE ekleniyor, böylece ray dilimi bugünkünle aynı
+         hızda akıyor, sadece başında bir geliş payı var. */
       .home-rail {
         block-size: calc(
-          var(--home-rail-sticky-h) + var(--home-rail-panels) * var(--home-rail-travel)
+          var(--home-rail-sticky-h) +
+            var(--home-rail-panels) * var(--home-rail-travel) /
+            (1 - var(--home-rail-arrive-share))
         );
         view-timeline: --home-rail block;
       }
@@ -2398,8 +2419,15 @@
         padding-block: 3rem;
         padding-inline-end: 2rem;
         background-color: var(--color-paper-50);
-        /* Çizginin kendisi. Panel tam burada kaybolur. */
-        border-inline-end: 1px solid var(--hairline);
+        /* Çizginin kendisi. Panel tam burada kaybolur. Rengi ŞEFFAFTAN
+           başlıyor: başlık henüz köşesine oturmamışken bir "başlangıç
+           çizgisi" göstermek yalan olurdu — çizgi ancak geliş fazının son
+           %40'ında, `home-rail-lede-line` ile çiziliyor. */
+        border-inline-end: 1px solid transparent;
+        animation: home-rail-lede-line linear both;
+        animation-timeline: --home-rail;
+        animation-range: contain calc(var(--home-rail-arrive-share) * 60%)
+          contain calc(var(--home-rail-arrive-share) * 100%);
       }
 
       /* Başlık artık ~25rem'lik bir sütunda: bir kademe küçülüyor ve
@@ -2410,6 +2438,20 @@
         line-height: var(--text-display-xl--line-height);
         letter-spacing: var(--text-display-xl--letter-spacing);
         font-weight: var(--text-display-xl--font-weight);
+      }
+
+      /* ---- GELİŞ: dikey çıkış → sola kayma ----------------------
+         `.home-rail-lede` (plaka) hiç oynamıyor — o hâlâ opak zemin +
+         maskeleme katmanı, yukarıdaki gerekçe geçerli. Hareket eden bu iç
+         sarmalayıcı: sayfanın dikey ortasında belirip yukarı çıkıyor, sonra
+         sola kayıp plakanın içindeki bugünkü (0,0) konumuna oturuyor. Tek
+         `animation-range` = timeline'ın ilk `share`'i; ray dilimine hiç
+         taşmıyor, iki faz aynı scroll menzilini paylaşmıyor. */
+      .home-rail-lede__inner {
+        animation: home-rail-lede-arrive linear both;
+        animation-timeline: --home-rail;
+        animation-range: contain 0% contain
+          calc(var(--home-rail-arrive-share) * 100%);
       }
 
       .home-rail-track {
@@ -2423,9 +2465,14 @@
            (preflight) sayesinde içerik kutusu tam 6 × panel genişliği
            kalıyor, paneller birebir oturuyor. */
         padding-inline-start: var(--home-rail-lede-w);
+        /* SADECE ray diliminde kayıyor: geliş bitmeden panel akışı
+           başlamasın diye `contain 0%` değil `share` noktasından başlıyor.
+           Panellerin geliş fazındaki sağdan girişi burada DEĞİL — gerekçe
+           `.home-rail-panel`in kendi animasyon kuralında. */
         animation: home-rail-slide linear both;
         animation-timeline: --home-rail;
-        animation-range: contain 0% contain 100%;
+        animation-range: contain calc(var(--home-rail-arrive-share) * 100%)
+          contain 100%;
       }
 
       /* Tam yükseklik şerit. Kutu YOK: `border: 0` ile
@@ -2443,6 +2490,28 @@
         border: 0;
         border-inline-start: 1px solid var(--hairline);
         transition: border-color var(--duration-base) var(--ease-out-quart);
+        /* GELİŞTE SAĞDAN GİRİŞ — PANELİN KENDİSİNDE, `.home-rail-track`'te
+           DEĞİL: track zaten `home-rail-slide`i sürüyor ve aynı elemanda
+           aynı adlı (`--home-rail`) timeline'a bağlı İKİNCİ bir animasyon
+           (virgüllü `animation`/`animation-timeline`/`animation-range`
+           listesi) bu tarayıcıda tüm alt ağacı boş/render-dışı bırakan bir
+           kompozisyon hatasına yol açıyordu — ölçülerek doğrulandı. Aynı
+           adlı timeline'a bağlı TEK animasyon her elemanda sorunsuz;
+           bölünme burada, panel başına, yapılıyor.
+
+           Menzil GELİŞ DİLİMİNİN TAMAMI (`contain 0%` → `share`), tek
+           keyframe SIRASI için: `home-rail-panels-enter` %0-50 arası ekran
+           dışında BEKLER, %50-100 arası süpürüp gelir. Bekleme kasıtlı —
+           başlık aynı pencerede (0-55%) sayfa ortasında dikey çıkıyor ve
+           plaka orada opak zemin vermiyor; paneller erken girse başlığın
+           ALTINDAN geçip metni okunmaz kılardı. %50'de süpürme başladığında
+           başlık da (55%'te) az sonra sola kaymaya başlıyor — raf ortaya
+           vardığında başlık çekilmiş oluyor. Okunuş: "raf geliyor, başlığı
+           köşesine itiyor". */
+        animation: home-rail-panels-enter linear both;
+        animation-timeline: --home-rail;
+        animation-range: contain 0% contain
+          calc(var(--home-rail-arrive-share) * 100%);
       }
 
       /* İlk panelin sol ayracı, `.home-rail-lede`nin sağ kenarındaki
@@ -2471,7 +2540,12 @@
       .home-rail-panel > * {
         animation: home-rail-content-drift linear both;
         animation-timeline: --home-rail;
-        animation-range: contain 0% contain 100%;
+        /* Yalnızca RAY diliminde: geliş sırasında panelin KENDİSİ zaten
+           bir bütün olarak sağdan kayıyor (`home-rail-panels-enter`,
+           `.home-rail-panel` kuralı) — içeriğin AYRICA süzülmesi o
+           pencerede okunmaz, iki hareket üst üste biner. */
+        animation-range: contain calc(var(--home-rail-arrive-share) * 100%)
+          contain 100%;
       }
 
       /* Görsel artık gerçekten yer bulabiliyor (pencere 30rem değil, tam
@@ -2527,6 +2601,114 @@
       0,
       0
     );
+  }
+}
+
+/* GELİŞ FAZI — başlığın dikey çıkışı + sola kayması. Tek keyframe, iki
+   segment: 0%→55% dikey (sayfa ortasından plakanın üst hizasına), 55%→100%
+   yatay (bant ortasından plakadaki gerçek [0,0] konumuna). Her keyframe
+   seçicisine ayrı `animation-timing-function` verilmesi CSS'te geçerli:
+   uygulandığı segment, O ANAHTAR KAREDEN BİR SONRAKİNE giden geçişi
+   yönetir — yani 0%'daki easing 0%→55%'i, 55%'teki easing 55%→100%'ü sürer.
+   Böylece iki faz da kendi ucunda yumuşuyor, tek doğrusal enterpolasyon
+   sert bir yön değişimi gibi hissettirmiyor.
+
+   X/Y GEOMETRİSİ ÖLÇÜLMEDEN çıkıyor (JS yok):
+   - Y: `--home-rail-sticky-h / 2` viewport'un dikey ortası, `- 3rem` plakanın
+     `padding-block`i (inner div zaten o kadar aşağıda BAŞLIYOR, geri kalanı
+     bu kadar). `translateY(-50%)` elemanın KENDİ yüksekliğinin yarısını
+     çıkarıp gerçek merkezlemeyi tamamlıyor — tarayıcı bunu her ekran
+     boyutunda/satır sayısında otomatik hesaplıyor.
+   - X: bandın gerçek genişliği (`100vw - 2 * --spacing-gutter`, aynı
+     düzeltme `home-rail-slide` keyframe'inde de var) ile inner div'in
+     durağan genişliğinin (`--home-rail-lede-w - 2rem`, plakanın
+     `padding-inline-end`i düşülmüş) farkının yarısı: elemanı bant
+     genişliği içinde ortalıyor. */
+@keyframes home-rail-lede-arrive {
+  0% {
+    transform: translate3d(
+        calc(
+          (
+              (100vw - 2 * var(--spacing-gutter)) -
+                (var(--home-rail-lede-w) - 2rem)
+            ) / 2
+        ),
+        calc(var(--home-rail-sticky-h) / 2 - 3rem),
+        0
+      )
+      translateY(-50%);
+    animation-timing-function: var(--ease-out-quart);
+  }
+
+  55% {
+    transform: translate3d(
+      calc(
+        (
+            (100vw - 2 * var(--spacing-gutter)) -
+              (var(--home-rail-lede-w) - 2rem)
+          ) / 2
+      ),
+      0,
+      0
+    );
+    animation-timing-function: var(--ease-out-quart);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Başlangıç çizgisi. Başlık köşesine oturmadan çizilmiş bir çizgi yalan
+   söylerdi ("buradan başlıyor" ama başlık hâlâ ortada); geliş diliminin
+   son %40'ında (yani `home-rail-lede-arrive`nin ikinci yarısıyla üst üste)
+   şeffaftan `--hairline`e dönüyor. */
+@keyframes home-rail-lede-line {
+  from {
+    border-inline-end-color: transparent;
+  }
+  to {
+    border-inline-end-color: var(--hairline);
+  }
+}
+
+/* Panellerin geliş fazındaki sağdan girişi. `D` bandın gerçek
+   genişliğinden (`100vw - 2 * --spacing-gutter`, `home-rail-slide` ve
+   `home-rail-lede-arrive` ile aynı düzeltme) plaka sütununu düşüyor —
+   panelin sol kenarını tam bandın sağ kenarına taşıyan mesafe, yani panel
+   süpürme başlar başlamaz (bkz. altta %50) kadraja YENİ giriyor, ne erken
+   ne geç. Altı panel de `.home-rail-panel`in AYNI kuralını paylaştığı için
+   hepsi aynı `D`yi kat ediyor — raf tek parça geliyor, aralar sabit
+   kalıyor.
+
+   %0-50 arası bilerek DURAĞAN: `.home-rail-lede-arrive`nin aynı pencerede
+   (0-55%) başlık hâlâ sayfa ortasında dikey çıkıyor; raf o sırada girse
+   başlığın altından geçerdi. %50'den `home-rail-slide`ın devraldığı `to`
+   karesine (translate 0) kadar süpürme, `--ease-out-quart` ile —
+   `home-rail-lede-arrive`nin ikinci fazıyla AYNI eğri, ikisi aynı anda
+   yavaşlayıp aynı karede (geliş %100) duruyor. `fill-mode: both`
+   sayesinde bu aralığın dışında (ray dilimi boyunca) panel `to` karesinde
+   donuk kalıyor — `home-rail-slide` devraldığında sıçrama olmuyor. */
+@keyframes home-rail-panels-enter {
+  0% {
+    transform: translate3d(
+      calc((100vw - 2 * var(--spacing-gutter)) - var(--home-rail-lede-w)),
+      0,
+      0
+    );
+  }
+
+  50% {
+    transform: translate3d(
+      calc((100vw - 2 * var(--spacing-gutter)) - var(--home-rail-lede-w)),
+      0,
+      0
+    );
+    animation-timing-function: var(--ease-out-quart);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
   }
 }
 

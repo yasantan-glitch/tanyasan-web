@@ -802,6 +802,77 @@ zaten var.
 `--color-accent`'i sabit yazıyor ve yalnızca koyu zeminde doğru. Açık zeminli
 bu bantta ikon `.service-icon`'dan geliyor.
 
+### Ray başlığının iki fazlı gelişi
+
+Sabit köşe başlığı (`.home-rail-lede`) artık bandın açılışından itibaren
+hazır durmuyor: tek sürekli scroll jestinde önce **dikey** çıkıyor (sayfanın
+ortasından yukarı), sonra **yatay** sola kayıp bugünkü köşe konumuna
+oturuyor; paneller ancak ondan sonra akmaya başlıyor. Yeni bir scroll motoru
+yok — bandın tek `view-timeline`'ı (`--home-rail`) tek bir orana göre iki
+ÇAKIŞMAYAN dilime bölünüyor:
+
+```
+--home-rail-arrive-share: 0.2;   /* timeline'ın ilk %20'si = geliş */
+```
+
+`.home-rail`'in yüksekliği `panels * travel / (1 - share)` olarak büyüyor:
+panel başına düşen gerçek yol (`--home-rail-travel`) DEĞİŞMİYOR, geliş payı
+bandın ÜSTÜNE ekleniyor. `share` tek kaynak — hem CSS'teki her
+`animation-range`, hem `ServiceRail.tsx`'in klavye köprüsü (odaklanan paneli
+doğru dikey konuma taşıyan hesap) aynı değişkeni okuyor, JS'te ikinci kez
+yazılmıyor.
+
+**Plaka oynamıyor, içi oynuyor.** `.home-rail-lede` (opak zemin +
+maskeleme, yukarıdaki bölümdeki gerekçe) hâlâ durağan; hareket eden yeni
+`.home-rail-lede__inner` katmanı, `home-rail-lede-arrive` keyframe'iyle
+0%→55%'te dikey (sayfa ortası → plakanın üst hizası), 55%→100%'te yatay
+(bant ortası → gerçek `[0,0]`) kayıyor. X/Y hiçbiri ölçülmüyor:
+`translateY(-50%)` elemanın kendi yüksekliğinin yarısını otomatik çıkarıyor,
+X de bandın gerçek genişliğinden (`100vw - 2 * --spacing-gutter`, aynı
+düzeltme `home-rail-slide`'da da var) türüyor. Başlangıç çizgisi
+(`border-inline-end`) de aynı fikri tekrarlıyor: geliş bitene kadar şeffaf,
+son %40'ta `--hairline`e dönüyor — henüz köşesine oturmamış bir başlığın
+yanına çizgi çizmek yalan olurdu.
+
+**Paneller donuk, sonra sağdan süzülüyor.** `home-rail-slide`'ın menzili
+artık `share`'den başlıyor; ondan önce `fill-mode: both` sayesinde `from`
+karesinde (transform yok) donuk kalıyor — panel akışı geliş bitmeden
+başlamıyor, ek bir kilit mekanizması gerekmiyor. Girişin kendisi (raf, ekran
+sağı dışından yerine) `home-rail-panels-enter` ile GERÇEK bir konum
+hareketi — denenen ilk hâl opacity 0→1 idi, sonuç düşük kontrastlı ve
+okunmayan bir soluklaşmaydı; opacity yerine `translateX` geçince aynı
+mekanik "raf geliyor, başlığı köşesine itiyor" gibi okunan bir jeste
+dönüştü. Menzil geliş diliminin TAMAMI ama keyframe içeride ikiye bölünüyor:
+%0-50 panel ekran dışında BEKLİYOR (başlık aynı pencerede sayfa ortasında
+dikey çıkıyor, plaka orada opak zemin vermiyor — raf erken girse başlığın
+altından geçerdi), %50-100 `--ease-out-quart` ile süpürüp `to` karesine
+(translate 0) varıyor — başlığın kendi `home-rail-lede-arrive`sindeki
+ikinci fazla AYNI eğri, ikisi aynı anda yavaşlayıp aynı karede duruyor.
+Mesafe (`D`) altı panelde de AYNI (bandın gerçek genişliğinden plaka
+sütunu düşülmüş) — raf tek parça geliyor, aralar sabit kalıyor, panel
+başına ayrı bir indeks tablosu gerekmiyor.
+
+Bu animasyon TRACK'TE DEĞİL, her `.home-rail-panel`in KENDİSİNDE tek
+başına duruyor. Denenen ilk hâl track'e iki animasyon (`home-rail-slide` +
+girişin ilk versiyonu, virgüllü `animation-timeline`/`animation-range`
+listesiyle) veriyordu; aynı elemanda aynı adlı (`--home-rail`) timeline'a
+bağlı ikinci bir animasyon canlı testte TÜM ray'i (başlık dahil) render-dışı
+bıraktı — tarayıcı bunu besleyemiyor. Kural: **aynı adlı named
+view-timeline'a bağlı animasyon elemanı başına birdir**; ikinci bir hareket
+gerekiyorsa ayrı bir elemana (burada panelin kendisine) veriliyor, ikisi
+ayrı property'lerde (panel: transform, track: transform — ama panelin
+transform'u track'in İÇİNDE, ayrı bir eleman üzerinde) olduğu için yine
+serbestçe kompozit ediliyor. Aynı gerekçeyle panel İÇERİĞİNİN drift'i
+(`.home-rail-panel > *`, `home-rail-content-drift`) geliş dilimine hiç
+girmiyor: panelin kendisi zaten bir bütün olarak kayarken içeriğin ayrıca
+süzülmesi okunmaz, iki hareket üst üste biner.
+
+**Fallback değişmedi.** `.home-rail-lede__inner` yalnızca gated blokta
+(`@supports (animation-timeline: view())` + `no-preference` +
+`min-width: 861px`) animasyon alıyor; taban kuralda hiç tanım yok. Yani
+destek yok / reduced-motion / ≤860px üç durumda da başlık doğrudan bugünkü
+dikey listedeki konumunda, durağan.
+
 ### Emlak CRM Pro vitrini (bant 3)
 
 Brief §4'ün 4. sırası, §5.2'nin metni. Sitenin ana konumlandırma iddiasını —

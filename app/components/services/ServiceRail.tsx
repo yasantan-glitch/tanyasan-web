@@ -106,7 +106,22 @@ export default function ServiceRail({
         // Panelin track içindeki konumu zaten plaka genişliği kadar
         // padding'li; onu geri çıkarınca istenen kayma miktarı çıkıyor.
         const wanted = panel.offsetLeft - lede.offsetWidth;
-        progress = slide > 0 ? Math.min(Math.max(wanted / slide, 0), 1) : 0;
+        const rayProgress =
+          slide > 0 ? Math.min(Math.max(wanted / slide, 0), 1) : 0;
+
+        // Bandın timeline'ı artık İKİ dilime bölünmüş: ilk `share`
+        // başlığın gelişi (paneller donuk duruyor), kalanı ray. Yukarıdaki
+        // oran SADECE ray dilimi içindeki ilerlemeyi ölçüyor — tam
+        // timeline'daki karşılığını bulmak için `share`'i CSS'ten okuyup
+        // (sayı ikinci kez yazılmasın diye) geri kalan `1 - share`'e
+        // ölçekliyoruz.
+        const share = parseFloat(
+          getComputedStyle(section).getPropertyValue(
+            "--home-rail-arrive-share",
+          ),
+        );
+        const arriveShare = Number.isFinite(share) ? share : 0;
+        progress = arriveShare + (1 - arriveShare) * rayProgress;
       }
 
       // `section.offsetTop` DEĞİL: offsetTop, en yakın KONUMLANMIŞ ata'ya
