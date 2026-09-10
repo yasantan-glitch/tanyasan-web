@@ -224,6 +224,28 @@
      kısası iki fazı birbirine yapıştırıyor, daha uzunu bandın başında
      hiçbir şeyin olmadığı bir boşluk gibi okunuyor. */
   --home-rail-arrive-share: 0.2;
+
+  /* Portfolyo bandının yatay pinli rayı — `.home-rail-*`in KOPYASI değil
+     kardeşi (bkz. `.home-portfolio-rail` yorumu). Kareler tam yükseklikte
+     bir şerit değil, viewport'un dikey ortasında duran dar bir RAF; bu
+     yüzden kendi ölçek ve zamanlama bütçesi var, `--home-rail-*`
+     değişkenleri okunmuyor. */
+  --portfolio-tile-w: clamp(15rem, 22vw, 24rem);
+  --portfolio-gap: 1.5rem;
+  /* Şerit yüksekliği = kare + künyenin payı; viewport'ta DİKEY ORTALAMAK
+     için gerekiyor. Pay 4.5rem DEĞİL 5.75rem: künyenin ikinci satırı artık
+     `KATEGORİ · ETKİNLİK` olabiliyor (bkz. portfolio.ts `event`) ve dar bir
+     karede iki satıra sarabiliyor. Pencerede `overflow: clip` var — eksik
+     pay sarmayı sessizce keserdi. */
+  --portfolio-strip-h: calc(var(--portfolio-tile-w) + 5.75rem);
+  /* Birim başına dikey scroll yolu — --home-rail-travel'dan kısa: burada
+     "raftan geçiş" değil "sekiz işi sırayla gösterme" jesti, birim başına
+     ağır bir yol scroll'u yorar. */
+  --portfolio-travel: 55vh;
+  /* Timeline'ın ilk payı: kareler eşit üst hizada ve tam kadrajda bir an
+     DURUYOR, track bu paydan sonra kaymaya başlıyor. Kullanıcının "ilk sıra
+     tam görünür dursun" isteğinin karşılığı. */
+  --portfolio-hold-share: 0.15;
 }
 
 /* ==========================================================================
@@ -1702,27 +1724,62 @@
     border: none;
   }
 
-  /* Portfolyo vitrini. Üç sütun + tek bir `span 2` kare = 9 hücre, yani sekiz
-     iş tam üç sıraya oturuyor, boş hücre kalmıyor. Marquee/kayan şerit
-     bilinçli olarak tercih EDİLMEDİ: JS + DOM kopyası ister, reduced-motion
-     için ayrı bir dal gerektirir ve hareketin tek sahibi hero'dur. */
-  .home-portfolio-grid {
+  /* Portfolyo vitrini — TABAN düzen: üç sütun + tek bir `span 2` kare = 9
+     hücre, yani sekiz iş tam üç sıraya oturuyor, boş hücre kalmıyor. Bu
+     kural `@supports (animation-timeline: view())` desteklenmediğinde,
+     `prefers-reduced-motion: reduce` açıkken ve ≤860px'te GEÇERLİ tek
+     düzen; yatay pinli ray (`.home-portfolio-rail`, gated blokta) bunun
+     ÜSTÜNE yazılır, altına değil.
+
+     Eskiden burada bir editoryal dikey kaydırma vardı
+     (`:nth-child(3n + 2) { margin-block-start: 3rem }`) — üst hizanın
+     kullanıcı tarafından "tutarsız" okunmasının kaynağı tam bu kuraldı,
+     kaldırıldı: ilk sıra artık eşit üst hizada. */
+  .home-portfolio-track {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.5rem;
+    gap: var(--portfolio-gap);
+  }
+
+  /* TABAN HÂLDE SAHNE YOK. `display: contents` sarmalayıcıyı düzenden
+     tamamen çıkarıyor: başlık ve ray penceresi bölümün doğrudan çocuklarıymış
+     gibi akıyorlar, yani mobil / reduced-motion / desteksiz tarayıcı düzeni
+     sarmalayıcı hiç eklenmemiş gibi kalıyor. Kutu yalnızca aşağıdaki
+     yükseklik kapısının arkasında gerçek bir kutuya dönüşüyor. */
+  .home-portfolio-stage {
+    display: contents;
+  }
+
+  /* Başlık bloğunun iç ritmi — TEK KAYNAK BURASI, page.tsx'te `mt-*` YOK.
+     Bant 3'ün `.home-case-split__anchor > * + *`ındaki aynı gerekçe: ritim
+     iki yere yazılırsa hangisinin geçerli olduğu Tailwind'in katman sırasına
+     bağlı, görünmez bir bağımlılık olur. */
+  .home-portfolio-head > * + * {
+    margin-block-start: 2rem;
+  }
+
+  /* Punto CSS'te: taban hâlde (başlık serbest akışta, tam bant genişliğinde)
+     display-2xl; sabit sahnenin içinde bir kademe iniyor (aşağıdaki kapı).
+     `.home-case-split__title` ile aynı idiom. */
+  .home-portfolio-title {
+    max-inline-size: 20ch;
+    font-size: var(--text-display-2xl);
+    line-height: var(--text-display-2xl--line-height);
+    letter-spacing: var(--text-display-2xl--letter-spacing);
+    font-weight: var(--text-display-2xl--font-weight);
+  }
+
+  /* Başlıkla ray arasındaki aralık. Eskiden page.tsx'te rayın kendi
+     `mt-(--spacing-section-tight)`'iydi; başlık rayın İÇİNE girince oradan
+     buraya taşındı, çünkü ölçünün ayırdığı şey artık kardeş iki blok değil,
+     aynı kabın iki katmanı. Sahne kurulunca (aşağıda) yerini flex `gap`
+     alıyor. */
+  .home-portfolio-viewport {
+    margin-block-start: var(--spacing-section-tight);
   }
 
   .home-portfolio-item--wide {
     grid-column: span 2;
-  }
-
-  /* Editoryal kaydırma. Sekiz kare tam üç sıraya oturduğu için grid katı bir
-     tabloya benziyordu; orta sütunu aşağı iterek ızgara kırılıyor.
-     Kırpma DEĞİŞMİYOR — oranlara dokunulmadı, yalnızca dikey ofset. Karelerin
-     hangi görseli taşıdığından bağımsız güvenli. ≤860px'te iptal (2 sütunda
-     ofset boşluk bırakır). */
-  .home-portfolio-grid > :nth-child(3n + 2) {
-    margin-block-start: 3rem;
   }
 
   /* next/image `fill` için konumlanmış çerçeve (parent position: relative
@@ -1763,9 +1820,10 @@
      şablon hissi. Üstelik karelerin kendi uygulama kabuğu (sidebar + üst bar)
      zaten var — kabuğu kabuğa sarmak olurdu.
 
-     `.home-case-grid` — bant `.home-case-split`e (sabitlenen medya + akan
-     metin) geçtiğinde ölü kaldı, page.tsx artık hiç basmıyor. Kaldırıldı;
-     bkz. `.home-case-split__flow figure .home-case-frame` aşağıda. */
+     `.home-case-grid` — bant `.home-case-split`e (sabit anlatı bloğu +
+     akan destek şeridi) geçtiğinde ölü kaldı, page.tsx artık hiç
+     basmıyor. Kaldırıldı; bkz. `.home-case-split__stream figure
+     .home-case-frame` aşağıda. */
 
   /* next/image `fill` için konumlanmış çerçeve (parent position: relative
      ZORUNLU). Oran burada veriliyor: kaynak kareler ≈1.80:1, çerçeve 16/9 —
@@ -1803,11 +1861,10 @@
   }
 
   /* Destek kareleri açılış karesinin üçte biri genişliğinde; 12px orada
-     paspartayı orantısız kalınlaştırıyordu. Seçici `.home-case-split__flow`
-     kapsamına bağlı — ölü `.home-case-grid` yerine bugün gerçekten basılan
-     ata; önceki seçici hiç eşleşmiyordu ve destek kareleri sessizce açılış
-     karesiyle aynı 0.75rem'i alıyordu. */
-  .home-case-split__flow figure .home-case-frame {
+     paspartayı orantısız kalınlaştırıyordu. Seçici `.home-case-split__stream`
+     kapsamına bağlı — sağ sütun artık bağımsız akan şerit, ata `__flow`
+     DEĞİL `__stream` (bkz. `.home-case-split` yorumu, aşağıda). */
+  .home-case-split__stream figure .home-case-frame {
     --case-mat: 0.5rem;
   }
 
@@ -1967,29 +2024,119 @@
   }
 
   /* ---------------------------------------------------------------
-     EMLAK CRM PRO — sabitlenen medya, ilerleyen metin
-     Bandın tepe noktası olması için düzen değişti: açılış karesi sol
-     sütunda SABİTLENİYOR, üç destek karesi ve metin sağ sütunda onun
-     yanından akıyor. Referansın "pinned media" deseni; bizde fake
-     tarayıcı çerçevesi YOK (§12 mockup'ları reddediyor).
+     EMLAK CRM PRO — sabit anlatı bloğu, akan destek şeridi
+     Bandın tepe noktası olma biçimi: SOL SÜTUNUN TAMAMI (işaret,
+     başlık, açılış karesi, açıklama, CTA) tek bir blok, sağ sütun bu
+     bloğun yanından bağımsız akan bir şerit. Eski düzende yalnızca
+     görsel sabitti, başlık split'in dışında sıradan bir `h2` olarak
+     yukarı kaçıyordu ve metin görselin YANINDA ayrı bir sütun olarak
+     akıyordu — anlatı iki yere bölünüyordu. Artık sol blok TEK PARÇA.
 
-     ≤860px ve sticky desteklenmeyen yerde tek sütuna düşer ve bugünkü
-     sıralamanın aynısı olur — fallback ayrıca yazılmadı, akışın kendisi.
-     --------------------------------------------------------------- */
+     Sağ şeridin sol bloktan UZUN olması mekanizmanın şartı (aksi halde
+     pin görünmez); bu yüzden şerit aralığı `--spacing-section-tight`
+     DEĞİL `--spacing-section` (aşağıda) — üç 16/9 kare + künye sol
+     bloktan belirgin uzun olsun diye.
+
+     ≤860px ve sticky desteklenmeyen/kısa ekran yerde tek sütuna düşer
+     ve bugünkü sıralamanın aynısı olur — fallback ayrıca yazılmadı,
+     akışın kendisi. --------------------------------------------------------------- */
   .home-case-split {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     gap: var(--spacing-section-tight);
     align-items: start;
   }
 
-  .home-case-split__media {
-    position: sticky;
-    inset-block-start: calc(var(--nav-h) + 2rem);
+  /* BLOĞUN İÇ RİTMİ — TEK KAYNAK BURASI.
+     Önceki hâlde aralık `--spacing-section-tight` (1440px'te 81.6px)
+     idi ve YALNIZCA ilk iki çocuğa uyguluyordu: paragraflar ve CTA
+     Tailwind'in `mt-8`/`mt-6`'sını koruyordu, çünkü v4'te utility
+     katmanı component katmanını yener. Yani blok iki farklı ritmi aynı
+     anda taşıyordu ve hangisinin geçerli olduğu katman sırasına
+     bağlıydı — görünmez bir bağımlılık. page.tsx'teki `mt-*`
+     sınıfları kaldırıldı, ritim tamamen burada.
+
+     ÖLÇÜ SEBEBİ, ZEVK DEĞİL: sticky'nin çalışabilmesi için bloğun
+     `viewport - üst offset` içine SIĞMASI gerekiyor. 81.6px'lik
+     aralıklarla blok 1047px'ti; 1440×900'de kullanılabilir alan 804px,
+     yani CTA katın 200px altında kalıyordu ve 1920×1080'de bile 97px
+     taşıyordu — sticky hiçbir yaygın ekranda doğru çalışmıyordu. 2rem
+     taban + açılış karesinin etrafında 2.5rem, bloğu sığan bir ölçüye
+     indiriyor. */
+  .home-case-split__anchor > * + * {
+    margin-block-start: 2rem;
   }
 
-  .home-case-split__flow > figure + figure {
-    margin-block-start: var(--spacing-section-tight);
+  /* Açılış karesi bloğun görsel merkezi — kendi etrafında bir kademe
+     daha fazla boşluk alıyor, aksi halde başlıkla künye arasında
+     sıkışmış bir şerit gibi okunuyor. */
+  .home-case-split__anchor > .home-case-split__media,
+  .home-case-split__anchor > .btn {
+    margin-block-start: 2.5rem;
+  }
+
+  /* Açılış karesi bloğun genişliğini DEĞİL kendi tavanını kullanıyor.
+     Sütun 1440px'te ~654px ve 16/9 oranında bu 399px yükseklik demek —
+     tek başına sticky bütçesinin yarısı. Tavan olmadan blok hiçbir
+     ölçüde sığmıyor. Sütunun tamamını kaplamaması bir kayıp değil:
+     künye ve metin zaten `--container-prose` ile daha dar bir ölçüde
+     duruyordu, kare artık onlarla aynı sol kenardan başlayan bir
+     kolonda. */
+  .home-case-split__media {
+    max-inline-size: 28rem;
+  }
+
+  /* Sticky YALNIZCA yeterli genişlik VE yükseklik varken. Yükseklik
+     kapısı bloğun GERÇEK yüksekliğinden türüyor (yukarıdaki nota
+     bakın): blok tarayıcıda 857–863px ölçüldü (1440/1512/1920
+     genişliklerde) ve üst offset --nav-h + 1rem = 88px, yani sticky'nin
+     dürüst eşiği ~950px. Altında blok sessizce normal akışa
+     düşüyor ve bant eksiksiz okunuyor — şeridin kendi odak geçişi
+     (aşağıdaki `case-focus`) orada da çalışmaya devam ediyor, yani
+     kısa ekran hareketsiz kalmıyor.
+
+     Eski kapı `min-height: 760px`'ti ve hiçbir şeyi korumuyordu:
+     viewport yüksekliğini ölçüyordu ama korumak istediği şey BLOĞUN
+     yüksekliğiydi, o da her ölçüde eşiği aşıyordu. */
+  @media (min-width: 861px) and (min-height: 950px) {
+    .home-case-split__anchor {
+      position: sticky;
+      inset-block-start: calc(var(--nav-h) + 1rem);
+    }
+  }
+
+  /* Sağ şerit normal akışta — "sabit blok yanında akan" mekanizmasının
+     kendisi bu: şerit sayfa scroll'una bağlı, ekstra bir motor yok. */
+  .home-case-split__stream > figure + figure {
+    margin-block-start: var(--spacing-section);
+  }
+
+  /* Başlık artık split'in DIŞINDA değil, dar sol sütunun içinde — punto
+     inline style'la değil burada, `.home-rail-lede__title`'daki aynı
+     gerekçe: taban hâlde (tek sütun) --text-display-2xl, sütuna girdiğinde
+     (aşağıdaki @media) bir kademe küçülüyor, aksi halde 20ch genişliğinde
+     satırlar erken kırılırdı. */
+  .home-case-split__title {
+    max-inline-size: 20ch;
+    font-size: var(--text-display-2xl);
+    line-height: var(--text-display-2xl--line-height);
+    letter-spacing: var(--text-display-2xl--letter-spacing);
+    font-weight: var(--text-display-2xl--font-weight);
+  }
+
+  @media (min-width: 861px) {
+    .home-case-split__title {
+      font-size: var(--text-display-xl);
+      line-height: var(--text-display-xl--line-height);
+      letter-spacing: var(--text-display-xl--letter-spacing);
+      font-weight: var(--text-display-xl--font-weight);
+      /* 20ch cumleyi UC satira kiriyordu (145px) ve bu, sticky
+         butcesinin alti da bir kademe kucuk olmasi demekti. 24ch iki
+         satir veriyor ve kirilma noktasi virgulun kendisi:
+         "SADECE ANLATMIYORUZ," / "YAPIYORUZ." — cumlenin kendi
+         duraginda kiriliyor, rastgele bir yerde degil. */
+      max-inline-size: 24ch;
+    }
   }
 
   /* ---------------------------------------------------------------
@@ -2166,6 +2313,56 @@
   }
 }
 
+/* ODAK GECISI — diyaframin sureklilesmis hali, destek seridi icin.
+   Bkz. `.home-case-split__stream .home-case-frame > img` ve
+   docs/design-system.md SS12.
+
+   `case-aperture` TEK SEFERLIK bir acilis: baslar, biter, `both` ile
+   donar. Acilis karesi icin dogru olan bu (o blok pin'lenip ekranda
+   kaliyor, surekli oynayan bir kare orada huzursuzluk olurdu) ama sag
+   serit icin yanlisti: uc kare de scroll'un cok erken bir aninda,
+   ekranin ALT KENARINDA acilip bitiyordu — kullanici onlara baktiginda
+   jest coktan olmus oluyordu. Bandin imza hareketi hic izlenmiyordu.
+
+   Bu keyframe ayni jesti kareyi OKUMA BOLGESINDEN gecisine bagliyor:
+   kare ekranin ortasina yukselirken diyafram acilir ve one gelir, orta
+   bantta tam acik ve tam opak DURUR (plato), ustten cikarken geri
+   cekilip soner. Yani odak seritte asagi dogru geziniyor — dort ekran,
+   tek sistem, sirayla one cikan yetenekler.
+
+   Neden bandin kimligi bu: komsu iki bant (hizmet rayi ve portfolyo
+   rayi) YATAYDA pan ediyor, bu bant DERINLIKTE scrub ediyor. Ayni aile
+   degil, ayri eksen — uc ardisik pin'in ortadaki halkasi artik
+   digerlerinin tekrari degil.
+
+   Renk YOK, glow YOK (olculdu: dort karenin kendi aksanlari birbirinden
+   ve site paletinden ayri; bir tint o cesitlilikle carpisirdi). Tasiyici
+   sadece geometri ve opaklik. Animasyon yine CERCEVEYE degil icindeki
+   img'e uygulanir: gri pasparta her zaman tam ve duragan kalir,
+   icerik cekilir. */
+@keyframes case-focus {
+  0% {
+    clip-path: inset(46% 0 46% 0);
+    transform: scale(1.06);
+    opacity: 0.55;
+  }
+  38% {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+    opacity: 1;
+  }
+  72% {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: scale(0.985);
+    opacity: 0.62;
+  }
+}
+
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     [data-enter] {
@@ -2216,19 +2413,46 @@
        yalnızca içerik açılır" disipliniyle aynı ayrım. Frame'e uygulansaydı
        transform kenarlığı da ölçeklerdi.
 
-       Açılış karesi STICKY (`.home-case-split__media`): kendi `view()`'i
-       bu yüzden sürekli scrub İÇİN kullanılmıyor (pin'lendiği anda kendi
-       viewport kesişimi sabitlenir, bkz. ServiceRail.tsx'teki aynı not) —
-       ama burada zaten İSTENEN şey sürekli bir scrub değil, TEK SEFERLİK
-       bir giriş: `entry` menzili yalnızca elemanın viewport'a GİRİŞ
-       fazını (pin'lenmeden hemen önceki kısa dilimi) ölçüyor, `both` fill
-       tamamlandıktan sonra `to` karesinde kalıyor. Yani sticky olması bu
-       menzil için bir sorun değil — tam aradığımız "bir kez aç, pin'liyken
-       öylece dursun" davranışını bedavaya veriyor. */
-    .home-case-frame > img {
+       Açılış karesi sabit sol bloğun (`.home-case-split__anchor`) İÇİNDE,
+       o blok STICKY: kendi `view()`'i bu yüzden sürekli scrub İÇİN
+       kullanılmıyor (pin'lendiği anda kendi viewport kesişimi sabitlenir,
+       bkz. ServiceRail.tsx'teki aynı not) — ama burada zaten İSTENEN şey
+       sürekli bir scrub değil, TEK SEFERLİK bir giriş: `entry` menzili
+       yalnızca elemanın viewport'a GİRİŞ fazını (pin'lenmeden hemen önceki
+       kısa dilimi) ölçüyor, `both` fill tamamlandıktan sonra `to`
+       karesinde kalıyor. Yani sticky olması bu menzil için bir sorun
+       değil — tam aradığımız "bir kez aç, pin'liyken öylece dursun"
+       davranışını bedavaya veriyor. Bu kural aynı zamanda sağ şeritteki
+       ÜÇ destek karesinden ilkinin (`:nth-of-type(1)`) menzili — ayrı bir
+       kural gerekmiyor, aşağıdaki iki seçici yalnızca 2. ve 3. kareyi
+       geriden başlatıyor. */
+    .home-case-split__media .home-case-frame > img {
       animation: case-aperture linear both;
       animation-timeline: view();
-      animation-range: entry 0% entry 65%;
+      /* MENZIL `entry` DEGIL `cover`. `entry 0% 65%` elemanin kendi
+         yuksekligi kadar bir yol olcuyor: 448px'lik kare icin ~164px
+         scroll, hepsi kare ekranin en alt seridindeyken. Diyafram
+         izlenmeden bitiyordu.
+
+         `cover 10% cover 36%` jesti karenin ekranda YUKSELISINE
+         bagliyor: acilis, kare ekranin ust-ortasina varirken
+         tamamlaniyor.
+
+         MENZILIN PIN'DEN ONCE BITMESI ZORUNLU, cunku blok pin'lendigi
+         anda kendi `view()` ilerlemesi donar (ServiceRail.tsx'teki ayni
+         fizik) — menzil pin'e tasarsa kare YARIM ACIK donar kalirdi.
+         Ust sinir bu yuzden tahminle degil olcumle secildi
+         (scratchpad/lead2.mjs): 1512x982 / 1920x1080 / 1600x1200 /
+         1440x900'de diyafram kare ekranin sirasiyla %35 / %37 / %38 /
+         %57 hizasindayken tamamlaniyor ve dordunde de pin sirasinda
+         kapali kalan tek bir kare yok. `cover 45%`le denendiginde
+         1512x982'de ~150px'lik bir pencerede kare pin'liyken hala
+         kapaliydi; sinir 36%'ya cekildi.
+
+         `both` fill sayesinde kare pin boyunca tam acik duruyor;
+         acilis karesinin surekli oynamamasi ARANAN davranis, sabit
+         anlatinin icinde huzursuzluk olurdu. */
+      animation-range: cover 10% cover 36%;
     }
 
     /* Üç destek karesi kademeli açılıyor — data-enter-stagger'daki --enter-i
@@ -2237,13 +2461,29 @@
        DOM sırası services.ts'teki gibi değişmiyor), --enter-i icat
        edilmedi. Her sonraki kare bir miktar geriden başlayıp geriden bitiyor
        — art arda değil, üst üste binerek (aynı gerekçe: SplitWords'teki
-       OVERLAP, kesik kesik değil dalga gibi okunmalı). */
-    .home-case-split__flow figure:nth-of-type(2) .home-case-frame > img {
-      animation-range: entry 12% entry 77%;
-    }
+       OVERLAP, kesik kesik değil dalga gibi okunmalı). Seçici artık
+       `.home-case-split__stream`e bağlı (§12 — sağ sütun artık bağımsız
+       akan şerit, ata `__flow` DEĞİL `__stream`); şeritte yalnızca üç
+       destek figürü olduğu için indeksler bir kaymış, bkz. yukarıdaki
+       taban kural notu. */
+    /* Uc destek karesi: tek seferlik reveal DEGIL surekli odak gecisi.
+       Menzil karenin viewport'tan TAM GECISI (`cover 0% -> 100%`),
+       kademe `nth-of-type` ile DEGIL karelerin kendi konumlariyla
+       geliyor — her kare ekrandan kendi sirasinda geciyor, yani odak
+       seritte kendiliginden asagi dogru geziniyor. Onceki uc ayri
+       `entry` menzili (0/12/24% ofsetli) artik gereksiz: o kademe,
+       kareler ayni anda ekrana girdigi VARSAYIMIYLA elle yazilmisti,
+       oysa aralari `--spacing-section` (1440px'te 140px) ve zaten ayri
+       anlarda geciyorlar. Uc kural bire indi.
 
-    .home-case-split__flow figure:nth-of-type(3) .home-case-frame > img {
-      animation-range: entry 24% entry 89%;
+       Egri `linear` KALIYOR (site geneli scrub disiplini): scroll'a
+       bagli bir animasyonda easing, kullanicinin kendi hizini yalan
+       soyleyerek yeniden yorumlar. Yumusaklik keyframe'in kendi
+       platosundan geliyor, egriden degil. */
+    .home-case-split__stream .home-case-frame > img {
+      animation: case-focus linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
     }
 
     /* ---- /hizmetler yatay ray ------------------------------------
@@ -2557,6 +2797,203 @@
         max-block-size: min(38vh, 20rem);
       }
     }
+
+    /* ---- Portfolyo bandı — yatay pinli ray ------------------------
+       `.home-rail-*`in KOPYASI DEĞİL kardeşi, aynı üç koşul altında
+       (destek + no-preference + min-width) kurulduğu için burada, ikinci
+       bir @supports/@media sarmalayıcısı açılmıyor. Farkları:
+
+       - Paneller tavandan tabana ŞERİT değil, viewport'un dikey ortasında
+         duran dar bir RAF — "bir raftan geçiş" jesti.
+       - Başlık ray'in DIŞINDA ve dikey kalıyor, iki fazlı bir "geliş"i
+         yok — bant zaten sabit bir başlıkla açılıyor.
+       - Track'in kendisi İKİ FAZLI: önce `--portfolio-hold-share` kadar
+         DURAĞAN kalıyor (ilk sıra tam kadrajda, eşit üst hizada bir an
+         duruyor — kullanıcının "ilk sıra kesilmeden tam görünsün"
+         isteğinin karşılığı), sonra sağdan sola akıyor. `.home-rail`daki
+         "geliş" başlığın gelişiydi; burada "duruş" karelerin kendisinin
+         bir an sabit kalması. */
+    @media (min-width: 861px) {
+      .home-portfolio-rail {
+        block-size: calc(
+          100svh +
+            var(--home-portfolio-units) * var(--portfolio-travel) /
+            (1 - var(--portfolio-hold-share))
+        );
+        view-timeline: --home-portfolio block;
+      }
+
+      /* Şerit ekranın dikey ORTASINDA duruyor — nav'ın altında kalan
+         alanın ortası. Viewport'tan kısa bir şerit olduğu için "tam
+         kadraj, kesilmeden" burada geometrinin kendisinden geliyor,
+         ayrı bir kırpma kuralı gerekmiyor. */
+      .home-portfolio-viewport {
+        position: sticky;
+        inset-block-start: calc(
+          var(--nav-h) +
+            (100svh - var(--nav-h) - var(--portfolio-strip-h)) / 2
+        );
+        block-size: var(--portfolio-strip-h);
+        overflow: clip;
+        display: block;
+      }
+
+      /* Taban gridi geçersiz kılıyor: track artık tek sıralı bir ŞERİT.
+         `align-items: start` EŞİT ÜST HİZA'nın kaynağı — taban gridin
+         `:nth-child(3n+2)` ofseti burada hiç yok, ilk sıra (yani tüm
+         şerit) aynı hizadan başlıyor. Sol dolgu (`--spacing-gutter`)
+         ilk karenin sayfa kenar boşluğuyla hizalanmasını sağlıyor —
+         .home-rail-slide'daki aynı düzeltme. */
+      .home-portfolio-track {
+        display: flex;
+        grid-template-columns: none;
+        margin-inline: 0;
+        max-inline-size: none;
+        padding-inline-start: var(--spacing-gutter);
+        align-items: start;
+        gap: var(--portfolio-gap);
+        animation: home-portfolio-slide linear both;
+        animation-timeline: --home-portfolio;
+        animation-range: contain calc(var(--portfolio-hold-share) * 100%)
+          contain 100%;
+      }
+
+      .home-portfolio-track > figure {
+        inline-size: var(--portfolio-tile-w);
+        flex: 0 0 var(--portfolio-tile-w);
+      }
+
+      /* Geniş iş (Wellness Antalya, tek manzara oranlı) yatayda ÇİFT
+         genişlik alıyor: 2/1 çerçeve oranı sabit kaldığı için yüksekliği
+         karelerle AYNI kalıyor, yani üst VE alt hizası da bozulmuyor. */
+      .home-portfolio-item--wide {
+        grid-column: auto;
+        inline-size: calc(2 * var(--portfolio-tile-w) + var(--portfolio-gap));
+        flex-basis: calc(2 * var(--portfolio-tile-w) + var(--portfolio-gap));
+      }
+
+      /* Kademeli giriş (taban gridin [data-enter-stagger]'ı) burada
+         KAPALI: her tile'ın kendi anonim `view()`'i pin'li ve yatay
+         kayan bir kabın içinde anlamsız — bandın tek hareket sahibi
+         track'in kendi kaymasıdır. Named `--home-portfolio` timeline'a
+         bağlı animasyon TEK BAŞINA track'te duruyor (§12'nin "aynı adlı
+         named view-timeline'a bağlı animasyon elemanı başına birdir"
+         kuralı) — bu satır ayrı bir elemanı (tile'ları) sıfırlıyor,
+         çakışma yok. */
+      .home-portfolio-track > * {
+        animation: none;
+      }
+
+      /* ---- Sabit başlık: başlık + ray TEK SAHNEDE -------------------
+         Sorun: başlık rayın KARDEŞİ ve normal akıştaydı, ray daha akmaya
+         başlamadan yukarı kaçıyordu — bandın ne gösterdiğini söyleyen
+         cümle, gösterme başlar başlamaz kayboluyordu.
+
+         NEDEN İKİ AYRI STICKY KARDEŞ DEĞİL: başlık `nav + 1rem`e,
+         pencere de `nav + başlıkYüksekliği + boşluk`a yapışmalıydı —
+         başlığın yüksekliği genişlikle değişen bir ölçü, ölçmeden
+         yazılamaz, JS gerekirdi. Bunun yerine İKİSİNİ DE KAPSAYAN TEK
+         sticky kutu: sahne `100svh - nav` yüksekliğinde pinleniyor,
+         içindeki flex sütun başlık ve şeridi birlikte dikey ortalıyor.
+         Ölçüm yok, ek motor yok — bant 3'ün `.home-case-split__anchor`ı
+         ile aynı disiplin.
+
+         RAYIN KENDİSİNE DOKUNULMADI: `.home-portfolio-rail`in
+         `block-size` hesabı, `view-timeline`ı, `--portfolio-hold-share`lı
+         iki fazlı `animation-range`i ve `home-portfolio-slide`
+         keyframe'i aynen duruyor. Pencerenin GENİŞLİĞİ de değişmiyor,
+         yani slide'ın `100vw - gutter` matematiği ve "ilk kadraj eşit üst
+         hizada tam görünür durur, sonra sağdan sola akar" davranışı
+         korunuyor. Değişen tek şey pencerenin KİM tarafından
+         pinlendiği: artık kendisi değil, sahne.
+
+         YÜKSEKLİK KAPISI TARAYICIDA ÖLÇÜLDÜ, KOMŞU BANTTAN
+         KOPYALANMADI — `.home-case-split__anchor`ın kapısının başına
+         gelen hata tam buydu (bkz. oradaki not: 760px'lik eski kapı
+         viewport'u ölçüyordu ama korumak istediği şey BLOĞUN
+         yüksekliğiydi). 1440px'te headless Chrome'da ölçülen: başlık
+         bloğu (işaret + display-xl'de iki satır başlık + lede) 298px,
+         flex gap 40px, şerit `--portfolio-strip-h` 366px → 704px.
+         `100svh - 4.5rem ≥ 704` ⇒ ~776px; payla birlikte 800px —
+         kapının tam sınırında (1440×800) sahnede 24px pay ölçüldü.
+
+         Altında sahne KURULMUYOR ve bant bugünkü hâlinde kalıyor: ray
+         çalışır, pencere dikey ortada kendi başına pinlenir, başlık akıp
+         gider. Kısa ekranda başlığı da sabitlemek viewport'un yarısını
+         kalıcı işgal ederdi — `.home-case-split__anchor`ın kısa ekranda
+         sessizce akışa düşmesiyle aynı karar. */
+      @media (min-height: 800px) {
+        /* Kareler bir kademe daralıyor: başlık ve şerit artık AYNI
+           ekranı paylaşıyor. 22vw'lik kare 1440px'te 317px, künyeyle
+           birlikte 389px'lik bir şerit demekti ve başlıkla birlikte
+           kapıyı ~830px'e itiyordu — yani 1440×900'ün altındaki yaygın
+           laptop'larda sabit başlık hiç devreye girmezdi. Değişken
+           `.home-portfolio-rail`de yeniden bağlanıyor: hem
+           `.home-portfolio-track > figure`ın genişliği hem
+           `--portfolio-strip-h` hem de `home-portfolio-slide`ın yolu
+           aynı değişkenden okuduğu için üçü birlikte küçülüyor, ikinci
+           bir yerde senkronlanmıyor. */
+        .home-portfolio-rail {
+          --portfolio-tile-w: clamp(13rem, 19vw, 21rem);
+          /* `--portfolio-strip-h` BURADA TEKRAR YAZILMAK ZORUNDA, ve bu
+             bir kopya değil: bir custom property'nin içindeki `var()`
+             ÖZELLİĞİN BEYAN EDİLDİĞİ elemanda çözülür. `:root`taki
+             `--portfolio-strip-h` orada `:root`un `--portfolio-tile-w`si
+             (22vw) ile hesaplanmış bir uzunluğa dönüşüyor ve aşağıya o
+             hâliyle kalıtılıyor — yukarıdaki daraltma ona hiç
+             ulaşmıyordu. Ölçüldü: pencere 366px yerine 409px kalıyor,
+             yani şeridin altında ~83px ölü boşluk (ve kapı hesabı
+             yalan). Aynı formül burada yeniden beyan edilince kendi
+             elemanının tile-w'siyle çözülüyor. */
+          --portfolio-strip-h: calc(var(--portfolio-tile-w) + 5.75rem);
+        }
+
+        .home-portfolio-stage {
+          position: sticky;
+          inset-block-start: var(--nav-h);
+          block-size: calc(100svh - var(--nav-h));
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 2.5rem;
+        }
+
+        /* Başlık sahnenin tam genişliğini alıp kendi tavanında ortalanıyor.
+           `inline-size: 100%` GEREKLİ: `margin-inline: auto` (page.tsx'teki
+           `mx-auto`) bir flex öğesinde çapraz eksende stretch'i iptal eder
+           ve blok fit-content'e büzülürdü — başlık bandın sol kenarından
+           değil, ekranın ortasından başlardı. */
+        .home-portfolio-head {
+          inline-size: 100%;
+        }
+
+        /* Blok içi ritim taban 2rem'den 1.5rem'e iniyor — başlık artık
+           serbest akışta değil, şeritle aynı dikey bütçeyi paylaşıyor.
+           Aynı gerekçe `.home-case-split__anchor`ın ritim notunda: ölçü
+           sebebi zevk değil, bloğun sığması. */
+        .home-portfolio-head > * + * {
+          margin-block-start: 1.5rem;
+        }
+
+        /* Punto bir kademe iniyor — başlık artık sınırlı bir dikey bütçe
+           paylaşıyor. `.home-case-split__title`'daki aynı gerekçe. */
+        .home-portfolio-title {
+          font-size: var(--text-display-xl);
+          line-height: var(--text-display-xl--line-height);
+          letter-spacing: var(--text-display-xl--letter-spacing);
+          font-weight: var(--text-display-xl--font-weight);
+        }
+
+        /* Pencere artık kendi başına pinlenmiyor — sahne pinleniyor.
+           Aralık da flex `gap`e geçti. */
+        .home-portfolio-viewport {
+          position: static;
+          inset-block-start: auto;
+          margin-block-start: 0;
+          flex: 0 0 auto;
+        }
+      }
+    }
   }
 }
 
@@ -2726,6 +3163,31 @@
   }
 }
 
+/* Portfolyo rayının yolu: `home-rail-slide`'ın aynı hesabı (track
+   genişliği eksi görünür pencere) ama kendi birimleriyle — sabit panel
+   genişliği yerine `--home-portfolio-units` (geniş iş dahil toplam birim
+   sayısı) × kare genişliği + aralar, artı sol kenar boşluğu, eksi ekranın
+   sağ payı. `from` yok: timeline'ın ilk `--portfolio-hold-share`'i zaten
+   `animation-range`de (contain 0%'a denk gelen `to` karesinin ÖNCESİ)
+   `fill-mode: both` sayesinde `from` (transform yok) karesinde donuk
+   kalıyor — ek bir bekleme kilidi gerekmiyor. */
+@keyframes home-portfolio-slide {
+  to {
+    transform: translate3d(
+      calc(
+        -1 *
+          (
+            var(--home-portfolio-units) * var(--portfolio-tile-w) +
+              (var(--home-portfolio-units) - 1) * var(--portfolio-gap) +
+              var(--spacing-gutter) - (100vw - var(--spacing-gutter))
+          )
+      ),
+      0,
+      0
+    );
+  }
+}
+
 /* Mobil — anlatı aynı 8 faz, mesafe ~%65'e iniyor ve tipografi bir kademe
    küçülüyor. @theme media query kabul etmediği için override :root üzerinde.
    Eşik 860px, useHeroScroll'daki isMobile() ile aynı. */
@@ -2857,16 +3319,15 @@
 
   /* Anasayfa. Portfolyo iki sütuna düşer, geniş iş yine `span 2` yani tam
      satır. Hizmet satırında ikon üstte, metin altta — 360px'te yan yana iki
-     sütun başlığı kırpıyordu. */
-  .home-portfolio-grid {
+     sütun başlığı kırpıyordu. Yatay ray burada hiç kurulmuyor (gated blok
+     `min-width: 861px`'in arkasında) — bant 2'nin mobilde bilinçli olarak
+     carousel'e geçmemesiyle aynı gerekçe: gerçek yatay deneyim başka yerde
+     veriliyor, aynı jest telefonda ikinci kez kurulmuyor. Taban gridin
+     `3n+2` editoryal ofseti zaten kaldırıldı (yukarıda) — burada sıfırlanacak
+     bir şey kalmadı. */
+  .home-portfolio-track {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
-  }
-
-  /* Editoryal ofset iptal: iki sütunda 3n+2 ritmi tutmuyor, kaydırılan kare
-     sıranın ortasında boşluk bırakıyor. */
-  .home-portfolio-grid > :nth-child(3n + 2) {
-    margin-block-start: 0;
   }
 
   .home-service-row {
@@ -2874,15 +3335,14 @@
     gap: 1rem;
   }
 
-  /* Emlak CRM Pro tek sütuna düşer ve medya SABİTLENMEZ: dar ekranda
-     sticky bir kare viewport'un yarısını kalıcı işgal ederdi. */
+  /* Emlak CRM Pro tek sütuna düşer ve sol blok SABİTLENMEZ: dar ekranda
+     sticky bir blok viewport'un büyük bir bölümünü kalıcı işgal ederdi.
+     `.home-case-split__anchor`in sticky'si zaten `min-width: 861px` +
+     `min-height: 760px` kapısının arkasında (yukarıda) — burada ayrıca
+     `static`e döndürecek bir şey kalmadı, sessizce taban hâlde kalıyor. */
   .home-case-split {
     grid-template-columns: 1fr;
     gap: var(--spacing-section-tight);
-  }
-
-  .home-case-split__media {
-    position: static;
   }
 
   .home-statement {

@@ -35,6 +35,22 @@ export interface PortfolioItem {
   category: string;
   /** Türkçe, betimleyici alt metin — dosya adı tekrarı DEĞİL. */
   alt: string;
+  /**
+   * AYIRT EDİCİ ALT ETİKET — yalnızca aynı `brand` + `category` çifti
+   * dizide birden fazla kez geçtiğinde doldurulur. Künye bugün iki satır
+   * basıyor (marka / kategori); aynı müşterinin aynı kategorideki iki işi
+   * yan yana geldiğinde iki ÖZDEŞ etiket okunuyor ve iş yanlışlıkla
+   * kopyalanmış gibi görünüyor (Rixos Premium Bodrum'un iki etkinlik
+   * kampanyası). Bu alan ikinci satıra `KATEGORİ · ETKİNLİK` olarak
+   * ekleniyor.
+   *
+   * NEDEN `category`NİN İÇİNE YAZILMIYOR: `category`, brief §7'nin
+   * fasetidir ve `/portfolyo` kurulduğunda filtre ondan türeyecek (bkz.
+   * dosya başlığı). Etkinlik adını oraya karıştırmak faseti kirletir.
+   *
+   * BÜYÜK HARF — `brand`/`category` ile aynı Türkçe büyütme gerekçesi.
+   */
+  event?: string;
   /** Yalnızca manzara oranlı iş: grid'de iki sütun (2/1 kadraj). */
   wide?: boolean;
 }
@@ -66,12 +82,14 @@ export const PORTFOLIO_ITEMS: readonly PortfolioItem[] = [
     src: "/images/portfolyo/Rixos_Bodrum_Chealse.jpeg",
     brand: "RIXOS PREMIUM BODRUM",
     category: "SOSYAL MEDYA",
+    event: "ORANGE FEST",
     alt: "Rixos Premium Bodrum Orange Fest konser duyurusu sosyal medya görseli",
   },
   {
     src: "/images/portfolyo/Rixos_Bodrum_Ozan.jpg",
     brand: "RIXOS PREMIUM BODRUM",
     category: "SOSYAL MEDYA",
+    event: "WHITE PARTY",
     alt: "Rixos Premium Bodrum White Party etkinlik duyurusu sosyal medya görseli",
   },
   {

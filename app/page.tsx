@@ -246,70 +246,102 @@ export default function Home() {
           bağlantısı alttaki CTA ve o iç rotaya gidiyor. */}
       <section className="surface-ink surface-ink-deep seam px-(--spacing-gutter) py-(--spacing-section-loose)">
         <div className="mx-auto max-w-(--container-wide)">
-          <SectionMarker index={3} label="Öne Çıkan İş" />
-          <h2
-            className="font-display text-strong max-w-[20ch]"
-            data-enter="mask"
-            style={{
-              fontSize: "var(--text-display-2xl)",
-              lineHeight: "var(--text-display-2xl--line-height)",
-              letterSpacing: "var(--text-display-2xl--letter-spacing)",
-              fontWeight: "var(--text-display-2xl--font-weight)",
-            }}
-          >
-            SADECE ANLATMIYORUZ, YAPIYORUZ.
-          </h2>
+          {/* Bandın tepe noktası olma biçimi: SOL SÜTUNUN TAMAMI —
+              işaret, başlık, açılış karesi, açıklama ve CTA — tek bir
+              SABİT blok. Sağ sütun ise normal akışta kalıyor, yani üç
+              destek karesi sol blok ekranda dururken altından yukarı
+              akıyor. Anlatı sabit, kanıt akıyor.
 
-          {/* Bandın tepe noktası olma biçimi: açılış karesi solda SABİTLENİYOR,
-              metin ve üç destek karesi sağdan yanından akıyor. Böylece ürünün
-              kendisi ekranda kalırken anlatı ilerliyor.
+              Başlık ve CTA artık split'in DIŞINDA DEĞİL, sol bloğun
+              içinde: eskiden başlık sıradan bir h2 olarak yukarı kaçıyor,
+              metin de görselin YANINDA ayrı bir sütun olarak akıyordu —
+              scroll ilerledikçe blok dağılıyordu. Aynı anlatının parçaları
+              artık aynı sabit kutuda duruyor.
 
-              ≤860px'te ve sticky yokken tek sütuna düşer; sıralama bugünküyle
-              aynı (medya → metin → destek kareleri). */}
-          <div className="home-case-split mt-(--spacing-section-tight)">
-            {/* Açılış karesi. `preload` VERİLMİYOR (Next 16'da `priority`nin
-                yerini aldı) — bant katlanın çok altında, hero'nun ilk boyaması
-                bloklanmamalı. Kaynak PNG ~3330×1852; next/image onu build'de
-                AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor. */}
-            <figure className="home-case-split__media">
-              <div className="home-case-frame">
-                <Image
-                  src={CASE_LEAD_SHOT.src}
-                  alt={CASE_LEAD_SHOT.alt}
-                  fill
-                  sizes="(max-width: 860px) 100vw, 48vw"
-                  style={{ objectFit: "cover" }}
-                />
-              </div>
-              <figcaption className="home-case-caption eyebrow text-muted">
-                {CASE_LEAD_SHOT.caption}
-              </figcaption>
-            </figure>
+              Sağ şeridin sol bloktan UZUN olması mekanizmanın şartı
+              (yoksa pin görünmez); şerit aralığı bu yüzden
+              --spacing-section (globals.css `.home-case-split__stream`).
 
-            <div className="home-case-split__flow">
-              {/* `data-enter` YOK — bandın imza hareketi diyafram (bkz.
-                  globals.css `case-aperture`), yalnızca ekranlar hareket
-                  ediyor. Metin ilk karede zaten okunur durumda: sakin
-                  kalması bandın hareketini iki yere bölmüyor, tek bir
-                  odak noktası bırakıyor (frontend-design'ın "spend your
-                  boldness in one place" ilkesi). */}
+              ≤860px'te ve kısa ekranda tek sütuna/normal akışa düşer;
+              okuma sırası: işaret → başlık → ana görsel → açıklama →
+              CTA → üç destek karesi. */}
+          <div className="home-case-split">
+            <div className="home-case-split__anchor">
+              <SectionMarker index={3} label="Öne Çıkan İş" />
+              {/* Punto artık inline DEĞİL CSS'te
+                  (.home-case-split__title): başlık dar bir sütunda
+                  durduğu için >860px'te display-xl'e iniyor, tek sütuna
+                  düşünce display-2xl'e dönüyor. Inline style ikisini
+                  birden ifade edemezdi (.home-rail-lede__title'daki aynı
+                  gerekçe). */}
+              <h2
+                className="home-case-split__title font-display text-strong"
+                data-enter="mask"
+              >
+                SADECE ANLATMIYORUZ, YAPIYORUZ.
+              </h2>
+
+              {/* Açılış karesi. `preload` VERİLMİYOR (Next 16'da `priority`nin
+                  yerini aldı) — bant katlanın çok altında, hero'nun ilk boyaması
+                  bloklanmamalı. Kaynak PNG ~3330×1852; next/image onu build'de
+                  AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor. */}
+              <figure className="home-case-split__media">
+                <div className="home-case-frame">
+                  <Image
+                    src={CASE_LEAD_SHOT.src}
+                    alt={CASE_LEAD_SHOT.alt}
+                    fill
+                    sizes="(max-width: 860px) 100vw, 48vw"
+                    style={{ objectFit: "cover" }}
+                  />
+                </div>
+                <figcaption className="home-case-caption eyebrow text-muted">
+                  {CASE_LEAD_SHOT.caption}
+                </figcaption>
+              </figure>
+
+              {/* Açıklama GÖRSELİN ALTINDA, yanında değil. `data-enter` YOK —
+                  bandın imza hareketi diyafram (bkz. globals.css
+                  `case-aperture`), yalnızca ekranlar hareket ediyor. Metin
+                  ilk karede zaten okunur durumda: sakin kalması bandın
+                  hareketini iki yere bölmüyor, tek bir odak noktası
+                  bırakıyor (frontend-design'ın "spend your boldness in one
+                  place" ilkesi). */}
+              {/* `mt-*` YOK: bloğun dikey ritmi tamamen
+                  `.home-case-split__anchor > * + *`ta (globals.css).
+                  Eskiden ikisi birlikte vardı ve hangisinin geçerli
+                  olduğu Tailwind'in katman sırasına bağlıydı — blok iki
+                  farklı aralık taşıyordu. */}
               {CASE_PARAGRAPHS.map((paragraph, index) => (
                 <p
                   key={paragraph}
                   className={`max-w-(--container-prose) ${
-                    index === 0 ? "text-lead" : "text-muted mt-6"
+                    index === 0 ? "text-lead" : "text-muted"
                   }`}
                 >
                   {paragraph}
                 </p>
               ))}
 
-              {/* Üç destek karesi. Sıra §5.2'nin cümlesini takip ediyor:
-                  portföy yönetimi → harita üzerinde analiz → raporlama.
-                  `data-enter` de YOK (yukarıdaki notla aynı gerekçe) —
-                  destek eklenseydi figürün kendisi enter-rise ile
-                  yükselirken içindeki img aynı anda diyaframla açılırdı,
-                  aynı görsel alanda iki çakışan hareket (§8). */}
+              {/* /portfolyo/emlak-crm-pro henüz KURULMADI — /hizmetler ve
+                  /hakkimda'daki CTA'lar da aynı adrese gidiyor, tutarlı.
+                  Bandın tek ve birincil eylemi olduğu için .btn-accent.
+                  Sabit blokta duruyor: bant boyunca ekranda kalıyor. */}
+              <Link
+                href="/portfolyo/emlak-crm-pro"
+                className="btn btn-accent eyebrow inline-flex"
+              >
+                Projeyi İncele →
+              </Link>
+            </div>
+
+            {/* Üç destek karesi. Sıra §5.2'nin cümlesini takip ediyor:
+                portföy yönetimi → harita üzerinde analiz → raporlama.
+                `data-enter` YOK (yukarıdaki notla aynı gerekçe) —
+                eklenseydi figürün kendisi enter-rise ile yükselirken
+                içindeki img aynı anda diyaframla açılırdı, aynı görsel
+                alanda iki çakışan hareket (§8). */}
+            <div className="home-case-split__stream">
               {CASE_SUPPORT_SHOTS.map((shot) => (
                 <figure key={shot.src}>
                   <div className="home-case-frame">
@@ -326,16 +358,6 @@ export default function Home() {
                   </figcaption>
                 </figure>
               ))}
-
-              {/* /portfolyo/emlak-crm-pro henüz KURULMADI — /hizmetler ve
-                  /hakkimda'daki CTA'lar da aynı adrese gidiyor, tutarlı.
-                  Bandın tek ve birincil eylemi olduğu için .btn-accent. */}
-              <Link
-                href="/portfolyo/emlak-crm-pro"
-                className="btn btn-accent eyebrow mt-(--spacing-section-tight) inline-flex"
-              >
-                Projeyi İncele →
-              </Link>
             </div>
           </div>
         </div>
@@ -344,72 +366,118 @@ export default function Home() {
       {/* 4 — Portfolyo öne çıkanlar. Yukarıdaki vitrinle birlikte sayfanın
           koyu bloğunu kuruyor: orası tek bir işin derinliği, burası işlerin
           genişliği. Koyu zemin (görseller ayrışıyor) ve --container-wide
-          (metin bandı değil). Düzen gerekçesi .home-portfolio-grid'in
-          yorumunda: statik 3 sütun + bir `span 2`, marquee yok.
+          (metin bandı değil). Düzen artık statik grid DEĞİL, YATAY PİNLİ
+          RAY: bölüm pin'lenirken ilk sıra kareler eşit üst hizada ve TAM
+          kadrajda bir an DURUYOR, ardından track sağdan sola akıyor.
+          Gerekçe ve kimlik ayrımı (.home-rail'in KOPYASI değil, kardeşi)
+          .home-portfolio-rail'in yorumunda, globals.css.
 
           Tile'lar link DEĞİL — tek tek vaka sayfaları yok, tıklanabilirlik
           ima edilmiyor. Bölümün tek bağlantısı alttaki CTA. */}
       <section className="surface-ink seam px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-wide)">
-          <SectionMarker index={4} label="Portfolyo" flip />
-          <h2
-            className="font-display text-strong max-w-[20ch]"
-            data-enter="mask"
-            style={{
-              fontSize: "var(--text-display-2xl)",
-              lineHeight: "var(--text-display-2xl--line-height)",
-              letterSpacing: "var(--text-display-2xl--letter-spacing)",
-              fontWeight: "var(--text-display-2xl--font-weight)",
-            }}
-          >
-            KURUMSAL KİMLİKTEN KAMPANYAYA
-          </h2>
-          <p
-            className="text-lead text-muted mt-8 max-w-(--container-prose)"
-            data-enter
-          >
-            Farklı sektörlerden seçilmiş sekiz iş — logo ve kurumsal kimlik
-            çalışmalarından sosyal medya kampanyalarına.
-          </p>
+        {/* Başlık bloğu artık bölümün doğrudan çocuğu DEĞİL, rayın İÇİNDE:
+            `.home-portfolio-stage` ile aynı sabit sahneyi paylaşıyorlar, yani
+            ray akarken başlık ekranda kalıyor. Eskiden başlık rayın kardeşi
+            ve normal akıştaydı, ilk kaydırmada yukarı kaçıyordu — bandın
+            neyi gösterdiğini söyleyen cümle, gösterme başlar başlamaz
+            kayboluyordu. Mekanizma bant 3'ün `.home-case-split__anchor`ının
+            aynısı (tek sticky kutu, ölçüm yok, JS yok); gerekçe ve kapı
+            koşulu globals.css'te `.home-portfolio-stage`in yorumunda.
 
-          {/* Kademeli giriş: --enter-i her karonun menzilini kaydırıyor,
-              sıra sütun sütun akıyor. Gerekçe globals.css'te
-              [data-enter-stagger] kuralında. */}
-          <div
-            className="home-portfolio-grid mt-(--spacing-section-tight)"
-            data-enter-stagger
-          >
-            {PORTFOLIO_ITEMS.map((item, index) => (
-              <figure
-                key={item.src}
-                className={item.wide ? "home-portfolio-item--wide" : undefined}
-                style={{ "--enter-i": index % 3 } as React.CSSProperties}
+            `--home-portfolio-units`, geniş işin kapladığı iki birim dahil
+            toplam yatay birim sayısı (bugün 8 iş + 1 geniş iş = 9) —
+            `--home-rail-panels` ile aynı disiplin, sayı içerikten türüyor,
+            ikinci bir yerde senkronlanmıyor. */}
+        <div
+          className="home-portfolio-rail"
+          style={
+            {
+              "--home-portfolio-units":
+                PORTFOLIO_ITEMS.length +
+                PORTFOLIO_ITEMS.filter((item) => item.wide).length,
+            } as React.CSSProperties
+          }
+        >
+          <div className="home-portfolio-stage">
+            <div className="home-portfolio-head mx-auto max-w-(--container-wide)">
+              <SectionMarker index={4} label="Portfolyo" flip />
+              {/* Punto inline style'da DEĞİL CSS'te
+                  (.home-portfolio-head h2): başlık sabit sahnede sınırlı bir
+                  dikey bütçe paylaştığı için yeterince uzun ekranda bir
+                  kademe iniyor, taban hâlde display-2xl kalıyor. Inline
+                  style ikisini birden ifade edemezdi — bant 3'ün
+                  `.home-case-split__title`'ındaki aynı gerekçe. */}
+              <h2
+                className="home-portfolio-title font-display text-strong"
+                data-enter="mask"
               >
-                {/* fill + sizes: çerçevenin oranı CSS'te (1/1, geniş olan 2/1),
-                    görsel onu cover ediyor. `preload` VERİLMİYOR (Next 16'da
-                    `priority`nin yerini aldı) — bu görseller katlanın çok
-                    altında, hero'nun ilk boyaması bloklanmamalı. */}
-                <div className="home-portfolio-frame">
-                  <Image
-                    src={item.src}
-                    alt={item.alt}
-                    fill
-                    sizes={
-                      item.wide
-                        ? "(max-width: 860px) 100vw, 62vw"
-                        : "(max-width: 860px) 50vw, 31vw"
-                    }
-                    style={{ objectFit: "cover" }}
-                  />
-                </div>
-                <figcaption className="home-portfolio-caption">
-                  <span className="eyebrow text-strong">{item.brand}</span>
-                  <span className="eyebrow text-muted mt-1">{item.category}</span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+                KURUMSAL KİMLİKTEN KAMPANYAYA
+              </h2>
+              {/* `mt-8` YOK: bloğun dikey ritmi .home-portfolio-head'te. */}
+              <p className="text-lead text-muted max-w-(--container-prose)" data-enter>
+                Farklı sektörlerden seçilmiş sekiz iş — logo ve kurumsal kimlik
+                çalışmalarından sosyal medya kampanyalarına.
+              </p>
+            </div>
 
+            {/* Ray penceresi max-w-(--container-wide) sarmalayıcının DIŞINDA
+                — .home-rail'deki gerekçenin aynısı: track'in tam genişliği
+                kısıtlanmamalı. Başlık kendi sarmalayıcısını yukarıda
+                taşıyor, bu yüzden sahne ikisini de kapsayabiliyor. */}
+            <div className="home-portfolio-viewport">
+              {/* Kademeli giriş SADECE taban (dikey grid) düzende geçerli —
+                  globals.css [data-enter-stagger]'ın gerekçesi. Yatay ray
+                  canlıyken track'in KENDİ akışı bandın tek hareketi, tile
+                  başına ayrı bir reveal jesti gated blokta kapatılıyor. */}
+              <div className="home-portfolio-track" data-enter-stagger>
+                {PORTFOLIO_ITEMS.map((item, index) => (
+                  <figure
+                    key={item.src}
+                    className={
+                      item.wide ? "home-portfolio-item--wide" : undefined
+                    }
+                    style={{ "--enter-i": index % 3 } as React.CSSProperties}
+                  >
+                    {/* fill + sizes: çerçevenin oranı CSS'te (1/1, geniş olan 2/1),
+                        görsel onu cover ediyor. `preload` VERİLMİYOR (Next 16'da
+                        `priority`nin yerini aldı) — bu görseller katlanın çok
+                        altında, hero'nun ilk boyaması bloklanmamalı. */}
+                    <div className="home-portfolio-frame">
+                      <Image
+                        src={item.src}
+                        alt={item.alt}
+                        fill
+                        sizes={
+                          item.wide
+                            ? "(max-width: 860px) 100vw, 62vw"
+                            : "(max-width: 860px) 50vw, 31vw"
+                        }
+                        style={{ objectFit: "cover" }}
+                      />
+                    </div>
+                    <figcaption className="home-portfolio-caption">
+                      <span className="eyebrow text-strong">{item.brand}</span>
+                      {/* İkinci satır `KATEGORİ · ETKİNLİK`. `event` yalnızca
+                          aynı marka + kategori çifti dizide tekrar ettiğinde
+                          dolu (bkz. portfolio.ts): Rixos Premium Bodrum'un iki
+                          etkinlik kampanyası aksi halde iki ÖZDEŞ künyeyle yan
+                          yana akıyor ve iş kopyalanmış gibi okunuyordu.
+                          Ayraç ince nokta — künye tek satır kalıyor, üçüncü
+                          bir tipografik katman açılmıyor. */}
+                      <span className="eyebrow text-muted mt-1">
+                        {item.event
+                          ? `${item.category} · ${item.event}`
+                          : item.category}
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-(--container-wide)">
           {/* /portfolyo henüz KURULMADI — nav'da da aynı adres var ve o da
               404 veriyor. Bağlantı bilinçli olarak şimdiden konuluyor
               (kullanıcı kararı); sayfa kurulunca burada değişecek bir şey

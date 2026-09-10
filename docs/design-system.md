@@ -924,6 +924,33 @@ aykırı ve brief §7'nin "atılacak" dediği şablon hissinin ta kendisi; üste
 karelerin kendi uygulama kabuğu (sidebar + üst bar) zaten var, kabuğu kabuğa
 sarmak olurdu. Çerçeve düz hairline.
 
+**Sabit anlatı bloğu + akan destek şeridi.** İlk sürümde yalnızca açılış
+karesi (`.home-case-split__media`) sticky'ydi; başlık split'in dışında
+sıradan bir `h2` olarak scroll'la birlikte yukarı kaçıyor, metin de görselin
+YANINDA ayrı bir sütun olarak akıyordu — anlatı iki yere bölünüyordu. Düzen
+`.home-case-split__anchor` / `.home-case-split__stream` ikilisine geçti:
+işaret, başlık, açılış karesi, açıklama ve CTA'nın **tamamı** artık tek bir
+sol blok (`__anchor`), sağ sütun (`__stream`) üç destek karesiyle bağımsız
+akıyor. Ekstra bir motor gerekmiyor — şeridin "yukarı akması" zaten sayfa
+scroll'unun kendisi, tek şart şeridin sol bloktan UZUN olması (aksi halde
+pin görünmez); bu yüzden şerit aralığı `--spacing-section-tight` DEĞİL
+`--spacing-section` (görünür pin yolunu belirginleştirmek için).
+
+Sticky **koşullu**: `min-width: 861px` VE `min-height: 760px` ikisi birden
+sağlanmadan `.home-case-split__anchor` sticky olmuyor. Yükseklik şartı
+zorunlu — viewport'tan uzun bir sticky blok üst kenara yapışıp ALTINDAKİ
+CTA'yı ekran dışına iterdi (görselin sabit kaldığı ama anlatının dağınık
+okunduğu eski hissin bir başka biçimi); kısa ekranda blok sessizce normal
+akışa düşüyor, düzen yine eksiksiz okunuyor. `≤860px`'te zaten tek sütuna
+düşen taban kuralın üstüne ayrıca `static`e döndürecek bir şey yok — sticky
+zaten `861px` kapısının arkasında hiç tanımlı değil.
+
+Başlığın punto ayarı `.home-rail-lede__title`'daki aynı problemi çözüyor:
+`.home-case-split__title` artık dar bir sütunda durduğu için `≥861px`'te
+`--text-display-xl`'e iniyor, tek sütuna düşünce (`≤860px`, taban kural)
+`--text-display-2xl`'e dönüyor — inline `style` ikisini birden ifade
+edemezdi.
+
 `.home-case-*` kuralları `.home-portfolio-*`'ın **ikizi değil kardeşi**:
 hairline çerçeve idiomu aynı, oran ve düzen başka. Portfolyo kareleri 1/1
 kampanya kadrajları, buradakiler 16/9 masaüstü arayüz görüntüleri — o kuralın
@@ -969,17 +996,25 @@ kalmalı — ServiceImage'in "çerçeve her zaman görünür, yalnızca içerik 
 disipliniyle aynı ayrım. Çerçevenin kendisine uygulansaydı transform kenarlığı
 da ölçekler, "kapı" değil "kutunun kendisi büyüyor" gibi okunurdu.
 
-**Sticky açılış karesiyle uyumu bedava.** `.home-case-split__media` sticky
-konumlanıyor; `ServiceRail.tsx`'teki notla aynı fizik gereği, pin'lendiği anda
-elemanın kendi `view()` kesişimi sabitlenir (bu yüzden ray sürekli bir
-scrub'ı kendi `view()`'ine bağlayamıyordu). Burada bu bir sorun DEĞİL: aranan
-zaten sürekli bir scrub değil TEK SEFERLİK bir açılış. `animation-range: entry
-0% entry 65%` yalnızca elemanın viewport'a GİRİŞ fazını (pin'lenmeden hemen
-önceki kısa dilimi) ölçüyor; `both` fill tamamlandıktan sonra `to` karesinde
+**Sticky açılış karesiyle uyumu bedava.** Açılış karesi artık sabit sol
+bloğun (`.home-case-split__anchor`) İÇİNDE, o blok sticky konumlanıyor;
+`ServiceRail.tsx`'teki notla aynı fizik gereği, pin'lendiği anda elemanın
+kendi `view()` kesişimi sabitlenir (bu yüzden ray sürekli bir scrub'ı kendi
+`view()`'ine bağlayamıyordu). Burada bu bir sorun DEĞİL: aranan zaten sürekli
+bir scrub değil TEK SEFERLİK bir açılış. `animation-range: entry 0% entry
+65%` yalnızca elemanın viewport'a GİRİŞ fazını (pin'lenmeden hemen önceki
+kısa dilimi) ölçüyor; `both` fill tamamlandıktan sonra `to` karesinde
 kalıyor — pin'liyken donuk kalması aranan davranışın ta kendisi. Üç destek
 karesi kendi `view()`'lerinde, `nth-of-type` ile hafifçe kademeli menzillerle
 (art arda değil üst üste binerek — SplitWords'teki OVERLAP mantığıyla aynı
 gerekçe) açılıyor.
+
+Seçici artık `.home-case-split__stream`e bağlı, `__flow`'a DEĞİL: sağ sütun
+bağımsız akan şerit olduğu için ata değişti, ve şeritte yalnızca üç destek
+figürü olduğundan `nth-of-type` indeksleri **bir kaydı**. İlk destek karesi
+(`nth-of-type(1)`) artık ayrı bir kuralla değil, `.home-case-frame > img`
+taban kuralıyla aynı menzili (`entry 0% entry 65%`) paylaşıyor; yalnızca
+2. ve 3. kareler (`nth-of-type(2)`/`nth-of-type(3)`) geriden başlatılıyor.
 
 **Metin sakin kalıyor.** İki paragraftan ve üç destek figüründen `data-enter`
 bilerek kaldırıldı: figürde kalsaydı figürün kendisi `enter-rise` ile
@@ -997,9 +1032,10 @@ sağlanmazsa (tarayıcı desteği yok / reduced-motion / JS kapalı) kural hiç
 görülmez, `img` hiçbir zaman `clip-path`/`transform` almaz — resting hâli
 zaten tam açık görüntü (§8'in "animasyonsuz durağan hâl doğru olmak zorunda"
 disiplini). Mobilde de aynı kural geçerli: mekanizma elemanın KENDİ `view()`
-giriş fazına bağlı olduğu için `.home-case-split__media`'nın sticky'den
-`static`'e düşmesi (`≤860px`) diyaframı etkilemiyor, ayrı bir mobil menzili
-yazmaya gerek kalmadı.
+giriş fazına bağlı olduğu için `.home-case-split__anchor`'ın sticky'den
+taban (statik) hâle düşmesi (`≤860px`, veya sticky'nin `min-height: 760px`
+kapısına takıldığı kısa ekranlar) diyaframı etkilemiyor, ayrı bir mobil
+menzili yazmaya gerek kalmadı.
 
 #### Eksik içerik — bilinçli boşluk
 
@@ -1012,15 +1048,63 @@ gerçek stack'i bilinmiyor ve uydurulmadı. §10'daki yıl/kurum verisi ve
 yazılmıyor. Stack doğrulandığında CTA'nın yanına tek satır mono künye olarak
 eklenecek; sayfada değişecek başka bir şey yok.
 
-**Portfolyo: statik grid, marquee değil.** Kayan şerit JS + DOM kopyası ister,
-`prefers-reduced-motion` için ayrı bir dal gerektirir ve hareketin tek sahibi
-hero'dur (§9'un "medya/ağırlık yok" çizgisi). Düzen üç sütun + tek bir
+**Taban düzen: statik grid, `≤860px`'te de bu kalıyor.** Üç sütun + tek bir
 `span 2` kare: sekiz iş dokuz hücreye, yani tam üç sıraya oturuyor, boş hücre
 kalmıyor. `span 2` olan `Welsness_Kurumsal.jpg` — sekiz görselin tek manzara
 oranlısı (3000×1987), diğer yedisi kare. Kadraj `object-fit: cover`; hiçbiri
 `contain` ile küçültülmüyor, çünkü hepsi kendi kompozisyonu olan kampanya/
 mockup kareleri. Bant `--container-wide` (1440) genişliğinde: metin bandı değil
-vitrin.
+vitrin. Eskiden bu grid'de bir editoryal dikey kaydırma vardı
+(`:nth-child(3n + 2) { margin-block-start: 3rem }`, orta sütunu aşağı iten);
+kullanıcı geri bildirimiyle ilk sıranın üst hizasının tutarsız okunduğu
+ortaya çıkınca kural **kaldırıldı** — ilk sıra artık eşit üst hizada.
+
+**"Statik grid, marquee değil" kararı iptal edildi — yatay PİNLİ RAY
+eklendi.** Eski gerekçe hâlâ geçerli bir uyarı: klasik bir marquee (JS + DOM
+kopyası, sonsuz döngü) `prefers-reduced-motion` için ayrı bir dal gerektirir
+ve hareketin tek sahibi hero olmalı ilkesini (§9) çiğner. Ama kullanıcı
+isteği ilk sıranın TAM ve kesilmeden görünüp durmasını, ardından sağdan sola
+akmasını istedi — bu marquee değil, `.home-rail`in (bant 2) kardeşi bir
+**pin + tek translate** mekanizmasıyla çözülüyor
+(`.home-portfolio-rail` / `-viewport` / `-track`, `globals.css`), JS yok,
+DOM kopyası yok, `prefers-reduced-motion` fallback'i taban gridin kendisi
+(aşağıda).
+
+Kimlik `.home-rail`in KOPYASI değil kardeşi:
+
+| | bant 2 `.home-rail` | bant 4 `.home-portfolio-rail` |
+|---|---|---|
+| paneller | tavandan tabana tam yükseklikte şeritler | viewport'un dikey ortasında duran dar bir RAF |
+| başlık | ray'in İÇİNDE, pin'li, iki fazlı "geliş"i var | ray'in DIŞINDA, dikey, hiç hareket etmiyor |
+| açılış | her şey hareket ederek gelir | hiçbir şey hareket ETMEZ — ilk kadraj bir DURUŞ |
+| JS | `ServiceRail` klavye köprüsü | yok (tile'lar link değil, odaklanacak eleman yok) |
+
+Mekanizma: bölüm pin'lenir → track ilk `--portfolio-hold-share` payı
+(timeline'ın ilk `%15`'i) boyunca **durağan** durur — kullanıcının "ilk sıra
+kesilmeden tam görünsün" isteğinin karşılığı, `fill-mode: both` sayesinde
+`from` karesinde (transform yok) donuk kalıyor, ek bir bekleme kilidi
+gerekmiyor — → kalan yolda track TEK bir `translate3d`
+(`home-portfolio-slide`) ile sağdan sola akıyor. Tek animasyon, tek
+compositor katmanı. `align-items: start` EŞİT ÜST HİZA'nın kaynağı: taban
+gridin kaldırılan `3n+2` ofseti burada hiç yok, şerit tek sıra olduğu için
+zaten aynı hizadan başlıyor. Geniş iş (`Welsness_Kurumsal.jpg`) yatayda ÇİFT
+genişlik alıyor (`2 * --portfolio-tile-w + gap`), 2/1 oranı sabit kaldığı
+için yüksekliği karelerle AYNI — üst VE alt hizası bozulmuyor.
+
+Kademeli giriş (`[data-enter-stagger]`, taban gridin kendi jesti) yatay
+modda KAPATILIYOR: her tile'ın kendi anonim `view()`'i pin'li ve yatay kayan
+bir kabın içinde anlamsız olurdu, bandın tek hareket sahibi track'in kendi
+kaymasıdır. Named `--home-portfolio` timeline'a bağlı animasyon TEK BAŞINA
+track'te duruyor (§12'nin "aynı adlı named view-timeline'a bağlı animasyon
+elemanı başına birdir" kuralı, canlı testte keşfedilen bug) — tile'ların
+`animation: none` sıfırlaması ayrı bir elemanda, çakışma yok.
+
+`≤860px`'te yatay ray hiç kurulmuyor (gated blok `min-width: 861px`'in
+arkasında) — bant 2'nin mobilde bilinçli olarak carousel'e geçmemesiyle
+aynı gerekçe: gerçek yatay deneyim başka yerde (`/hizmetler`) veriliyor,
+aynı jest telefonda ikinci kez kurulmuyor. Aynı taban grid,
+`prefers-reduced-motion: reduce` ve `animation-timeline` desteklenmeyen
+tarayıcılar için de tek ve aynı fallback.
 
 **Tile'lar link değil.** Tek tek vaka çalışması sayfaları yok, bu yüzden
 tile'da hover durumu da yok — tıklanabilirlik ima edilmiyor. Bandın tek
@@ -1054,6 +1138,78 @@ yok. Portfolyo görselleri ise `next/image` `fill` + `sizes` ile geliyor
 (çerçevenin oranı CSS'te). Hiçbirine `preload` verilmiyor — Next 16'da
 `priority`nin yerini alan bu prop hero'nun ilk boyamasını bloklardı.
 
+### Portfolyo bandı (bant 4): başlık ve ray aynı sabit sahnede
+
+Başlık (`KURUMSAL KİMLİKTEN KAMPANYAYA` + lede) eskiden rayın **kardeşi** ve
+normal akıştaydı: ray daha akmaya başlamadan yukarı kaçıyordu, yani bandın ne
+gösterdiğini söyleyen cümle, gösterme başlar başlamaz kayboluyordu. Artık
+başlık rayın **içinde** ve şeritle aynı pinlenmiş kutuyu paylaşıyor.
+
+**İki ayrı sticky kardeş DEĞİL, ikisini de kapsayan tek sticky kutu.** Ayrı
+ayrı yapışsalardı pencerenin ofseti `nav + başlıkYüksekliği + boşluk` olurdu —
+başlığın yüksekliği genişlikle değişen bir ölçü, ölçmeden yazılamaz, JS
+gerekirdi. Bunun yerine:
+
+```
+.home-portfolio-rail            uzun kap + view-timeline (DEĞİŞMEDİ)
+  .home-portfolio-stage         sticky, 100svh - nav, flex column, center
+      .home-portfolio-head      işaret + başlık + lede
+      .home-portfolio-viewport  şerit penceresi (artık kendisi pinlenmiyor)
+```
+
+Ölçüm yok, yeni motor yok — bant 3'ün `.home-case-split__anchor`ı ile aynı
+disiplin. **Rayın kendisine dokunulmadı:** `block-size` hesabı,
+`view-timeline`ı, `--portfolio-hold-share`lı iki fazlı `animation-range`i ve
+`home-portfolio-slide` keyframe'i aynen duruyor; pencerenin genişliği de
+değişmediği için slide'ın `100vw - gutter` matematiği ve "ilk kadraj eşit üst
+hizada tam görünür durur, sonra sağdan sola akar" davranışı korunuyor. Değişen
+tek şey pencerenin **kim tarafından** pinlendiği.
+
+**Kapı ölçüldü, komşu banttan kopyalanmadı.**
+`@media (min-width: 861px) and (min-height: 800px)`. 1440px'te headless
+Chrome'da ölçülen: başlık bloğu 298px + flex gap 40px + şerit 366px = 704px;
+`100svh - 4.5rem ≥ 704` ⇒ ~776px, payla birlikte 800px (sınırda, 1440×800'de,
+sahnede 24px pay ölçüldü). Kapının altında sahne kurulmuyor ve bant bugünkü
+hâlinde kalıyor: ray çalışır, pencere dikey ortada kendi başına pinlenir,
+başlık akıp gider — kısa ekranda başlığı da sabitlemek viewport'un yarısını
+kalıcı işgal ederdi, `.home-case-split__anchor`ın kısa ekranda akışa
+düşmesiyle aynı karar. `≤860px` ve `prefers-reduced-motion` yollarında
+`.home-portfolio-stage` `display: contents` ile düzenden tamamen çıkıyor;
+dördü de tarayıcıda doğrulandı.
+
+Başlık ve kareler artık aynı dikey bütçeyi paylaştığı için ikisi de bir kademe
+küçülüyor: punto `display-2xl` → `display-xl` (`.home-case-split__title`'daki
+aynı gerekçe), kare `22vw` → `19vw`.
+
+**`--portfolio-strip-h` sahnede TEKRAR beyan edilmek zorunda** ve bu bir kopya
+değil: bir custom property'nin içindeki `var()`, **özelliğin beyan edildiği
+elemanda** çözülür. `:root`taki `--portfolio-strip-h`, orada `:root`un
+`--portfolio-tile-w`si (22vw) ile hesaplanmış bir uzunluğa dönüşüp aşağıya o
+hâliyle kalıtılıyor — `.home-portfolio-rail`deki daraltma ona hiç ulaşmıyordu.
+Ölçüldü: pencere 366px yerine 409px kalıyordu, yani şeridin altında ~83px ölü
+boşluk ve yalan bir kapı hesabı. Formül kendi elemanında yeniden beyan edilince
+düzeliyor. Aynı tuzak `--portfolio-tile-w`yi türeten her ölçü için geçerli;
+`.home-portfolio-track > figure` ve `home-portfolio-slide` etkilenmiyor, çünkü
+onlar değişkeni **kullanım yerinde** okuyor.
+
+### Aynı marka + kategori iki kez: künyedeki `event` alanı
+
+Rixos Premium Bodrum'un iki ayrı etkinlik kampanyası (Chelsea / Orange Fest ve
+Ozan Doğulu / White Party) ray'de yan yana akıyor ve künye yalnızca
+`brand` + `category` bastığı için **iki özdeş etiket** okunuyordu — iş
+yanlışlıkla kopyalanmış gibi görünüyordu. Veride hata yoktu; **künyede bilgi
+eksikti**.
+
+`PortfolioItem`'a opsiyonel `event` alanı eklendi ve ikinci satır
+`KATEGORİ · ETKİNLİK` olarak basılıyor. Yalnızca aynı `brand` + `category`
+çifti dizide tekrar ettiğinde dolduruluyor; diğer altı işin künyesi değişmedi.
+**`category`nin içine yazılmadı** çünkü o alan brief §7'nin fasetidir ve
+`/portfolyo` kurulduğunda filtre ondan türeyecek — etkinlik adı faseti
+kirletirdi. Künye tek satır kaldığı için üçüncü bir tipografik katman da
+açılmıyor; `--portfolio-strip-h`in künye payı yine de 4.5rem'den 5.75rem'e
+çıkarıldı, çünkü pencerede `overflow: clip` var ve dar bir karede sarma
+sessizce kesilirdi.
+
 ### Türkçe `text-transform: uppercase` tuzağı
 
 `.eyebrow` metni büyütüyor ve `<html lang="tr">` altında tarayıcı **Türkçe**
@@ -1063,13 +1219,15 @@ büyütme kuralını uyguluyor: her "i" → "İ". Türkçe sözcüklerde doğru
 "CİTY". Bu yüzden `content/portfolio.ts`'teki `brand`/`category` ve
 `content/partners.ts`'teki `label` alanları **doğrudan büyük harfle** yazılıyor;
 metin zaten büyükse dönüşümün değiştireceği bir şey kalmıyor. Doğal yazım
-`alt` metinlerinde duruyor.
+`alt` metinlerinde duruyor. `portfolio.ts`'in `event` alanı da aynı kurala
+tabi ("WHITE PARTY", "ORANGE FEST").
 
 ### İçerik `app/content/portfolio.ts` ve `partners.ts`'e çıkarıldı
 
 `services.ts` / `contact.ts` deseni: `/portfolyo` sayfası kurulduğunda aynı
-diziyi okuyacak (kategori filtresi `category`den türer), liste iki yerde
-tutulmaz. Kısa tanıtım metni ise sayfa-yerel bir `const` — tek tüketicisi var
+diziyi okuyacak (kategori filtresi `category`den türer — bu yüzden ayırt edici
+etkinlik adı `category`ye değil ayrı bir `event` alanına yazılıyor, yukarı
+bakın), liste iki yerde tutulmaz. Kısa tanıtım metni ise sayfa-yerel bir `const` — tek tüketicisi var
 (`CHAPTERS`'ın `hakkimda/page.tsx`'te durmasıyla aynı gerekçe). O metin brief
 §7'nin korunacak iki vurgusunu taşıyor: "20 yıla yakın tecrübe" (§7 eski
 sitedeki "tec**br**übeyle" hatasının düzeltilmesini istiyor) ve "Dijitalde Fark
