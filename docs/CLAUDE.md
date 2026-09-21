@@ -282,18 +282,46 @@ servisi yok.
 
 Gerekçelerin tamamı için `docs/design-system.md` §11.
 
-# Kurulu Claude Code plugin/skill'leri
+# Claude Code skill'leri — gerçek durum
 
-- **nateherk-design (scroll-craft)** — project scope. Hero scroll motoru
-  (`useHeroScroll.ts`) için teknik/disiplin referansı; motor olarak
-  kullanılmıyor, yalnızca fikir ödünç alınıyor.
-- **design-dna** — project scope. Referans tasarımlardan token/stil/efekt
-  çıkarımı için.
-- **taste-skill, frontend-design** — user scope (bu makinedeki tüm
-  projelerde aktif, bilinçli tercih). Genel tasarım kalitesi rehberliği
-  sağlıyor; bu projenin `docs/design-system.md`'sindeki kararlarla
-  çelişirse `design-system.md` önceliklidir.
+**Bu projede fiilen yüklü ve devrede olan iki skill var** (`.claude/skills/`,
+`skills-lock.json` ile kayıtlı):
 
-Not: Bu eklentiler tasarım/kod önerilerini etkileyebilir ama projenin
-kendi `design-system.md` ve `services.ts` gibi tek-kaynak kurallarını
-geçersiz kılmaz — çelişki durumunda proje dokümantasyonu esas alınır.
+- **design-dna** — referans tasarımdan token/stil/efekt çıkarımı ve
+  `scripts/measure-colors.mjs` / `verify.mjs` ile deterministik renk ölçümü
+  (`sharp` bağımlılığı `scripts/node_modules`'a kurulu; Node ≥18.17).
+  Kullanım izi: `docs/design-system.md` §12 diyafram gerekçesi bu ölçüme
+  dayanır. Ölçüm JSON'ları repoya alınmaz, gerekince yeniden üretilir.
+- **web-design-guidelines** (Vercel) — verilen dosyaları
+  `vercel-labs/web-interface-guidelines`'a göre inceleyen salt-review
+  skill'i; tasarım görüşü dayatmaz. Sevkiyat öncesi a11y/UX taraması için.
+
+**Plugin yok.** `.claude/settings.json` boş; `nateherk-design@nateherk`
+girdisi kaldırıldı — plugin hiçbir zaman kurulu değildi (marketplace kayıtlı
+değildi), girdi hiçbir şey yapmıyordu. `design-system.md` §8'deki
+"scrollcraft tekniklerinin portu" ifadesi tarihsel gerekçedir ve geçerli
+kalır: motor alınmadı, teknikler alındı.
+
+**Paylaşımlı kütüphane, oturuma YÜKLENMEZ.**
+`CLAUDE-PROJELER/.claude/skills/` (ayrı repo: `yasantan-glitch/tan-claude-skills`)
+22 skill barındırır — scroll-craft, taste-skill, frontend-design,
+ui-ux-pro-max, design-system, ui-styling ve SEO/pazarlama seti. Proje kökünün
+üstünde durduğu için Claude Code bunları bu projede otomatik yüklemez; bir
+skill'in burada devreye girmesi için `.claude/skills/` altına kopyalanması
+gerekir. Değerlendirme (22 Eyl 2026):
+
+- **scroll-craft, taste-skill (§9 "AI tells", §14 pre-flight),
+  ui-ux-pro-max (`references/quick-reference.md`)** — ad hoc review lensi
+  olarak paylaşımlı klasörden okunabilir; sürekli aktif edilmez (ağır ve yer
+  yer `design-system.md` ile çelişir).
+- **design-system, ui-styling (claudekit)** — token yeniden yapılandırma /
+  shadcn reçeteleri; projenin Tailwind v4 `@theme` + `.surface-*` şeması ve
+  "shadcn yok" tercihiyle çelişir. Eklenmez.
+- **landing-conventions** — başka bir repo'nun (`real-estate-crm-landing`)
+  kuralları. Buraya asla kopyalanmaz.
+- **frontend-design** — genel tasarım yönü rehberi; yön belirlenmiş bu
+  projede marjinal. İstenirse user scope'ta açılır, proje işi değildir.
+
+Çelişki kuralı değişmedi: herhangi bir skill'in önerisi projenin
+`docs/design-system.md` ve `services.ts` gibi tek-kaynak kararlarıyla
+çelişirse proje dokümantasyonu esas alınır.

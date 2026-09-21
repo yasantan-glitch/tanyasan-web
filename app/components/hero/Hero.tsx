@@ -424,10 +424,19 @@ function HeroInteractive() {
           ))}
         </div>
 
-        {/* Faz 1'e özel scroll ipucu — sağ altta, düşük opaklıkta. Scroll
-            başlayınca söner (bkz. useHeroScroll), faz 1 dışında görünmez. */}
+        {/* Faz 1'e özel scroll ipucu — sağ altta. Scroll başlayınca söner
+            (bkz. useHeroScroll), faz 1 dışında görünmez. Tekerlek noktasının
+            döngüsü CSS keyframe'de (.hero-scroll-wheel), JS söndürmesi bu
+            sarmalayıcıda — ikisi aynı elemente yazılmaz (giriş animasyonu /
+            scroll sürüşü ayrımının aynısı, bkz. docs/CLAUDE.md). İkon inline
+            SVG: lucide'in Mouse ikonu döngüyü sürecek ayrı bir nokta node'u
+            vermiyor. */}
         <div ref={scrollHintRef} className="hero-scroll-hint eyebrow" aria-hidden="true">
-          Scroll
+          <svg className="hero-scroll-mouse" viewBox="0 0 18 28" width="18" height="28" fill="none">
+            <rect x="0.5" y="0.5" width="17" height="27" rx="7" stroke="currentColor" />
+            <circle className="hero-scroll-wheel" cx="9" cy="7.5" r="1.6" fill="currentColor" />
+          </svg>
+          Kaydır
         </div>
 
         <div className="absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">

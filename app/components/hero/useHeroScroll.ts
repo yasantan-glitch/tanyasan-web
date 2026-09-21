@@ -146,6 +146,10 @@ const SCATTER_RISE_MIN_VH = 6;
 const SCATTER_RISE_MAX_VH = 16;
 const SCATTER_ROTATE_DEG = 7;
 const SCATTER_BLUR_PX = 5;
+/** Scroll ipucunun (mouse ikonu) tam görünür opaklığı. globals.css'teki
+ * `.hero-scroll-hint { opacity }` ilk karesiyle aynı tutulmalı; JS burayı
+ * intro'nun ilk çeyreğinde 0'a çeker. */
+const HINT_OPACITY = 0.85;
 /** Alt başlık aynı dili daha sakin konuşur: tek yön, rotasyon yok, biraz erken.
  * SCATTER_SUB_LEAD küçük tutulmalı — pencere `introEnd - SCATTER_LEAD - LEAD`
  * noktasında AÇILIYOR, yani büyük bir değer alt başlığı faz 1'in daha
@@ -634,9 +638,11 @@ export function useHeroScroll(): HeroScrollHandle {
       }
 
       // --- kaydır ipucu: intro fazının ilk %25'inde kaybolur ---
+      // Tekerlek noktasının döngüsü CSS keyframe'de (.hero-scroll-wheel);
+      // burada yalnızca sarmalayıcı sürülür, iç SVG'ye dokunulmaz.
       if (scrollHintRef.current) {
         const hint = 1 - smooth(clamp01(introQ / 0.25));
-        scrollHintRef.current.style.opacity = String((hint * 0.55).toFixed(3));
+        scrollHintRef.current.style.opacity = String((hint * HINT_OPACITY).toFixed(3));
         // Aşağı + sağa: dağılma dilinin en sakin tonu.
         scrollHintRef.current.style.transform =
           `translate3d(${((1 - hint) * 2).toFixed(2)}vw, ${((1 - hint) * 1.2).toFixed(2)}vh, 0)`;

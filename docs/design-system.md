@@ -185,8 +185,27 @@ mevcut slogan `--text-hero-statement` ile ekrana hakim tek blok olarak duruyor.
 Kopyanın **girişi scroll'a bağlı değil**: hero'nun ilk karesinde başka öğe
 olmadığı için metin sayfa açılır açılmaz ekranda olmalı — giriş tek seferlik
 bir CSS load animasyonu (`.hero-intro-rise`, satır başına 0/0.12/0.26s
-gecikme), scroll yalnızca **çıkışı** sürüyor. Sağ altta düşük opaklıklı bir
-scroll ipucu (nokta + "SCROLL") var; intro'nun ilk %25'inde sönüyor.
+gecikme), scroll yalnızca **çıkışı** sürüyor. Sağ altta bir scroll ipucu var
+(hairline mouse SVG'si + "KAYDIR"); intro'nun ilk %25'inde sönüyor.
+
+**Scroll ipucu — mouse ikonu.** Önceki nokta + "SCROLL" metni akıcıydı ama
+sönüktü (opaklık 0.55, hareketsiz). Şimdi 18×28 inline SVG: 1px hairline
+gövde (`rx=7` — kapsülden bir adım köşeli; şekil dilinin "pill yok" kuralı
+butonlar içindir, ikonun mouse olarak okunması için bu yuvarlaklık şart) ve
+gövde içinde inen bir tekerlek noktası. Nokta tek düz iniş yapmaz, **nefes
+alır**: görünmezken belirip `scale 1.25`'e büyür ve amber'a döner
+(`--color-accent`, koyu zeminde AAA), inerken `scale 1`'e iner, dipte küçülüp
+solar (`@keyframes hero-scroll-wheel`, 2.4s, `--ease-in-out-soft`, sonsuz).
+İlk ve son kare görünmez olduğu için döngü başa sararken sıçrama yok. Küre
+noktalarıyla aynı idiom (`hero-orb-dot`: `transform-box: fill-box`, renk
+tepe noktasında aksana döner) — sahnede ikinci bir hareket dili açılmadı.
+
+Döngü **CSS'te**, JS söndürmesi sarmalayıcıda: `.hero-scroll-wheel`
+keyframe'i taşır, `useHeroScroll` yalnızca `.hero-scroll-hint`'in
+`opacity`/`transform`'unu yazar (`HINT_OPACITY = 0.85`; CSS'teki ilk kare
+opaklığıyla aynı tutulur). Aynı elemente iki sürüş yazılmaz — aşağıdaki
+kural. Reduced-motion dalı ipucunu render etmez; hareketli dal zorla
+mount olursa `animation: none` savunması noktayı durağan bırakır.
 
 **Faz 1'in çıkışı — dağılma.** Statement blok hâlinde sönmüyor: her kelime
 ayrı bir `span` (`HERO_STATEMENT_LINES`, `.hero-statement-word`) ve kendi

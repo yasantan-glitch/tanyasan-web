@@ -948,27 +948,74 @@
     }
   }
 
-  /* Faz 1'in scroll ipucu — sağ altta, bilgilendirme amaçlı. Opaklık
-     JS'ten sürülür (intro'nun ilk çeyreğinde söner), faz 1 dışında 0. */
+  /* Faz 1'in scroll ipucu — sağ altta, bilgilendirme amaçlı. Sarmalayıcının
+     opaklığı/transform'u JS'ten sürülür (intro'nun ilk çeyreğinde söner,
+     bkz. useHeroScroll), faz 1 dışında 0. Buradaki opacity yalnızca ilk
+     kare; JS'teki HINT_OPACITY ile aynı tutulmalı. */
   .hero-scroll-hint {
     position: absolute;
     inset-block-end: var(--spacing-gutter);
     inset-inline-end: var(--spacing-gutter);
     display: flex;
     align-items: center;
-    gap: 0.625rem;
+    gap: 0.75rem;
     color: var(--color-fg-on-ink-muted);
-    opacity: 0.55;
+    opacity: 0.85;
     pointer-events: none;
     will-change: opacity, transform;
   }
 
-  .hero-scroll-hint::before {
-    content: "";
-    width: 0.25rem;
-    height: 0.25rem;
-    border-radius: 50%;
-    background-color: currentColor;
+  /* Mouse gövdesi: 1px hairline, currentColor. rx=7 (18px genişlikte)
+     kapsülden bir adım köşeli — şekil dili "pill yok" diyor ama ikon
+     bir buton değil; mouse olarak okunması için bu kadar yuvarlaklık şart. */
+  .hero-scroll-mouse {
+    display: block;
+    flex: none;
+    overflow: visible;
+  }
+
+  /* Tekerlek noktası: gövde içinde aşağı iner, inerken NEFES alır — belirip
+     büyür, sonra küçülüp solar; tepe noktasında amber'a döner (küre
+     noktalarındaki idiomun aynısı, bkz. hero-orb-dot). Döngü CSS'te, rAF'ta
+     değil (§8: sonsuz döngü tick() bütçesine binmez). Başlangıç ve bitiş
+     karesi görünmez (opacity 0) olduğu için döngü başa sararken sıçrama
+     yok. transform-box: fill-box — ölçek noktanın kendi merkezinden. */
+  .hero-scroll-wheel {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hero-scroll-wheel 2.4s var(--ease-in-out-soft) infinite;
+  }
+
+  @keyframes hero-scroll-wheel {
+    0% {
+      transform: translateY(0) scale(0.6);
+      opacity: 0;
+      color: var(--color-fg-on-ink-muted);
+    }
+    22% {
+      transform: translateY(1.5px) scale(1.25);
+      opacity: 1;
+      color: var(--color-accent);
+    }
+    62% {
+      transform: translateY(7.5px) scale(1);
+      opacity: 0.9;
+      color: var(--color-accent);
+    }
+    100% {
+      transform: translateY(12px) scale(0.55);
+      opacity: 0;
+      color: var(--color-fg-on-ink-muted);
+    }
+  }
+
+  /* HeroReduced bu öğeyi hiç render etmiyor; bu kural hareketli dal bir
+     şekilde mount olursa noktanın durağan kalmasını garanti eder (küre ile
+     aynı savunma). */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-scroll-wheel {
+      animation: none;
+    }
   }
 
   /* reduced-motion dalının durağan sahnesi — .hero-stage'in sticky'sini
