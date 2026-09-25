@@ -284,13 +284,31 @@ düzeltme de yapıldı:
    hero içindeki ghost buton (ve focus halkası) yanlış (açık zemine göre
    ayarlanmış) tonu alıyordu.
 
-## Nav linklerinin bir kısmının hâlâ sayfası yok
+## Nav linklerinin sayfaları
 
-`navLinks.ts`'teki `/hizmetler`, `/hakkimda` ve `/iletisim` kuruldu;
-`/portfolyo` (ve `/portfolyo/emlak-crm-pro`) ile `/blog` **hâlâ boş** — bu
-sayfalar sırada. Yeni bir sayfa eklerken `navLinks.ts`'i güncellemeye gerek
-yok, adresler zaten oradan geliyor; yapılması gereken yalnızca o route'ta bir
-sayfa oluşturmak.
+`navLinks.ts`'teki `/hizmetler`, `/portfolyo` (+ `/portfolyo/emlak-crm-pro`),
+`/hakkimda` ve `/iletisim` kurulu; **yalnızca `/blog`** içerik bekliyor. Yeni
+bir sayfa eklerken `navLinks.ts`'i güncellemeye gerek yok, adresler zaten
+oradan geliyor; yapılması gereken yalnızca o route'ta bir sayfa oluşturmak.
+
+# Portfolyo sayfaları — `/portfolyo`, `/portfolyo/emlak-crm-pro`
+
+Gerekçe `docs/design-system.md` §13. Kısaca:
+
+- **Yeni motor yok.** Mevcut kalıp (`.service-grid`/`.service-head`) ve
+  substrat (`data-enter`, `data-enter-stagger`, `case-focus` anonim
+  `view()` ile). Named view-timeline eklemeyin.
+- **Metin `app/content/emlakCrmPro.ts`'te** (bant 3 metni dahil — anasayfa
+  da oradan okuyor). Brief'te olmayan metin uydurulmaz: modül `body`'leri
+  ve `CASE_STACK` bilinçli olarak boş; boş künye bölümü render edilmez.
+- **`.home-portfolio-item--wide` bu sayfalarda kullanılmaz** — gated blok
+  onu global `display: none`'a çekiyor (anasayfa rayı). `/portfolyo`'nun
+  kendi `.portfolio-item--wide`i var.
+- **Filtre client state'te, URL'de değil** (sayfa statik kalsın); sekiz iş
+  SSR'da basılı, filtre yalnızca `hidden`ı çeviriyor.
+- **emlakcrmpro.com yalnızca vaka sayfasının sonunda** (`CASE_EXTERNAL`,
+  brief §5.2). Başka sayfa import etmemeli.
+- `/grafik-tasarim` → `/portfolyo` 301 `next.config.ts`'te.
 
 # İletişim formu — sitenin tek sunucu tarafı
 

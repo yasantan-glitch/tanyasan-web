@@ -1,12 +1,14 @@
 /**
- * Emlak CRM Pro vitrininin ekran görüntüleri — TEK KAYNAK. `portfolio.ts` ve
- * `partners.ts` ile aynı desen. Şu an tek tüketicisi anasayfanın "Öne Çıkan
- * İş" bandı; brief §4'ün site haritasındaki `/portfolyo/emlak-crm-pro` vaka
- * çalışması sayfası kurulduğunda aynı kareleri o da okuyacak (orada büyük
- * ölçüde ve tek tek anlatılarıyla), liste iki yerde tutulmaz.
+ * Emlak CRM Pro'nun ekran görüntüleri ve metni — TEK KAYNAK. `portfolio.ts`
+ * ve `partners.ts` ile aynı desen. Üç tüketicisi var: anasayfanın "Öne Çıkan
+ * İş" bandı (bant 3), `/portfolyo`'nun öne çıkan satırı ve
+ * `/portfolyo/emlak-crm-pro` vaka çalışması sayfası. Liste ve metin iki
+ * yerde tutulmaz.
  *
- * BEŞ KARE VAR, DÖRDÜ KULLANILIYOR. Dışarıda kalan `emlak-crm-pro-analys.png`
- * (Raporlar — Danışmanlar). Gerekçe EDİTORYAL, teknik değil: `analys-2.png`
+ * BEŞ KARE VAR. ANASAYFA DÖRDÜNÜ kullanıyor; dışarıda kalan
+ * `emlak-crm-pro-analys.png` (Raporlar — Danışmanlar) yalnızca vaka
+ * sayfasında, "Danışman Performansı" modülünde duruyor (`CASE_ADVISOR_SHOT`).
+ * Anasayfadaki gerekçe EDİTORYAL, teknik değil: `analys-2.png`
  * (Raporlar — Portföy) zaten aynı ekranın kardeşi ve üç destek yuvasının
  * ikisini tek bir bölüme harcamak, bandın "tek sistemde topladık" iddiasını
  * daraltıyor — üç yuva üç ayrı yeteneği gösteriyor (portföy, harita, rapor).
@@ -70,3 +72,124 @@ export const CASE_SUPPORT_SHOTS: readonly CaseShot[] = [
     alt: "Emlak CRM Pro portföy raporu: satılık ve kiralık sayıları, mülk türü dağılımı grafiği ve statü dağılımı listesi",
   },
 ];
+
+/**
+ * Anasayfada kullanılmayan beşinci kare — yalnızca vaka sayfasının "Danışman
+ * Performansı" modülü. Yukarıdaki dosya başlığı notu.
+ */
+export const CASE_ADVISOR_SHOT: CaseShot = {
+  src: "/images/emlak-crm-pro/emlak-crm-pro-analys.png",
+  caption: "DANIŞMAN PERFORMANSI",
+  alt: "Emlak CRM Pro danışman raporu: danışman başına telefon, yüz yüze, sunum ve yetki temasları tablosu, altında komisyon geliri ve aktivite sayısı grafikleri",
+};
+
+/**
+ * Bant metni — brief §5.2'den birebir. Eskiden `app/page.tsx`'te sayfa-yerel
+ * bir const'tu; vaka sayfası ve `/portfolyo`'nun öne çıkan satırı da aynı
+ * cümleleri okuyunca buraya taşındı. METİN DEĞİŞMEDİ.
+ *
+ * §5.2'nin konumlandırma notu: bu metin ÜRÜN SATMIYOR, yazılım yeteneğini
+ * kanıtlıyor. emlakcrmpro.com bağlantısı yalnızca vaka sayfasının sonunda,
+ * küçük bir bağlantı olarak yer alır (`CASE_EXTERNAL`).
+ */
+export const CASE_TITLE = "SADECE ANLATMIYORUZ, YAPIYORUZ.";
+
+export const CASE_PARAGRAPHS: readonly string[] = [
+  "Bir emlak ofisinin portföyünü, müşterilerini, danışman performansını ve muhasebesini tek sistemde topladık. Bugün gerçek bir ofis bu sistemle çalışıyor.",
+  "Harita üzerinde portföy yönetimi, otomatik müşteri-ilan eşleştirme, danışman hakediş takibi, çok para birimli muhasebe — hepsi sıfırdan tasarlandı ve kodlandı.",
+];
+
+/**
+ * Vaka sayfasının anlatı bölümleri — brief §6'nın tablosundan BİREBİR
+ * (Problem / Yaklaşım / Sonuç). Brief bu bölümler için yalnızca tek
+ * cümleler veriyor; uzatılmadı, uydurulmadı. Daha uzun metin gelirse
+ * `paragraphs` dizisine eklenir, sayfa düzeni değişmez.
+ */
+export const CASE_PROBLEM: readonly string[] = [
+  "Emlak ofisleri portföyü Excel'de, müşteriyi WhatsApp'ta, muhasebeyi defterde tutuyor. Hiçbiri konuşmuyor.",
+];
+
+export const CASE_APPROACH: readonly string[] = [
+  "Önce bir emlak ofisinin gerçek gününü izledik, sonra kod yazdık.",
+];
+
+/** Brief §6 "Sonuç" — üç parça, BÜYÜK HARF (mono künye). */
+export const CASE_RESULTS: readonly string[] = [
+  "CANLI KULLANIMDA",
+  "GERÇEK OFİS",
+  "BİNLERCE PORTFÖY",
+];
+
+/** Brief §6 "Kapanış" cümlesi. */
+export const CASE_CLOSING = "SİZİN İŞİNİZ İÇİN DE BENZER BİR SİSTEM KURABİLİRİZ.";
+
+/**
+ * Çözüm bölümünün modülleri — ad ve sıra brief §6'dan ("Modül modül, ekran
+ * görüntüleriyle"). BÜYÜK HARF (Türkçe büyütme gerekçesi yukarıda).
+ *
+ * BİLİNÇLİ BOŞLUKLAR:
+ * - `body` hiçbir modülde yok: brief modüller için yalnızca ad veriyor.
+ *   Metin geldiğinde buraya yazılır, sayfa onu otomatik render eder.
+ * - Üç modülün (`eslestirme`, `muhasebe`, `takvim`) ekran görüntüsü yok —
+ *   `shots: []`. Sayfa bu modülleri yalnızca adıyla, görselsiz bir satır
+ *   olarak basıyor; demo organizasyonundan kare alındığında (brief §6'nın
+ *   "gerekli varlık" notu) `public/images/emlak-crm-pro/`e konup buraya
+ *   eklenir.
+ * - "Portföy & Harita" üç kareyi taşıyor: portföy listesi, coğrafi analiz
+ *   ve portföy raporu (anasayfadaki üç destek karesinin tamamı).
+ */
+export interface CaseModule {
+  id: string;
+  title: string;
+  body?: readonly string[];
+  shots: readonly CaseShot[];
+}
+
+export const CASE_MODULES: readonly CaseModule[] = [
+  {
+    id: "portfoy-harita",
+    title: "PORTFÖY & HARİTA",
+    shots: CASE_SUPPORT_SHOTS,
+  },
+  {
+    id: "eslestirme",
+    title: "MÜŞTERİ-TALEP EŞLEŞTİRME",
+    shots: [],
+  },
+  {
+    id: "danisman-performansi",
+    title: "DANIŞMAN PERFORMANSI",
+    shots: [CASE_ADVISOR_SHOT],
+  },
+  {
+    id: "muhasebe",
+    title: "MUHASEBE & HAKEDİŞ",
+    shots: [],
+  },
+  {
+    id: "takvim",
+    title: "TAKVİM & GÖREVLER",
+    shots: [],
+  },
+];
+
+/**
+ * TEKNOLOJİ KÜNYESİ — BİLİNÇLİ OLARAK BOŞ (Eylül 2026 kullanıcı kararı:
+ * stack bilgisi netleşince doldurulacak). Dizi boş kaldıkça vaka sayfası
+ * künye bölümünü HİÇ render etmiyor — `socialLinks.ts`'teki "yer tutucu
+ * yazılmaz" kuralının aynısı.
+ *
+ * Doldururken: BÜYÜK HARF, kısa mono etiketler (ör. "NEXT.JS"). Brief
+ * §6'nın taslak listesi (Next.js, Supabase, Google Maps, çok kiracılı
+ * mimari) referans olarak orada duruyor, kopyalanmadı.
+ */
+export const CASE_STACK: readonly string[] = [];
+
+/**
+ * Dış bağlantı — brief §5.2: YALNIZCA vaka sayfasının sonunda, küçük bir
+ * bağlantı olarak. Başka hiçbir sayfa bunu import etmemeli.
+ */
+export const CASE_EXTERNAL = {
+  href: "https://emlakcrmpro.com",
+  label: "emlakcrmpro.com",
+};

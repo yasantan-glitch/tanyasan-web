@@ -1954,7 +1954,7 @@
   }
 
   /* Künye: .home-portfolio-caption ile aynı tipografik katman. Tile'lar yine
-     LİNK DEĞİL (vaka sayfası henüz yok), bu yüzden hover durumu da yok —
+     LİNK DEĞİL (vaka sayfasına bandın CTA'sı gidiyor), bu yüzden hover durumu da yok —
      bandın tek bağlantısı alttaki CTA. */
   .home-case-caption {
     margin-block-start: 0.875rem;
@@ -2307,6 +2307,241 @@
     display: none;
   }
 
+  /* ==========================================================================
+     PORTFOLYO (/portfolyo) — bkz. docs/design-system.md §13.
+     Çerçeve, künye ve Wellness'in `--boost`'u anasayfa bant 4'ün TABAN
+     kuralları (`.home-portfolio-frame`, `.home-portfolio-caption`,
+     `.home-portfolio-media--boost`) — olduğu gibi yeniden kullanılıyor.
+     Rayın gated kuralları `.home-portfolio-track > figure` altında bağlı,
+     `.portfolio-grid`e sızmıyor.
+
+     İSTİSNA — `.home-portfolio-item--wide` YENİDEN KULLANILMIYOR: gated
+     blokta (anasayfa yatay rayı) o sınıf GLOBAL olarak `display: none`
+     alıyor (Wellness rayda gizli, Eylül 2026 kararı). Burada kullanılsaydı
+     /portfolyo'da da Wellness masaüstünde kaybolurdu (ilk denemede oldu).
+     Kendi `.portfolio-item--wide`i var.
+     ========================================================================== */
+
+  /* Öne çıkan iş (Emlak CRM Pro). Tüm satır TEK link. Oran bant 3'ün
+     `.home-case-split`iyle aynı (0.8fr / 1.2fr): solda metin, sağda
+     ekran görüntüsü — aynı işin iki sayfada aynı dengede durması için. */
+  .portfolio-feature {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: var(--spacing-section-tight);
+    align-items: center;
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: var(--spacing-section-tight);
+  }
+
+  .portfolio-feature__text > * + * {
+    margin-block-start: 1.5rem;
+  }
+
+  .portfolio-feature__title {
+    max-inline-size: 24ch;
+    font-size: var(--text-display-xl);
+    line-height: var(--text-display-xl--line-height);
+    letter-spacing: var(--text-display-xl--letter-spacing);
+    font-weight: var(--text-display-xl--font-weight);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  /* Link olduğunu söyleyen tek geri bildirim: başlık aksana döner, buton
+     kendi hover tonunu alır. Kareye hover efekti yok (§4: gölge/ölçek yok). */
+  .portfolio-feature:hover .portfolio-feature__title {
+    color: var(--accent-text);
+  }
+
+  .portfolio-feature:hover .btn-accent {
+    background-color: var(--color-accent-hi);
+  }
+
+  /* Kategori filtresi — `.service-index`in kardeşi (hairline'lı mono satır),
+     ama bağlantı değil `aria-pressed`li buton. Seçili olan tam tonda ve
+     aksan alt çizgili; sayaç her zaman aksan tonunda. */
+  .portfolio-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.75rem;
+    border-block-end: 1px solid var(--hairline);
+    padding-block-end: 1.25rem;
+    margin-block-end: var(--spacing-section-tight);
+  }
+
+  .portfolio-filter button {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding-block: 0.35rem;
+    color: var(--fg-muted);
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.5rem;
+    transition:
+      color var(--duration-base) var(--ease-out-quart),
+      text-decoration-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .portfolio-filter button:hover {
+    color: var(--fg-strong);
+  }
+
+  .portfolio-filter button[aria-pressed="true"] {
+    color: var(--fg-strong);
+    text-decoration-color: var(--accent-text);
+  }
+
+  .portfolio-filter__count {
+    color: var(--accent-text);
+  }
+
+  /* Tam liste — anasayfa bant 4'ün taban gridinin aynısı: 3 sütun, geniş iş
+     `span 2`, sekiz iş dokuz hücreye tam oturuyor (bkz. portfolio.ts).
+     Filtrelenince `hidden` işler düzenden çıkar, kalanlar auto-placement'la
+     sola akar. */
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--portfolio-gap);
+    row-gap: calc(var(--portfolio-gap) * 2);
+  }
+
+  .portfolio-item--wide {
+    grid-column: span 2;
+  }
+
+  .portfolio-item--wide .home-portfolio-frame {
+    aspect-ratio: 2 / 1;
+  }
+
+  /* ==========================================================================
+     VAKA ÇALIŞMASI (/portfolyo/emlak-crm-pro) — bkz. docs/design-system.md
+     §13. Anlatı ve modül bölümleri `.service-grid`/`.service-head`,
+     `.about-section`; ekran görüntüleri `.home-case-frame` /
+     `.home-case-caption` (anasayfa bant 3). `.case-*` ikizleri yazılmadı —
+     burada yalnızca sayfaya ait düzen.
+     ========================================================================== */
+
+  .case-crumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .case-crumb a {
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .case-crumb a:hover {
+    color: var(--accent-text);
+  }
+
+  /* Bant 3'ün iki paragrafı yan yana: lead solda, ikincisi sağda. Başlık
+     bandı --container-wide genişliğinde, iki prose sütunu o genişliği
+     dolduruyor. */
+  .case-intro {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, var(--container-prose)));
+    gap: var(--spacing-section-tight);
+  }
+
+  .case-modules {
+    margin-block-start: var(--spacing-section-tight);
+  }
+
+  /* Modüller arası ayraç — `.about-section + .about-section`in aynısı.
+     Görselsiz iki modül art arda geldiğinde ara daralıyor: ekranda yalnızca
+     bir başlık satırı var, tam bölüm boşluğu onu kopuk gösterirdi. */
+  .case-module + .case-module {
+    margin-block-start: var(--spacing-section);
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: var(--spacing-section-tight);
+  }
+
+  .case-module--bare + .case-module--bare {
+    margin-block-start: var(--spacing-section-tight);
+  }
+
+  .case-module__title {
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    font-weight: var(--text-display-lg--font-weight);
+  }
+
+  .case-module__body > * + * {
+    margin-block-start: var(--spacing-section-tight);
+  }
+
+  /* Teknoloji / Sonuç — etiket solda (service-grid'in sütun ölçüsü),
+     değerler sağda. */
+  .case-facts {
+    display: grid;
+    grid-template-columns: minmax(14rem, 22rem) 1fr;
+    gap: var(--spacing-section-tight);
+    align-items: baseline;
+  }
+
+  .case-facts + .case-facts {
+    margin-block-start: var(--spacing-section-tight);
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: var(--spacing-section-tight);
+  }
+
+  .case-facts__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 2rem;
+  }
+
+  /* Sonuç: üç parça display tipinde, aralarında dikey hairline. Flex-wrap
+     DEĞİL eşit üç sütun: wrap'te üçüncü parça alt satıra düşüp ayracını
+     satır başında taşıyordu (ölçüldü, 1440px). Sütun dar kalırsa parça kendi
+     hücresinde iki satıra kırılıyor, hizalama bozulmuyor. */
+  .case-facts__list--result {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .case-facts__list--result li {
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    font-weight: var(--text-display-lg--font-weight);
+    padding-inline-end: 1.5rem;
+  }
+
+  .case-facts__list--result li + li {
+    border-inline-start: 1px solid var(--hairline);
+    padding-inline-start: 1.5rem;
+  }
+
+  /* Kapanışın alt satırı: geri yol + dış bağlantı (brief §5.2 — küçük). */
+  .case-outro-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-block-start: var(--spacing-section-tight);
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: 1.25rem;
+  }
+
+  .case-outro-links a {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.35rem;
+    transition: text-decoration-color var(--duration-base)
+      var(--ease-out-quart);
+  }
+
+  .case-outro-links a:hover {
+    text-decoration-color: currentColor;
+  }
+
 }
 
 /* ==========================================================================
@@ -2515,6 +2750,18 @@
        üst üste binerek okunuyor). Eğri `linear` (site geneli scrub
        disiplini) — yumuşaklık keyframe'in kendi platosundan geliyor. */
     .home-case-split__stream .home-case-frame > img {
+      animation: case-focus linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+
+    /* Vaka sayfasının modül kareleri aynı odak geçişini paylaşıyor
+       (docs/design-system.md §13). ANONİM `view()` — named timeline yok,
+       §12'nin "aynı ada eleman başına tek animasyon" kısıtı burada doğmuyor.
+       Başlık bandındaki açılış karesi (`.case-lead`) BİLEREK DIŞARIDA:
+       sayfa açıldığında zaten ekranda, menzilin ortasında yarı kapalı bir
+       diyaframla karşılamasın. */
+    .case-module .home-case-frame > img {
       animation: case-focus linear both;
       animation-timeline: view();
       animation-range: cover 0% cover 100%;
@@ -3622,6 +3869,42 @@
      aynı değeri alsın diye tek, koşulsuz bir seçici yeterli. */
   .home-case-frame {
     --case-mat: 0.375rem;
+  }
+
+  /* /portfolyo: öne çıkan iş tek sütun (metin üstte), grid anasayfa bant
+     4'ün mobil tabanı gibi iki sütun — geniş iş tam satır. */
+  .portfolio-feature {
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    row-gap: 1.75rem;
+  }
+
+  /* Vaka sayfası: paragraflar alt alta; künye/sonuç etiketi değerin
+     üstünde; sonuç parçaları alt alta, dikey ayraç yataya dönüyor. */
+  .case-intro,
+  .case-facts {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .case-facts__list--result {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .case-facts__list--result li,
+  .case-facts__list--result li + li {
+    border-inline-start: 0;
+    padding-inline: 0;
+  }
+
+  .case-facts__list--result li + li {
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: 1rem;
   }
 
   /* Üç rozet alt alta ve YATAY: solda logo, sağda etiket. Dar ekranda üç

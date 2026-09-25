@@ -1542,8 +1542,8 @@ tabi ("WHITE PARTY", "ORANGE FEST").
 
 ### İçerik `app/content/portfolio.ts` ve `partners.ts`'e çıkarıldı
 
-`services.ts` / `contact.ts` deseni: `/portfolyo` sayfası kurulduğunda aynı
-diziyi okuyacak (kategori filtresi `category`den türer — bu yüzden ayırt edici
+`services.ts` / `contact.ts` deseni: `/portfolyo` sayfası da aynı diziyi
+okuyor (kategori filtresi `category`den türüyor, §13 — bu yüzden ayırt edici
 etkinlik adı `category`ye değil ayrı bir `event` alanına yazılıyor, yukarı
 bakın), liste iki yerde tutulmaz. Kısa tanıtım metni ise sayfa-yerel bir `const` — tek tüketicisi var
 (`CHAPTERS`'ın `hakkimda/page.tsx`'te durmasıyla aynı gerekçe). O metin brief
@@ -1553,6 +1553,106 @@ Yaratın".
 
 Anasayfada `metadata` tanımlanmadı: `layout.tsx`'in kök `title`/`description`'ı
 zaten "/" için yazılmış, burada tekrarlamak ikinci bir kaynak olurdu.
+
+## 13. Portfolyo sayfaları (`/portfolyo`, `/portfolyo/emlak-crm-pro`)
+
+Brief §4'ün iki rotası. Eylül 2026'ya kadar anasayfa bant 3/4'teki ve
+`/hizmetler` / `/hakkimda`'daki CTA'lar buraya gidip 404 veriyordu. **Yeni bir
+hareket motoru kurulmadı**; iki sayfa da mevcut kalıp ve substratı kullanıyor:
+koyu başlık → gövde → kapanış bandı (§9–§11), `.service-grid` /
+`.service-head` (sol sütun yapışkan, ≤860px'te tek sütun), `data-enter` /
+`data-enter-stagger` ve bant 3'ün `case-focus` odak geçişi. Named
+view-timeline YOK — §12'nin "aynı ada eleman başına tek animasyon" kısıtı bu
+sayfalarda hiç doğmuyor. Yatay ray ve sticky sahne yok: tam liste bir
+"gösteri" değil, taranacak bir dizin.
+
+**Yeni metin yazılmadı.** `/portfolyo`'nun başlık/lede'i anasayfa bant 4'ün,
+öne çıkan satırı bant 3'ün cümleleri; vaka sayfasının tüm metni brief §5.2 ve
+§6'dan birebir (`content/emlakCrmPro.ts`). Bant 3'ün metni (`CASE_TITLE`,
+`CASE_PARAGRAPHS`) bu yüzden `app/page.tsx`'ten içerik dosyasına taşındı —
+metin değişmedi, üç tüketiciye çıktı.
+
+### `/portfolyo`
+
+- **Yüzeyler:** ink-deep (başlık + öne çıkan iş) → ink (grid, `.seam`) →
+  accent (kapanış, anasayfa bant 6'nın kalıbı ve cümlesi). Ekran görüntüsü en
+  derin tonda gri paspartayla, kampanya kareleri bir ton açıkta — §12'nin
+  bant 3/4 gerekçesi.
+- **Öne çıkan iş: Emlak CRM Pro.** Vaka sayfası olan tek iş, sayfanın tek
+  tıklanabilir işi. Tüm satır TEK link (klavyede tek durak); hover'da başlık
+  aksana döner, kareye efekt yok (§4). Filtrenin dışında: brief §7'nin
+  kategori fasetine ait değil. Burada durmasaydı vaka sayfasına bu sayfadan
+  yol kalmazdı.
+- **Kategori filtresi** (`PortfolioFilter.tsx`, client). Butonlar
+  `PortfolioItem.category`den türüyor (ilk görünüş sırası, sayaçlı:
+  `TÜMÜ 08 · SOSYAL MEDYA 04 · KURUMSAL KİMLİK 03 · LOGO & LOGOTYPE 01`); işi
+  olmayan kategori (bugün "WEB TASARIM") hiç görünmüyor. `aria-pressed` +
+  `aria-live` sonuç sayısı. **URL'ye yazılmıyor**: `?kategori=` searchParams
+  sayfayı dinamik render'a çekerdi; sekiz işlik statik bir sayfaya değmez.
+  Sekiz işin tamamı SSR'da basılıyor, filtre yalnızca `hidden`ı çeviriyor —
+  JS kapalıyken butonlar etkisiz ama içerik eksiksiz.
+- **Grid** anasayfa bant 4'ün taban düzeninin aynısı (3 sütun, Wellness
+  `span 2`, 8 iş 9 hücreye tam oturuyor; ≤860px'te 2 sütun). Çerçeve/künye/
+  boost sınıfları (`.home-portfolio-frame`, `-caption`, `-media--boost`)
+  yeniden kullanılıyor — rayın gated kuralları `.home-portfolio-track >
+  figure` altında bağlı, sızmıyor. **İstisna:** `.home-portfolio-item--wide`
+  kullanılmıyor, çünkü gated blok onu GLOBAL `display: none`'a çekiyor
+  (Wellness anasayfa rayında gizli). İlk denemede Wellness bu sayfada da
+  kayboldu; kendi `.portfolio-item--wide`i var. Bu sayfada Wellness masaüstü
+  dahil görünür — "tam liste" demek bu.
+- Tile'lar link değil (vaka sayfaları yok), bant 4'teki kural.
+
+### `/portfolyo/emlak-crm-pro`
+
+Brief §6'nın tablosu sırasıyla: **Problem → Yaklaşım → Çözüm → Teknoloji →
+Sonuç → Kapanış.**
+
+| Bölüm | Yüzey | Düzen |
+|---|---|---|
+| Başlık (bant 3 metni + yönetim paneli karesi) | ink-deep | iki paragraf yan yana, kare `--container-wide` |
+| Problem / Yaklaşım | paper | `.service-grid` + `.about-section`, `NN / 02` |
+| Çözüm — modül modül | ink-deep | `.service-grid`: solda yapışkan modül adı, sağda kareler |
+| Teknoloji + Sonuç | paper | `.case-facts` (etiket solda, değer sağda) |
+| Kapanış | accent | brief §6 cümlesi + `NAV_CTA`; altında "← Tüm işler" ve dış bağlantı |
+
+- **Modüller ve kareler.** Brief'in beş modülü `CASE_MODULES`'ta. Beş karenin
+  hepsi kullanılıyor: Portföy & Harita üç kare (anasayfanın üç destek
+  karesi), Danışman Performansı `emlak-crm-pro-analys.png` (anasayfada
+  kullanılmayan beşinci kare, `CASE_ADVISOR_SHOT`), açılış karesi başlıkta.
+  Müşteri-Talep Eşleştirme, Muhasebe & Hakediş ve Takvim & Görevler'in
+  karesi YOK — görselsiz satır olarak basılıyorlar (`.case-module--bare`,
+  art arda iki görselsiz modül arası daralıyor). Kare gelince yalnızca
+  içerik dosyası değişir.
+- **Hareket.** Modül kareleri bant 3'ün `case-focus` jestini **anonim**
+  `view()` ile kullanıyor (çerçeve değil img, paspartu durağan — §12).
+  Başlıktaki açılış karesi bilerek hareketsiz: sayfa açıldığında zaten
+  ekranda, `cover` menzilinin ortasında yarı kapalı bir diyaframla
+  karşılardı. Başlıklar `data-enter="mask"`, sonuç satırı
+  `data-enter-stagger`.
+- **Sonuç** üç eşit sütun + dikey hairline. Flex-wrap ilk hâlde üçüncü
+  parçayı ayracıyla birlikte alt satırın başına düşürüyordu (1440px'te
+  ölçüldü); grid'de parça kendi hücresinde kırılıyor. ≤860px'te alt alta,
+  ayraç yataya dönüyor.
+- **Dış bağlantı** (`CASE_EXTERNAL`, emlakcrmpro.com): brief §5.2 gereği
+  yalnızca burada, sayfanın en sonunda, mono ve küçük. Başka sayfa import
+  etmemeli.
+
+### Bilinçli boşluklar
+
+- **Teknoloji künyesi** — `CASE_STACK = []` (kullanıcı kararı: stack
+  netleşince doldurulacak). Boşken bölüm HİÇ render edilmiyor
+  (`socialLinks.ts` kuralı, yer tutucu yazılmaz). Brief §6'nın taslağı
+  ("Next.js, Supabase, Google Maps, çok kiracılı mimari") orada referans
+  olarak duruyor, kopyalanmadı.
+- **Modül açıklamaları** — brief yalnızca ad veriyor; `CaseModule.body`
+  hiçbir modülde yok. Metin gelince sayfa onu kendiliğinden basar.
+- **Üç modülün ekran görüntüsü** — yukarıda. Brief §6'nın "demo
+  organizasyonundan alınmalı" notu geçerli.
+
+### 301: `/grafik-tasarim` → `/portfolyo`
+
+Brief §4. `next.config.ts` `redirects()`; `permanent: true` 308 ürettiği için
+`statusCode: 301` elle veriliyor (brief açıkça 301 diyor).
 
 ---
 

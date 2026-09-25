@@ -1,8 +1,9 @@
 /**
  * Portfolyo işlerinin TEK KAYNAĞI — `services.ts` ve `contact.ts` ile aynı
- * desen. Şu an tek tüketicisi anasayfanın "Öne Çıkanlar" bandı; brief §4'ün
- * site haritasındaki `/portfolyo` sayfası kurulduğunda aynı diziyi okuyacak
- * (kategori filtresi `category` alanından türer), liste iki yerde tutulmaz.
+ * desen. İki tüketicisi var: anasayfanın "Öne Çıkanlar" bandı (bant 4, yatay
+ * ray) ve `/portfolyo` (tam liste; kategori filtresi `category` alanından
+ * türüyor — bkz. app/portfolyo/PortfolioFilter.tsx). Liste iki yerde
+ * tutulmaz.
  *
  * Görseller `public/images/portfolyo/` altında ve MOCKUP/KAMPANYA KARELERİ —
  * yani kendi kadrajı olan, kompoze edilmiş işler. Bu yüzden hiçbiri
@@ -58,7 +59,7 @@ export interface PortfolioItem {
    * ekleniyor.
    *
    * NEDEN `category`NİN İÇİNE YAZILMIYOR: `category`, brief §7'nin
-   * fasetidir ve `/portfolyo` kurulduğunda filtre ondan türeyecek (bkz.
+   * fasetidir ve `/portfolyo`'nun filtresi ondan türüyor (bkz.
    * dosya başlığı). Etkinlik adını oraya karıştırmak faseti kirletir.
    *
    * BÜYÜK HARF — `brand`/`category` ile aynı Türkçe büyütme gerekçesi.

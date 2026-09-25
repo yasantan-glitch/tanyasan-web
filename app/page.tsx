@@ -6,7 +6,12 @@ import HomeRailPanel from "./components/home/HomeRailPanel";
 import SplitWords from "./components/motion/SplitWords";
 import { NAV_CTA } from "./components/nav/navLinks";
 import ServiceRail from "./components/services/ServiceRail";
-import { CASE_LEAD_SHOT, CASE_SUPPORT_SHOTS } from "./content/emlakCrmPro";
+import {
+  CASE_LEAD_SHOT,
+  CASE_PARAGRAPHS,
+  CASE_SUPPORT_SHOTS,
+  CASE_TITLE,
+} from "./content/emlakCrmPro";
 import { PARTNERS } from "./content/partners";
 import { PORTFOLIO_ITEMS } from "./content/portfolio";
 import { SERVICE_MEDIA } from "./content/serviceMedia";
@@ -46,23 +51,6 @@ import { SERVICES } from "./content/services";
 const INTRO_PARAGRAPHS = [
   "20 yıla yakın tecrübeyle markaların görünen yüzünü tasarlıyor, arkada çalışan sistemini kuruyoruz. Kurumsal kimlikten reklam kampanyasına, web sitesinden işinizi yürüten yazılıma kadar hepsi tek ekipten çıkıyor.",
   "Antalya'da çalışıyoruz, Türkiye'nin her yerinden proje alıyoruz. İşimizin özeti üç kelime: dijitalde fark yaratın.",
-];
-
-/**
- * Emlak CRM Pro bandının metni — brief §5.2'den birebir. Sayfa-yerel const
- * (INTRO_PARAGRAPHS ile aynı gerekçe: tek tüketici). /portfolyo/emlak-crm-pro
- * vaka sayfası kurulduğunda oranın metni çok daha uzun ve farklı olacak,
- * ortak kaynağa çıkarılacak bir şey yok — paylaşılan tek şey ekran
- * görüntüleri, onlar zaten content/emlakCrmPro.ts'te.
- *
- * §5.2'nin konumlandırma notu: bu bölüm ÜRÜN SATMIYOR, yazılım yeteneğini
- * kanıtlıyor. Bu yüzden emlakcrmpro.com bağlantısı burada GEÇMİYOR — dış
- * domain yalnızca vaka çalışması sayfasının sonunda, küçük bir bağlantı
- * olarak yer alacak (/hizmetler ve /hakkimda'daki kuralın aynısı).
- */
-const CASE_PARAGRAPHS = [
-  "Bir emlak ofisinin portföyünü, müşterilerini, danışman performansını ve muhasebesini tek sistemde topladık. Bugün gerçek bir ofis bu sistemle çalışıyor.",
-  "Harita üzerinde portföy yönetimi, otomatik müşteri-ilan eşleştirme, danışman hakediş takibi, çok para birimli muhasebe — hepsi sıfırdan tasarlandı ve kodlandı.",
 ];
 
 /**
@@ -299,7 +287,7 @@ export default function Home() {
                 className="home-case-split__title font-display text-strong"
                 data-enter="mask"
               >
-                SADECE ANLATMIYORUZ, YAPIYORUZ.
+                {CASE_TITLE}
               </h2>
 
               {/* `mt-*` YOK: bloğun dikey ritmi tamamen
@@ -333,9 +321,9 @@ export default function Home() {
                 ))}
               </ul>
 
-              {/* /portfolyo/emlak-crm-pro henüz KURULMADI — /hizmetler ve
-                  /hakkimda'daki CTA'lar da aynı adrese gidiyor, tutarlı.
-                  Bandın tek ve birincil eylemi olduğu için .btn-accent.
+              {/* Vaka çalışması sayfasına gider (/hizmetler ve /hakkimda'daki
+                  CTA'larla aynı adres). Bandın tek ve birincil eylemi olduğu
+                  için .btn-accent.
                   Sabit blokta duruyor: bant boyunca ekranda kalıyor. */}
               <Link
                 href="/portfolyo/emlak-crm-pro"
@@ -388,8 +376,9 @@ export default function Home() {
           Gerekçe ve kimlik ayrımı (.home-rail'in KOPYASI değil, kardeşi)
           .home-portfolio-rail'in yorumunda, globals.css.
 
-          Tile'lar link DEĞİL — tek tek vaka sayfaları yok, tıklanabilirlik
-          ima edilmiyor. Bölümün tek bağlantısı alttaki CTA. */}
+          Tile'lar link DEĞİL — bu işlerin vaka sayfası yok (tek vaka sayfası
+          Emlak CRM Pro'nunki, o bant 3'ten bağlanıyor), tıklanabilirlik ima
+          edilmiyor. Bölümün tek bağlantısı alttaki CTA. */}
       <section className="surface-ink seam px-(--spacing-gutter) py-(--spacing-section)">
         {/* Başlık bloğu artık bölümün doğrudan çocuğu DEĞİL, rayın İÇİNDE:
             `.home-portfolio-stage` ile aynı sabit sahneyi paylaşıyorlar, yani
@@ -525,10 +514,7 @@ export default function Home() {
         </div>
 
         <div className="mx-auto max-w-(--container-wide)">
-          {/* /portfolyo henüz KURULMADI — nav'da da aynı adres var ve o da
-              404 veriyor. Bağlantı bilinçli olarak şimdiden konuluyor
-              (kullanıcı kararı); sayfa kurulunca burada değişecek bir şey
-              yok. */}
+          {/* Tam liste /portfolyo'da (kategori filtreli). */}
           <Link
             href="/portfolyo"
             className="btn btn-ghost eyebrow mt-(--spacing-section-tight) inline-flex"
