@@ -437,8 +437,8 @@ export default function Home() {
                 className="home-portfolio-head__lede text-lead text-muted max-w-(--container-prose)"
                 data-enter
               >
-                Farklı sektörlerden seçilmiş sekiz iş — logo ve kurumsal kimlik
-                çalışmalarından sosyal medya kampanyalarına.
+                Farklı sektörlerden seçilmiş işler — logo ve kurumsal
+                kimlikten web tasarıma, sosyal medya kampanyalarına.
               </p>
             </div>
 
@@ -466,10 +466,18 @@ export default function Home() {
                         altında, hero'nun ilk boyaması bloklanmamalı.
 
                         `--pan-scale`: gated bloktaki pencere parallax'ının
-                        ölçeği (globals.css). `wide` (Wellness) için TABANDAN
-                        BÜYÜK: içeriği zaten `.home-portfolio-media--boost`
-                        ile büyütülmüş, parallax'ın kendisi bunun üstüne
-                        biniyor — küçük tutulsaydı iş yeniden küçük dururdu. */}
+                        ölçeği (globals.css). `wide` işler için TABANDAN BÜYÜK
+                        — pratikte ÖLÜ DEĞER, çünkü `.home-portfolio-item--wide`
+                        aynı gated blokta `display: none` (Eylül 2026 kararı,
+                        bkz. aşağıdaki yorum): wide işler zaten yatay rayda hiç
+                        görünmüyor, bu satır yalnızca ileride biri o gizleme
+                        kuralını kaldırırsa devreye girer. `.home-portfolio-
+                        media--boost` (`item.boost`, YALNIZCA Wellness —
+                        `item.wide` DEĞİL, bkz. portfolio.ts) taban ızgarada
+                        (reduced-motion/≤860px, wide GİZLİ DEĞİL) görünür
+                        kalıyor; `--pan-scale`in 1.22'si o boost'un üstüne
+                        binen parallax içindi, taban ızgarada parallax zaten
+                        yok. */}
                     <div className="home-portfolio-frame">
                       <Image
                         src={item.src}
@@ -481,7 +489,7 @@ export default function Home() {
                             : "(max-width: 860px) 50vw, 31vw"
                         }
                         className={
-                          item.wide ? "home-portfolio-media--boost" : undefined
+                          item.boost ? "home-portfolio-media--boost" : undefined
                         }
                         style={
                           {

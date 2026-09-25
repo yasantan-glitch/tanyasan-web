@@ -12,9 +12,9 @@ import type { PortfolioItem } from "@/app/content/portfolio";
  * işi kalmayan kategori (bugün brief §7'nin "WEB TASARIM"ı) hiç görünmez.
  *
  * NEDEN CLIENT STATE, URL DEĞİL: `?kategori=` searchParams sayfayı dinamik
- * render'a çeker; sekiz işlik statik bir sayfa için bu maliyet değmez. Tüm
+ * render'a çeker; bu boyutta statik bir sayfa için bu maliyet değmez. Tüm
  * işler SSR'da render ediliyor, filtre yalnızca `hidden` bayrağını çeviriyor —
- * JS kapalıyken butonlar etkisiz kalır ama sekiz işin tamamı görünür durur
+ * JS kapalıyken butonlar etkisiz kalır ama işlerin tamamı görünür durur
  * (varsayılan "TÜMÜ"), yani içerik hiçbir koşulda kaybolmuyor.
  *
  * HAREKET: grid, sitenin mevcut `data-enter-stagger` substratını kullanıyor
@@ -90,7 +90,7 @@ export default function PortfolioFilter({ items }: Props) {
                     ? "(max-width: 860px) 100vw, 62vw"
                     : "(max-width: 860px) 50vw, 31vw"
                 }
-                className={item.wide ? "home-portfolio-media--boost" : undefined}
+                className={item.boost ? "home-portfolio-media--boost" : undefined}
                 style={{ objectFit: "cover" }}
               />
             </div>

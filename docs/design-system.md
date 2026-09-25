@@ -1654,6 +1654,52 @@ Sonuç → Kapanış.**
 Brief §4. `next.config.ts` `redirects()`; `permanent: true` 308 ürettiği için
 `statusCode: 301` elle veriliyor (brief açıkça 301 diyor).
 
+### Eylül 2026 genişlemesi — 16 iş, yeni "WEB TASARIM" kategorisi
+
+Kullanıcının kendi kaynak klasöründen (sohbet geçmişinde referans var)
+16 iş eklendi, curation kullanıcı onayından geçti: 8'den 24 işe, 4'ten 5
+kategoriye (brief §7'nin o güne dek boş kalan "WEB TASARIM"ı ilk kez
+dolduruldu). `PORTFOLIO_ITEMS`'a eklendi, ikinci bir liste açılmadı.
+
+- **5 yeni WEB TASARIM işi** (Poyraz Emlak, Poyraz Global, Evim Door, Hoop
+  Vize, Kemer Master Cup) gerçek proje ekran görüntüsü, kaynağı 1920×1080 —
+  kare değil. Sıkıştırıp `1/1`e kırpmak yerine `wide: true` (2/1 kadraj)
+  işaretlendi; Wellness'le birlikte artık 6 `wide` iş var. Dosyalar
+  `.jpg` — aşağıdaki bug yüzünden PNG'den JPEG'e çevrildi, ayrıca 1920px
+  kaynağı 1600px'e indirip sıkıştırdı (~1-3MB PNG → ~110-380KB JPEG).
+- **Next Image optimizer bug'ı (çözüldü, kayıt için).** Kaynak PNG'lerin
+  (alfa kanallı) TAMAMINDA sharp/libvips'in WebP kodlayıcısı belirli
+  genişliklerde (dosyaya göre değişen, örn. birinde 640 diğerinde 1080)
+  DETERMİNİSTİK olarak asılıyordu — `next dev`'de doğrulandı, `Accept:
+  image/webp` gönderen HER TARAYICIDA (Chrome/Edge varsayılanı) gerçek
+  kullanıcı için sonsuz yüklenen bir kareye denk gelirdi. PNG'nin alfa
+  kanalını/XMP'sini temizlemek düzeltmedi; kaynağı sRGB JPEG'e çevirmek
+  (alfasız) düzeltti — sharp'ın PNG→WebP yolu bu beş dosyanın piksel
+  içeriğiyle ilgili bir performans ucundan düşüyordu, JPEG→WebP'de aynı
+  uç yok. Ara geçici çözüm olarak eklenen `PortfolioItem.unoptimized` alanı
+  bu yüzden KALDIRILDI (git geçmişinde durur) — yeni bir portfolyo işi
+  aynı belirtiyi gösterirse önce kaynağı JPEG'e çevirmeyi deneyin.
+- **`boost` ≠ `wide` — ayrı alanlar.** `.home-portfolio-media--boost`
+  (scale 1.14 + doygunluk artışı) yalnızca Wellness'in kendi görsel
+  zayıflığını telafi etmek içindi; genişleme öncesi tek `wide` iş Wellness
+  olduğu için JSX `item.wide` üzerinden boost veriyordu ve bu ayrım hiç
+  test edilmemişti. 5 yeni `wide` iş eklenince bug ortaya çıktı: hepsi
+  gereksiz yere scale+doygunluk alıyordu. `PortfolioItem`'a ayrı bir
+  `boost` alanı eklendi (yalnızca Wellness'te `true`), her iki tüketici
+  (`PortfolioFilter.tsx`, `page.tsx`) `item.boost` okuyacak şekilde
+  düzeltildi. `--pan-scale` (page.tsx satır içi) `item.wide` okumaya devam
+  ediyor ama pratikte ölü değer — gated rayda `wide` işler zaten
+  `display: none`, yalnızca ileride o gizleme kuralı kaldırılırsa devreye
+  girer.
+- **Sabit 3×3/9-hücre matematiği artık YOK** (eskiden 8 iş + 1 `wide` için
+  geçerliydi). `grid-auto-flow` otomatik yerleştiriyor; taban gridde ve
+  filtrelenmiş her kategori görünümünde boş hücre kalabilir, kabul
+  edilebilir çünkü bu yalnızca taban/yedek düzen.
+- **Lede metni** ("Farklı sektörlerden seçilmiş sekiz iş…") sabit sayı
+  içermeyecek şekilde güncellendi (`app/page.tsx` bant 4 ve
+  `app/portfolyo/page.tsx` başlığı, ikisi de aynı cümleyi elle taşıyor —
+  henüz ortak kaynağa alınmadı).
+
 ---
 
 ## Kapsam dışı

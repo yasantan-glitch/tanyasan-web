@@ -246,7 +246,7 @@
      pay sarmayı sessizce keserdi. */
   --portfolio-strip-h: calc(var(--portfolio-tile-w) + 5.75rem);
   /* Birim başına dikey scroll yolu — --home-rail-travel'dan kısa: burada
-     "raftan geçiş" değil "sekiz işi sırayla gösterme" jesti, birim başına
+     "raftan geçiş" değil "işleri sırayla gösterme" jesti, birim başına
      ağır bir yol scroll'u yorar. */
   --portfolio-travel: 55vh;
   /* Timeline'ın ilk payı: kareler eşit üst hizada ve tam kadrajda bir an
@@ -1787,9 +1787,12 @@
     border: none;
   }
 
-  /* Portfolyo vitrini — TABAN düzen: üç sütun + tek bir `span 2` kare = 9
-     hücre, yani sekiz iş tam üç sıraya oturuyor, boş hücre kalmıyor. Bu
-     kural `@supports (animation-timeline: view())` desteklenmediğinde,
+  /* Portfolyo vitrini — TABAN düzen: üç sütunlu grid, `wide` (span 2)
+     işaretli kareler `grid-auto-flow` ile otomatik yerleşiyor (Eylül 2026:
+     24 işin 6'sı `wide` — bkz. portfolio.ts dosya başlığı; artık sabit bir
+     hücre matematiği YOK, auto-placement boş hücre bırakabilir, bu kabul
+     edilebilir çünkü bu yalnızca TABAN/yedek düzen). Bu kural
+     `@supports (animation-timeline: view())` desteklenmediğinde,
      `prefers-reduced-motion: reduce` açıkken ve ≤860px'te GEÇERLİ tek
      düzen; yatay pinli ray (`.home-portfolio-rail`, gated blokta) bunun
      ÜSTÜNE yazılır, altına değil.
@@ -2397,10 +2400,11 @@
     color: var(--accent-text);
   }
 
-  /* Tam liste — anasayfa bant 4'ün taban gridinin aynısı: 3 sütun, geniş iş
-     `span 2`, sekiz iş dokuz hücreye tam oturuyor (bkz. portfolio.ts).
-     Filtrelenince `hidden` işler düzenden çıkar, kalanlar auto-placement'la
-     sola akar. */
+  /* Tam liste — anasayfa bant 4'ün taban gridinin aynısı: 3 sütun, geniş
+     işler `span 2` (bkz. portfolio.ts). Filtrelenince `hidden` işler
+     düzenden çıkar, kalanlar auto-placement'la sola akar — kategoriye göre
+     görünür `wide` sayısı değiştiği için sabit bir hücre matematiği YOK,
+     her filtre kendi geometrisini auto-flow'a bırakıyor. */
   .portfolio-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

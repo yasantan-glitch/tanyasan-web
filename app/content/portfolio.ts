@@ -1,35 +1,45 @@
 /**
  * Portfolyo işlerinin TEK KAYNAĞI — `services.ts` ve `contact.ts` ile aynı
  * desen. İki tüketicisi var: anasayfanın "Öne Çıkanlar" bandı (bant 4, yatay
- * ray) ve `/portfolyo` (tam liste; kategori filtresi `category` alanından
- * türüyor — bkz. app/portfolyo/PortfolioFilter.tsx). Liste iki yerde
- * tutulmaz.
+ * ray — TÜM işleri sırayla gösterir, filtresiz) ve `/portfolyo` (tam liste;
+ * kategori filtresi `category` alanından türüyor — bkz.
+ * app/portfolyo/PortfolioFilter.tsx). Liste iki yerde tutulmaz.
  *
  * Görseller `public/images/portfolyo/` altında ve MOCKUP/KAMPANYA KARELERİ —
  * yani kendi kadrajı olan, kompoze edilmiş işler. Bu yüzden hiçbiri
  * `object-fit: contain` ile küçültülmüyor, hepsi kendi karesinde duruyor
  * (bkz. .home-portfolio-frame, globals.css).
  *
- * Ölçüler dosyalardan okundu: yedisi kare/kareye yakın (1080×1080, 1125×1118,
- * 1000×1100, 1000×1050), yalnızca Wellness manzara (3000×1987). `wide` bu tek
- * istisnayı işaretliyor — grid'de iki sütun kaplıyor ve 8 iş 9 hücreye,
- * yani tam üç sıraya oturuyor (boş hücre kalmıyor).
+ * Eylül 2026: kullanıcının kendi kaynak klasöründen (bkz. sohbet geçmişi)
+ * 16 iş eklendi ve brief §7'nin o güne dek boş kalan "WEB TASARIM"
+ * kategorisi ilk kez dolduruldu — 8'den 24 işe, 4'ten 5 kategoriye çıkıldı.
  *
- * SIRA ÖNEMLİ. Eylül 2026'dan önce `wide` (Wellness Antalya) baştaydı;
- * kullanıcı geri bildirimi bu kareyi diğerlerine göre "küçük ve soluk"
- * buldu — rayın AÇILIŞ karesi olması sorunu büyütüyordu, çünkü ilk izlenim
- * en düşük kontrastlı işle kuruluyordu (ölçüldü: dört doygun kampanya
- * afişinin yanında tek düşük kontrastlı flat-lay). Wellness artık 5. sırada
- * (index 4): ray dört doygun sosyal medya işiyle açılıyor, Wellness ikinci
- * satırda tek bir normal kareyle birlikte duruyor. Grid geometrisi
- * DEĞİŞMEDİ — 3 sütun × 3 satır, 9 hücre: satır 1 üç normal iş, satır 2 bir
- * normal iş + `wide` (2 birim), satır 3 üç normal iş. `wide` kaçıncı
- * sırada olursa olsun `grid-auto-flow` bunu otomatik dolduruyor (CSS grid
- * auto-placement); tek şart öncesinde tam olarak BİR normal işin durması
- * (aksi halde satır kayar, boş hücre kalır). Wellness'in kendi görsel
- * zayıflığı (küçük/soluk okunması) `.home-portfolio-media--boost`
- * ile ayrıca telafi ediliyor (bkz. globals.css, `.home-portfolio-frame`
- * yorumunun altında).
+ * `wide` (grid'de 2 sütun / 2:1 kadraj) İKİ FARKLI SEBEPLE işaretleniyor:
+ * kurumsal kimlik mockup'ı manzara olduğu için (Wellness, tek istisna,
+ * 3000×1987) ve web tasarım ekran görüntüleri 16:9 olduğu için (5 yeni
+ * WEB TASARIM işinin tamamı, 1920×1080 — bir site ekranını 1:1'e sıkıştırıp
+ * üst/alt kırpmak yerine kendi oranına yakın 2:1 çerçeve kullanılıyor).
+ * Geri kalan tüm işler kare/kareye yakın (1080×1080, 1125×1118, 1000×1100,
+ * 1000×1050, 1200×1200).
+ *
+ * SIRA'nın kesin bir 3×3 hücre matematiğiyle ilişkisi YOK (bu, 8 işlik eski
+ * listenin özel bir durumuydu — bkz. git geçmişi). `wide` kaçıncı sırada
+ * olursa olsun `grid-auto-flow` bunu otomatik dolduruyor (CSS grid
+ * auto-placement, hem /portfolyo'nun taban grid'inde hem anasayfanın
+ * `@supports` desteklemediği/`reduced-motion` taban halinde) — sıra artık
+ * yalnızca okunabilirlik için: aynı marka art arda gelmiyor, kategoriler
+ * gruplanmıyor (TÜMÜ görünümü karışık kalsın diye, bkz. PortfolioFilter).
+ * Wellness'in kendi görsel zayıflığı (küçük/soluk okunması)
+ * `.home-portfolio-media--boost` ile ayrıca telafi ediliyor (bkz.
+ * globals.css, `.home-portfolio-frame` yorumunun altında) — bu boost SADECE
+ * Wellness'e `className` ile veriliyor, yeni `wide` işlere DEĞİL (web
+ * tasarım ekran görüntüleri zaten yüksek kontrastlı, telafi gerekmiyor).
+ *
+ * Anasayfanın yatay rayı (`.home-portfolio-rail`, gated blok) `wide`
+ * işleri GİZLER (Eylül 2026 kararı, `--home-portfolio-units` bunları
+ * saymıyor) — yani 6 `wide` iş (Wellness + 5 web tasarım) yalnızca
+ * /portfolyo'da görünür, anasayfa rayında değil. Bu davranış DEĞİŞMEDİ,
+ * yalnızca gizlenen iş sayısı arttı.
  */
 /**
  * DİKKAT — `brand` ve `category` BÜYÜK HARFLE yazılır, `.eyebrow`in
@@ -67,7 +77,29 @@ export interface PortfolioItem {
   event?: string;
   /** Yalnızca manzara oranlı iş: grid'de iki sütun (2/1 kadraj). */
   wide?: boolean;
+  /**
+   * `.home-portfolio-media--boost` (scale 1.14 + doygunluk/kontrast artışı)
+   * — YALNIZCA Wellness Antalya için, kendi görsel zayıflığını (küçük/soluk
+   * okunması) telafi etmek üzere. `wide` İLE AYNI ALAN DEĞİL: beş yeni WEB
+   * TASARIM işi de `wide` ama zaten yüksek kontrastlı ekran görüntüleri,
+   * onlara boost YOK — `wide` olan her işe otomatik uygulanmaz.
+   */
+  boost?: boolean;
 }
+
+/**
+ * TARİHÇE — WebP kodlayıcı bug'ı (Eylül 2026). Beş yeni WEB TASARIM işi
+ * ilk yüklendiğinde kaynak PNG (1920×1080, alfa kanallı) sharp/libvips'in
+ * WebP kodlayıcısında belirli genişliklerde DETERMİNİSTİK olarak asılıyordu
+ * — `Accept: image/webp` gönderen her tarayıcıda (Chrome/Edge varsayılanı)
+ * gerçek kullanıcı için sonsuz yüklenen bir kareye denk gelirdi. Kaynağı
+ * temiz sRGB JPEG'e çevirmek (bu dosya `public/images/portfolyo/*.jpg`
+ * olarak duruyor, alfa YOK) sorunu ortadan kaldırdı — sharp'ın PNG→WebP
+ * yolu bu beş dosyanın piksel içeriğiyle ilgili bir performans ucundan
+ * düşüyordu, JPEG→WebP'de aynı uç yok. Ara geçici çözüm olarak eklenen
+ * `PortfolioItem.unoptimized` alanı bu yüzden KALDIRILDI — yeniden
+ * eklemeden önce önce kaynağı JPEG'e çevirmeyi deneyin, genelde yeterli.
+ */
 
 export const PORTFOLIO_ITEMS: readonly PortfolioItem[] = [
   {
@@ -105,6 +137,7 @@ export const PORTFOLIO_ITEMS: readonly PortfolioItem[] = [
     category: "KURUMSAL KİMLİK",
     alt: "Wellness Antalya kurumsal kimlik çalışması: antetli kağıt, kartvizit, bloknot ve zarf takımı",
     wide: true,
+    boost: true,
   },
   {
     src: "/images/portfolyo/mavi_akdeniz.jpg",
@@ -123,5 +156,109 @@ export const PORTFOLIO_ITEMS: readonly PortfolioItem[] = [
     brand: "ZENGES ENERJİ",
     category: "LOGO & LOGOTYPE",
     alt: "Zenges Enerji logo tasarımı ve baskı uygulaması",
+  },
+
+  // — Eylül 2026 genişlemesi (16 iş, bkz. dosya başlığı) —
+
+  {
+    src: "/images/portfolyo/Poyraz_Emlak_Web.jpg",
+    brand: "POYRAZ EMLAK",
+    category: "WEB TASARIM",
+    alt: "Poyraz Emlak Gayrimenkul için sıfırdan tasarlanan ve kodlanan kurumsal web sitesi",
+    wide: true,
+  },
+  {
+    src: "/images/portfolyo/Poyraz_Global_Web.jpg",
+    brand: "POYRAZ GLOBAL",
+    category: "WEB TASARIM",
+    alt: "Poyraz Global proje pazarlama ve satış sitesi: proje vitrini ve portföy filtreleri",
+    wide: true,
+  },
+  {
+    src: "/images/portfolyo/Evim_Door_Web.jpg",
+    brand: "EVİM DOOR",
+    category: "WEB TASARIM",
+    alt: "Evim Door çelik kapı markası için kurumsal tanıtım sitesi",
+    wide: true,
+  },
+  {
+    src: "/images/portfolyo/Hoop_Vize_Web.jpg",
+    brand: "HOOP VİZE HİZMETLERİ",
+    category: "WEB TASARIM",
+    alt: "Hoop Vize Hizmetleri danışmanlık sitesi: başvuru formu ve süreç anlatımı",
+    wide: true,
+  },
+  {
+    src: "/images/portfolyo/Kemer_MasterCup_Web.jpg",
+    brand: "KEMER MASTER CUP",
+    category: "WEB TASARIM",
+    alt: "Kemer Master Cup uluslararası basketbol turnuvası için etkinlik ve istatistik sitesi",
+    wide: true,
+  },
+  {
+    src: "/images/portfolyo/Anemon_Dental_Logo.webp",
+    brand: "ANEMON DENTAL CLINIC",
+    category: "LOGO & LOGOTYPE",
+    alt: "Anemon Dental Clinic logo tasarımı ve renk varyasyonları",
+  },
+  {
+    src: "/images/portfolyo/Trio_Akademi_Logo.jpg",
+    brand: "TRIO AKADEMİ",
+    category: "LOGO & LOGOTYPE",
+    alt: "Trio Akademi (Ecz. Özlem Çölkesen) logo tasarımı",
+  },
+  {
+    src: "/images/portfolyo/Gizemerdem_Logo.jpg",
+    brand: "GİZEMERDEM",
+    category: "LOGO & LOGOTYPE",
+    alt: "Gizemerdem Medikal Estetik & Güzellik logo tasarımı ve renk varyasyonları",
+  },
+  {
+    src: "/images/portfolyo/Hedef_Spor_Logo.webp",
+    brand: "HEDEF SPOR KULÜBÜ",
+    category: "LOGO & LOGOTYPE",
+    alt: "Hedef 33 Spor Kulübü basketbol takımı forma arması logo tasarımı",
+  },
+  {
+    src: "/images/portfolyo/Poyraz_Gayrimenkul_Kurumsal.jpg",
+    brand: "POYRAZ GAYRİMENKUL",
+    category: "KURUMSAL KİMLİK",
+    alt: "Poyraz Gayrimenkul Kiralık Hizmetleri kurumsal kimlik çalışması: logo ve renk varyasyonları",
+  },
+  {
+    src: "/images/portfolyo/Suufle_Kurumsal.jpg",
+    brand: "SUUFLE",
+    category: "KURUMSAL KİMLİK",
+    alt: "Suufle marka kimliği kılavuzu: renk paleti ve logo kullanım varyasyonları",
+  },
+  {
+    src: "/images/portfolyo/Turksoy_Kurumsal.jpg",
+    brand: "TÜRKSOY",
+    category: "KURUMSAL KİMLİK",
+    alt: "Türksoy için hazırlanan kartvizit kurumsal kimlik mockup'ı",
+  },
+  {
+    src: "/images/portfolyo/Alvis_Sosyal.jpg",
+    brand: "ALVİS PURE BEAUTY",
+    category: "SOSYAL MEDYA",
+    alt: "Alvis Pure Beauty gül suyu serisi için ürün tanıtımı sosyal medya görseli",
+  },
+  {
+    src: "/images/portfolyo/Anemon_Dental_Sosyal.jpg",
+    brand: "ANEMON DENTAL CLINIC",
+    category: "SOSYAL MEDYA",
+    alt: "Anemon Dental Clinic diş tedavileri için hazırlanan reklam sosyal medya görseli",
+  },
+  {
+    src: "/images/portfolyo/Gizemerdem_Sosyal.jpg",
+    brand: "GİZEMERDEM",
+    category: "SOSYAL MEDYA",
+    alt: "Gizemerdem açılış kampanyası için hazırlanan indirim duyurusu sosyal medya görseli",
+  },
+  {
+    src: "/images/portfolyo/Maxiumu_Sosyal.jpg",
+    brand: "MAXIUMU",
+    category: "SOSYAL MEDYA",
+    alt: "Maxiumu hukuk danışmanlığı için hazırlanan tanıtım reklamı sosyal medya görseli",
   },
 ];

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 /**
  * /portfolyo — brief §4'ün "Portfolyo (kategorili)" sayfası. Anasayfa bant
  * 4'ün (yatay ray) kısaltılmış hali DEĞİL, tam liste: `PORTFOLIO_ITEMS`'ın
- * sekiz işi, kategori filtresiyle. Bkz. docs/design-system.md §13.
+ * tamamı, kategori filtresiyle. Bkz. docs/design-system.md §13.
  *
  * YENİ METİN YOK: başlık ve lede anasayfa bant 4'ün cümleleri, öne çıkan
  * satırın metni bant 3'ün (content/emlakCrmPro.ts). Sayfa-yerel sabit
@@ -61,8 +61,8 @@ export default function PortfolyoPage() {
             KURUMSAL KİMLİKTEN KAMPANYAYA
           </h1>
           <p className="text-lead text-muted mt-8 max-w-(--container-prose)">
-            Farklı sektörlerden seçilmiş sekiz iş — logo ve kurumsal kimlik
-            çalışmalarından sosyal medya kampanyalarına.
+            Farklı sektörlerden seçilmiş işler — logo ve kurumsal kimlikten
+            web tasarıma, sosyal medya kampanyalarına.
           </p>
 
           {/* ÖNE ÇIKAN İŞ — sayfadaki TEK tıklanabilir iş, çünkü vaka sayfası

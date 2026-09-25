@@ -304,11 +304,24 @@ Gerekçe `docs/design-system.md` §13. Kısaca:
 - **`.home-portfolio-item--wide` bu sayfalarda kullanılmaz** — gated blok
   onu global `display: none`'a çekiyor (anasayfa rayı). `/portfolyo`'nun
   kendi `.portfolio-item--wide`i var.
-- **Filtre client state'te, URL'de değil** (sayfa statik kalsın); sekiz iş
+- **Filtre client state'te, URL'de değil** (sayfa statik kalsın); tüm işler
   SSR'da basılı, filtre yalnızca `hidden`ı çeviriyor.
 - **emlakcrmpro.com yalnızca vaka sayfasının sonunda** (`CASE_EXTERNAL`,
   brief §5.2). Başka sayfa import etmemeli.
 - `/grafik-tasarim` → `/portfolyo` 301 `next.config.ts`'te.
+- **24 iş, 5 kategori** (Eylül 2026 genişlemesi — bkz.
+  `docs/design-system.md` §13 "Eylül 2026 genişlemesi"). `PortfolioItem`'da
+  `wide` (2/1 kadraj) ile `boost` (yalnızca Wellness'in doygunluk/scale
+  telafisi) AYRI alanlar — birini diğeriyle karıştırmayın, JSX'te ikisi de
+  `item.wide`'a bağlanırsa yeni geniş işler istenmeden boost alır.
+- **Yeni bir ekran görüntüsü eklerken PNG değil JPEG kullanın.** Alfa
+  kanallı PNG'lerde sharp/libvips'in WebP kodlayıcısı bazı genişliklerde
+  gerçekten asılabiliyor (`Accept: image/webp` gönderen her tarayıcıda —
+  test artefaktı değil, WEB TASARIM işleri eklenirken canlı olarak
+  yaşandı, detay `docs/design-system.md` §13). sRGB JPEG'e çevirmek
+  sorunu ortadan kaldırdı. Şüpheniz varsa `next dev`'de `curl -H "Accept:
+  image/webp" .../_next/image?url=...&w=<genişlik>` ile birkaç genişliği
+  elle deneyin.
 
 # İletişim formu — sitenin tek sunucu tarafı
 
