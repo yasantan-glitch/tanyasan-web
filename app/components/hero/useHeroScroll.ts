@@ -14,6 +14,7 @@ import {
 import {
   HERO_PHASES,
   HERO_PHASE_COUNT,
+  HERO_WEIGHT_TOTAL,
   INTRO_PHASE_INDEX,
   PHASE_RANGES,
   RESOLVE_PHASE_INDEX,
@@ -60,6 +61,16 @@ function scatterOf(lineIndex: number, wordIndex: number) {
   };
 }
 
+/**
+ * Normalize p ekseninde BİR ağırlık birimi (bkz. heroPhases.ts
+ * HERO_WEIGHT_TOTAL). Faz sınırını aşan köprüler (handoff, saçılma, gösterge
+ * payı) ham p ile değil bu birimle yazılır: ham p'de yazılsalardı hizmet
+ * ağırlıkları büyüdüğünde (Eylül 2026, ×1.4) toplam da büyüyüp bu köprüleri
+ * sessizce kısaltırdı. Katsayılar eski ham değerler × 8.40 (o günkü toplam) —
+ * yani mutlak süreleri birebir korunuyor.
+ */
+const WEIGHT_UNIT = 1 / HERO_WEIGHT_TOTAL;
+
 const isMobile = () =>
   typeof window !== "undefined" && window.matchMedia("(max-width: 860px)").matches;
 
@@ -100,17 +111,39 @@ interface VideoLayer {
 
 // ---- faz içi koreografi pencereleri (q ∈ [0,1], faza göre yerel) ----------
 // Sıra: ikon ağdan doğar → ayraç iner → başlık → kalemler stagger'lı.
+// Girişler Eylül 2026'da önce SIKIŞTIRILDI (ikon 0.10→0.08, ayraç 0.18→0.12,
+// başlık 0.28→0.16, kalemler 0.30–0.46 → 0.18–0.34: koreografinin sırası
+// aynı, yalnızca daha erken bitiyor — kazanılan pay platoya gitti), sonra
+// İKİNCİ bir geçişte GECİKTİRİLDİ (canlı test: metin hâlâ çok çabuk
+// beliriyordu, ~1.5s/~30vh istendi). PHASE_ENVELOPE'A DOKUNULMADI: kökün
+// (`.hero-phase` root, opacity) kendi fade-in'i eskisi gibi q=0.06'da
+// başlıyor — yalnızca İÇERİK (ikon/ayraç/başlık/kalemler) daha geç geliyor.
+// Bilinçli tercih: PHASE_ENVELOPE de geciktirilseydi, faz 1→2 devrinde
+// (leadingPhaseProgress, HANDOFF_SPAN) kök uzunca bir süre tamamen görünmez
+// kalırdı — video zaten oynuyorken boş bir çerçeve asılı dururdu. Kökün
+// erken fade-in'i sayesinde bu boşluk hiç açılmıyor: video + koyu zemin
+// erken görünür, yalnızca ikon/başlık/kalemler bekletiliyor.
+//
+// Yeni değerler `heroPhases.ts`teki SERVICE_WEIGHTS ×1.236 ile BİRLİKTE
+// çalışıyor: `new = (old + 0.236) / 1.236` — bu affine dönüşüm, fazı
+// %23.6 uzatıp EN BAŞINA sabit bir gecikme eklemenin yerel q karşılığı
+// (türetim: docs/design-system.md §8). Sonuç, fazın kendi uzunluğuyla
+// orantılı ~27–36vh (ortalama ~30vh) bir gecikme ve PLATONUN (her şey
+// görünür kaldığı süre) MUTLAK vh uzunluğunun KORUNMASI — ölçüldü
+// (GRAFİK): eski plato ~98.6vh, yeni plato ~97.8vh (fark yuvarlama payı).
+//
 // Çıkış faz aralığının İÇİNDE biter (0.98) ve sonraki fazın girişi kendi
 // aralığının %10'unda başlar; bu yüzden iki faz asla üst üste binmez.
 const PHASE_ENVELOPE = { from: 0.06, to: 0.98, rIn: 0.14, rOut: 0.12 };
-const ICON_WINDOW = { from: 0.1, to: 0.98, rIn: 0.16, rOut: 0.08 };
-const RULE_WINDOW = { from: 0.18, to: 0.98, rIn: 0.16, rOut: 0.06 };
-const TITLE_WINDOW = { from: 0.28, to: 0.98, rIn: 0.14, rOut: 0.06 };
-const ITEMS_FROM = 0.3;
-// Son kalem faz süresinin %46'sında yerine oturur. Bu değer plato uzunluğunu
+const ICON_WINDOW = { from: 0.256, to: 0.98, rIn: 0.14, rOut: 0.08 };
+const RULE_WINDOW = { from: 0.288, to: 0.98, rIn: 0.12, rOut: 0.06 };
+const TITLE_WINDOW = { from: 0.321, to: 0.98, rIn: 0.12, rOut: 0.06 };
+const ITEMS_FROM = 0.337;
+// Son kalem faz süresinin %46.6'sında yerine oturur (eskiden %34, ikinci
+// geçişte geciktirildi — yukarıdaki nota bakın). Bu değer plato uzunluğunu
 // doğrudan belirliyor: giriş ne kadar geç biterse "her şey görünür" penceresi
 // o kadar kısalır ve hızlı scroll'da kalemler okunmadan geçer.
-const ITEMS_TO = 0.46;
+const ITEMS_TO = 0.466;
 const ITEMS_SPREAD = 0.55;
 
 /**
@@ -120,10 +153,10 @@ const ITEMS_SPREAD = 0.55;
  * bir devam eden hareket — sınırda duraklama/kesim hissi olmasın diye.
  *
  * Global p ekseninde ±HANDOFF_SPAN; faz 2 bu kadar erken çizilmeye başlar
- * (bkz. read()'te inRange'in bu faz için genişletilmesi). Değer faz 2'nin
- * payının (~0.137) beşte biri — kendi zarfı devralmadan önceki köprü.
+ * (bkz. read()'te inRange'in bu faz için genişletilmesi). Değer ~0.24
+ * ağırlık birimi (≈22vh) — faz 2'nin kendi zarfı devralmadan önceki köprü.
  */
-const HANDOFF_SPAN = 0.028;
+const HANDOFF_SPAN = 0.2352 * WEIGHT_UNIT;
 /** Faz 1 kopyasının çıkışta kat ettiği mesafe / ölçek kaybı. */
 const HANDOFF_RISE_VH = 11;
 const HANDOFF_SCALE = 0.07;
@@ -137,7 +170,7 @@ const HANDOFF_ENTER_VH = 9;
  * kadar ÖNCE başlar ve handoff ile AYNI ANDA biter; böylece sınırda ne ani bir
  * kesim ne de geride kalan kelime olur.
  */
-const SCATTER_LEAD = 0.05;
+const SCATTER_LEAD = 0.42 * WEIGHT_UNIT;
 const SCATTER_SPREAD = 0.5;
 /** Kelime başına savrulma aralıkları — hash kanalları bu aralıklara eşlenir. */
 const SCATTER_X_MIN_VW = 8;
@@ -155,7 +188,10 @@ const HINT_OPACITY = 0.85;
  * noktasında AÇILIYOR, yani büyük bir değer alt başlığı faz 1'in daha
  * başındayken soldurur (0.12'de sayfanın tepesinden itibaren sönüyordu). */
 const SCATTER_SUB_SHIFT_VW = 6;
-const SCATTER_SUB_LEAD = 0.02;
+const SCATTER_SUB_LEAD = 0.168 * WEIGHT_UNIT;
+/** Faz göstergesinin intro sonundan önce belirip resolve başından sonra
+ * sönmesi için pay. */
+const INDICATOR_PAD = 0.252 * WEIGHT_UNIT;
 
 /** Faz 8: zemin geçişi. Koyu sahne beyaza bu pencerede döner (resolve-yerel
  * q). Faz 7'nin içeriği kendi zarfıyla faz sınırında zaten 0'a inmiş olduğu
@@ -444,7 +480,15 @@ export function useHeroScroll(): HeroScrollHandle {
       const stage = cta.offsetParent as HTMLElement | null;
       const stageH = stage?.offsetHeight ?? window.innerHeight;
       railTopPx = stageH * OUTRO_RAIL_TOP_RATIO;
-      railSpanPx = Math.max(cta.offsetTop + cta.offsetHeight / 2 - railTopPx, 1);
+      // Durma noktası masaüstünde CTA satırının DİKEY MERKEZİ (ray orada
+      // butonların arasındaki boşluğa denk geliyor). Mobilde CTA artık tam
+      // genişlikte (gutter'dan gutter'a) akıyor ve rayın x'i (%68) ikinci
+      // butonun ÜSTÜNE denk geliyor — merkezde durursa çizgi butonun
+      // gövdesinden geçer. Mobilde bu yüzden durma noktası satırın ÜSTÜ:
+      // nokta rayı çizip butonların hemen üstünde duruyor, "raydan çıkan
+      // CTA" okuması bozulmuyor ama çizgi buton metnine binmiyor.
+      const restY = mobile ? cta.offsetTop - 10 : cta.offsetTop + cta.offsetHeight / 2;
+      railSpanPx = Math.max(restY - railTopPx, 1);
       // Ray tam olarak tepe noktasıyla durma noktası arasını kaplar; viewBox
       // `preserveAspectRatio: none` ile bu yüksekliğe gerilir (x ölçeği 1
       // kaldığı için çizgi kalınlığı bozulmaz).
@@ -739,7 +783,7 @@ export function useHeroScroll(): HeroScrollHandle {
       if (indicatorRef.current) {
         // (1 - wash): koyu zemin için ayarlanmış gri çizgiler beyaz sahnede
         // asılı kalmasın.
-        const ivis = cue(p, introRange.end - 0.03, resolveRange.start + 0.03, 0.14, 0.14) * (1 - wash);
+        const ivis = cue(p, introRange.end - INDICATOR_PAD, resolveRange.start + INDICATOR_PAD, 0.14, 0.14) * (1 - wash);
         indicatorRef.current.style.opacity = String(ivis.toFixed(3));
       }
       {

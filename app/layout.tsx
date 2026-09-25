@@ -3,6 +3,7 @@ import { Archivo, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "./components/nav/SiteHeader";
 import SkipLink from "./components/nav/SkipLink";
+import ScrollDirection from "./components/ScrollDirection";
 
 // Display: geniş ağırlık (100–900) ve genişlik (62–125) eksenine sahip
 // endüstriyel grotesk. Hero'da büyük boyutta logonun sert diyagonalleriyle
@@ -44,6 +45,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       {/* relative: .nav-sentinel'in (SiteHeader) konumlanacağı çerçeve. */}
       <body className="surface-paper min-h-full flex flex-col relative">
         <SkipLink />
+        {/* Yön bayrağı — yalnızca scroll imlecinin oku için (bkz. bileşen). */}
+        <ScrollDirection />
         <SiteHeader />
         <main id="icerik" className="flex-1">
           {children}

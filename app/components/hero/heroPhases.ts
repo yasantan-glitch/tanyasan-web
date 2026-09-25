@@ -72,13 +72,39 @@ export const RESOLVE_SLOGAN_ACCENT_LINE = 2;
  * payı; içerikten bağımsız olduğu için burada kalıyor (services.ts sırayı ve
  * metni taşır, zamanlamayı değil).
  */
+/*
+ * ×1.4 (Eylül 2026): eski değerlerle (1.15/1.05/0.85/0.95/0.85/0.85) GRAFİK
+ * fazının "her şey görünür" platosu ~50vh'ydi — tek bir tekerlek hamlesi,
+ * başlık okunmadan geçiyordu. Ağırlıklar oransal olduğu için yalnızca bu
+ * tabloyu büyütmek intro/resolve'u da KISALTIRDI; bu yüzden globals.css'teki
+ * `--hero-travel` aynı oranda (800vh → 1020vh) büyütüldü, ağırlık başına düşen
+ * yol (~95vh) sabit kaldı. Sonuç: intro ve kapanışın mutlak süresi aynı,
+ * yalnızca hizmet fazları uzun.
+ */
+/*
+ * ×1.236 (Eylül 2026, ikinci geçiş): canlı test geri bildirimi — hizmet
+ * fazlarının METNİ (ikon/başlık/kalemler) hâlâ çok çabuk beliriyordu,
+ * ~1.5 saniyelik (≈30vh) bir gecikme istendi. Bu YİNE bir ağırlık çarpanı,
+ * ama bu kez yalnızca İÇERİK PENCERELERİNİ değil ONLARIN GECİKMESİNİ de
+ * ayarlıyor — bkz. useHeroScroll.ts'teki ICON_WINDOW/RULE_WINDOW/
+ * TITLE_WINDOW/ITEMS_FROM/ITEMS_TO'nun yanındaki not: bu ağırlıklarla
+ * `--hero-travel`i (globals.css) AYNI oranda büyütmenin matematiği,
+ * içerik pencerelerini `new = (old + 0.236) / 1.236` ile yeniden yazmakla
+ * BİRLİKTE çalışıyor — sonuç: ortalama ~30vh'lik bir gecikme (kısa
+ * fazlarda ~27vh, uzun fazlarda ~36vh, fazın kendi uzunluğuyla orantılı)
+ * EKLENİYOR ve eskiden beri var olan "her şey görünür" platosunun MUTLAK
+ * (vh) uzunluğu KORUNUYOR — plato daha geç başlıyor, aynı sürede bitiyor.
+ * Video playhead'i (VIDEO_FADE, driveVideoLayer) bu değişiklikten
+ * ETKİLENMİYOR: o hâlâ fazın TAM yerel `q ∈ [0,1]`'ini 0→1 oynatıyor,
+ * fazın kaç vh sürdüğünden bağımsız.
+ */
 const SERVICE_WEIGHTS: Record<string, number> = {
-  grafik: 1.15,
-  dijital: 1.05,
-  web: 0.85,
-  yazilim: 0.95,
-  foto: 0.85,
-  danismanlik: 0.85,
+  grafik: 1.99,
+  dijital: 1.817,
+  web: 1.471,
+  yazilim: 1.644,
+  foto: 1.471,
+  danismanlik: 1.471,
 };
 
 /** Fazın kendi klibi. Yalnızca hero'yu ilgilendirir — /hizmetler medyasız. */
@@ -118,9 +144,15 @@ export interface PhaseRange {
   end: number;
 }
 
+/** Ağırlıkların toplamı. Normalize p ekseninde BİR ağırlık birimi
+ * `1 / HERO_WEIGHT_TOTAL`'dir — faz sınırını aşan köprü süreleri (handoff,
+ * saçılma, gösterge payı) bu birim cinsinden yazılır ki bir ağırlık
+ * değiştiğinde mutlak süreleri sessizce kısalmasın (bkz. useHeroScroll). */
+export const HERO_WEIGHT_TOTAL = HERO_PHASES.reduce((sum, phase) => sum + phase.weight, 0);
+
 /** Ağırlıklardan türetilen, kümülatif normalize faz aralıkları. */
 export const PHASE_RANGES: PhaseRange[] = (() => {
-  const total = HERO_PHASES.reduce((sum, phase) => sum + phase.weight, 0);
+  const total = HERO_WEIGHT_TOTAL;
   let acc = 0;
   return HERO_PHASES.map((phase) => {
     const start = acc / total;

@@ -11,7 +11,7 @@ import {
   isServicePhase,
   type HeroServicePhase,
 } from "./heroPhases";
-import { ORB_DOTS, ORB_VIEWBOX } from "./outroOrb";
+import { ORB_GROUPS, ORB_VIEWBOX, ORB_WAVE_DURATION } from "./outroOrb";
 import { useHeroScroll } from "./useHeroScroll";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -140,20 +140,19 @@ function HeroCtas() {
 }
 
 /**
- * Faz 8'in küresi: nokta bulutundan bir küre. Koordinatların YANI SIRA her
- * noktanın nefes parametreleri de deterministik (bkz. outroOrb.ts) ve inline
- * custom property olarak basılıyor; hareketin kendisi CSS'te, tek bir
- * paylaşılan @keyframes'te (hero-orb-dot).
+ * Faz 8'in küresi: sık bir nokta kafesinden gerçekçi bir küre. Geometri ve
+ * dilimleme deterministik (bkz. outroOrb.ts); hareketin kendisi CSS'te, tek
+ * bir paylaşılan @keyframes'te (hero-orb-wave) ve DİLİM seviyesinde — her
+ * <g> kendi gecikmesiyle şişiyor, şişkinlik kürenin etrafında dolaşıyor.
  *
- * Neden per-nokta CSS animasyonu, JS rAF değil: bu döngü scroll'dan bağımsız
- * ve sonsuz. rAF'ta olsaydı 280 elemana kare başına iki özellik yazmak
- * gerekirdi ve bu iş, video playhead'ini süren mevcut tick() ile aynı kare
- * bütçesine binerdi. CSS'te JS işi sıfır, tarayıcı ekran dışında/arka plan
- * sekmesinde animasyonu kendiliğinden kısıyor ve prefers-reduced-motion
- * motorda dal açmadan çözülüyor.
+ * Neden CSS, JS rAF değil: bu döngü scroll'dan bağımsız ve sonsuz. rAF'ta
+ * olsaydı video playhead'ini süren mevcut tick() ile aynı kare bütçesine
+ * binerdi. CSS'te JS işi sıfır, tarayıcı ekran dışında/arka plan sekmesinde
+ * animasyonu kendiliğinden kısıyor ve prefers-reduced-motion motorda dal
+ * açmadan çözülüyor.
  *
- * `will-change` bilinçli olarak YOK: 280 noktaya verilseydi 280 ayrı katman
- * oluşurdu — kazançtan çok maliyet.
+ * `will-change` bilinçli olarak YOK: 10 dilimin her biri yüzlerce nokta
+ * taşıyor, ayrı katmanlar kazançtan çok bellek maliyeti.
  */
 function HeroOutroOrb() {
   return (
@@ -162,27 +161,25 @@ function HeroOutroOrb() {
       viewBox={`0 0 ${ORB_VIEWBOX} ${ORB_VIEWBOX}`}
       aria-hidden="true"
       focusable="false"
+      // Süre tek kaynakta (outroOrb.ts); gecikmeler de ondan türüyor.
+      style={{ "--odur": `${ORB_WAVE_DURATION}s` } as React.CSSProperties}
     >
-      <g>
-        {ORB_DOTS.map((dot, index) => (
-          <circle
-            key={index}
-            cx={dot.cx}
-            cy={dot.cy}
-            r={dot.r}
-            opacity={dot.opacity}
-            style={
-              {
-                "--odx": `${dot.dx}px`,
-                "--ody": `${dot.dy}px`,
-                "--os": dot.scale,
-                "--odur": `${dot.duration}s`,
-                "--odly": `${dot.delay}s`,
-              } as React.CSSProperties
-            }
-          />
-        ))}
-      </g>
+      {ORB_GROUPS.map((group) => (
+        <g
+          key={group.delay}
+          style={{ "--odly": `${group.delay}s` } as React.CSSProperties}
+        >
+          {group.dots.map((dot) => (
+            <circle
+              key={`${dot.cx},${dot.cy}`}
+              cx={dot.cx}
+              cy={dot.cy}
+              r={dot.r}
+              opacity={dot.opacity}
+            />
+          ))}
+        </g>
+      ))}
     </svg>
   );
 }

@@ -14,8 +14,21 @@
  * istisnayı işaretliyor — grid'de iki sütun kaplıyor ve 8 iş 9 hücreye,
  * yani tam üç sıraya oturuyor (boş hücre kalmıyor).
  *
- * SIRA ÖNEMLİ: `wide` olan başta duruyor, editoryal bir açılış veriyor ve
- * 3 sütunlu grid'in ilk satırını (2 + 1) tamamlıyor.
+ * SIRA ÖNEMLİ. Eylül 2026'dan önce `wide` (Wellness Antalya) baştaydı;
+ * kullanıcı geri bildirimi bu kareyi diğerlerine göre "küçük ve soluk"
+ * buldu — rayın AÇILIŞ karesi olması sorunu büyütüyordu, çünkü ilk izlenim
+ * en düşük kontrastlı işle kuruluyordu (ölçüldü: dört doygun kampanya
+ * afişinin yanında tek düşük kontrastlı flat-lay). Wellness artık 5. sırada
+ * (index 4): ray dört doygun sosyal medya işiyle açılıyor, Wellness ikinci
+ * satırda tek bir normal kareyle birlikte duruyor. Grid geometrisi
+ * DEĞİŞMEDİ — 3 sütun × 3 satır, 9 hücre: satır 1 üç normal iş, satır 2 bir
+ * normal iş + `wide` (2 birim), satır 3 üç normal iş. `wide` kaçıncı
+ * sırada olursa olsun `grid-auto-flow` bunu otomatik dolduruyor (CSS grid
+ * auto-placement); tek şart öncesinde tam olarak BİR normal işin durması
+ * (aksi halde satır kayar, boş hücre kalır). Wellness'in kendi görsel
+ * zayıflığı (küçük/soluk okunması) `.home-portfolio-media--boost`
+ * ile ayrıca telafi ediliyor (bkz. globals.css, `.home-portfolio-frame`
+ * yorumunun altında).
  */
 /**
  * DİKKAT — `brand` ve `category` BÜYÜK HARFLE yazılır, `.eyebrow`in
@@ -57,16 +70,6 @@ export interface PortfolioItem {
 
 export const PORTFOLIO_ITEMS: readonly PortfolioItem[] = [
   {
-    // Dosya adındaki "Welsness" bir yazım hatası; markanın adı Wellness
-    // Antalya. Dosya yeniden adlandırılmadı (public/ altındaki varlıklara
-    // dokunulmuyor), etiket doğru yazılıyor.
-    src: "/images/portfolyo/Welsness_Kurumsal.jpg",
-    brand: "WELLNESS ANTALYA",
-    category: "KURUMSAL KİMLİK",
-    alt: "Wellness Antalya kurumsal kimlik çalışması: antetli kağıt, kartvizit, bloknot ve zarf takımı",
-    wide: true,
-  },
-  {
     src: "/images/portfolyo/GR_Terra_City.jpg",
     brand: "GOLDEN ROSE TERRA CITY",
     category: "SOSYAL MEDYA",
@@ -91,6 +94,16 @@ export const PORTFOLIO_ITEMS: readonly PortfolioItem[] = [
     category: "SOSYAL MEDYA",
     event: "WHITE PARTY",
     alt: "Rixos Premium Bodrum White Party etkinlik duyurusu sosyal medya görseli",
+  },
+  {
+    // Dosya adındaki "Welsness" bir yazım hatası; markanın adı Wellness
+    // Antalya. Dosya yeniden adlandırılmadı (public/ altındaki varlıklara
+    // dokunulmuyor), etiket doğru yazılıyor.
+    src: "/images/portfolyo/Welsness_Kurumsal.jpg",
+    brand: "WELLNESS ANTALYA",
+    category: "KURUMSAL KİMLİK",
+    alt: "Wellness Antalya kurumsal kimlik çalışması: antetli kağıt, kartvizit, bloknot ve zarf takımı",
+    wide: true,
   },
   {
     src: "/images/portfolyo/mavi_akdeniz.jpg",

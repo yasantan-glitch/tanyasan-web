@@ -45,19 +45,21 @@ yazılmaz**; kaydırma butonların kendisindedir.
 salınır; opaklığa uygulansaydı görünür bir titreme olurdu — opaklık her yerde
 monotonik `smooth` ile sürülür.
 
-**Kürenin geometrisi VE nefes parametreleri deterministiktir**
+**Kürenin geometrisi VE nefes dilimleri deterministiktir**
 (`outroOrb.ts`, Fibonacci kafesi + `hash01`): `Math.random` yok, modül
 seviyesinde bir kez hesaplanır. Burada bu bir stil tercihi değil zorunluluk —
-değerler SSR HTML'ine inline custom property olarak yazılır, sunucu ile
-istemci aynı diziyi üretmezse hydration patlar.
+değerler SSR HTML'ine attribute olarak yazılır, sunucu ile istemci aynı
+diziyi üretmezse hydration patlar.
 
-**Her nokta kendi animasyonunu sürer, tek bir `<g>` keyframe'i YOKTUR.** Süre,
-gecikme (negatif) ve genlik per-nokta; faz/süre saf hash'ten değil **konuma
-bağlı düzgün alanlardan** gelir — saf hash komşu noktaları bağımsız titretir ve
-bulut TV karıncasına döner. Hareket CSS'tedir, JS rAF'ta değil: döngü
-scroll'dan bağımsız ve sonsuz olduğu için rAF'ta olsaydı `tick()`in kare
-bütçesine binerdi. Noktalara `will-change` **verilmez** (280 katman oluşurdu).
-Gerekçenin tamamı ve geri çekilme yolu için `docs/design-system.md` §8.
+**Küre gerçekçi olmalı, düzensiz değil** (Eylül 2026 kullanıcı kararı; eski
+280 noktalı düzensiz bulut kaldırıldı). 680 nokta; boyut ve opaklık yalnızca
+derinlikten ve bir Lambert ışığından gelir, hash payı ±%6. Boyut jitter'ı ya
+da dış hattı bozan bir alan geri eklenmemeli. **Nefes per-nokta değil dilim
+seviyesindedir:** noktalar boylama göre 10 `<g>`'ye ayrılır, her dilim
+`hero-orb-wave` ile viewBox merkezinden `scale(1.035)`'e çıkar, gecikmeler
+dilim sırasına göre kayar ve dalga kürenin etrafında dolaşır. Hareket
+CSS'tedir (rAF değil); `will-change` verilmez. Gerekçe için
+`docs/design-system.md` §8.
 
 ## Tek kaynak: `heroPhases.ts`
 
@@ -104,11 +106,35 @@ veya `Hero.tsx` içinde faz sınırı için elle yazılmış sabit **yoktur**.
   DOM'da her zaman dursun (React state ile mount/unmount etmeyin), yalnızca
   `read()` içinde opaklığını sürün.
 
-## Plato mekanizması (%43) — hızlı scroll'a karşı tek koruma
+## Plato mekanizması ve içerik gecikmesi — hızlı scroll'a karşı tek koruma
 
 Her hizmet fazının içinde, tüm öğeler (ikon, ayraç, başlık, kalemler) tam
-göründükten sonra **faz süresinin ~%43'ü** boyunca hiçbir şey değişmeden
-kalır (`q ≈ 0.445 → 0.871`, yerel faz ilerlemesi `q ∈ [0,1]` üzerinde).
+göründükten sonra bir süre hiçbir şey değişmeden kalır (`q ≈ 0.466 → ~0.98`,
+yerel faz ilerlemesi `q ∈ [0,1]` üzerinde). 1440×900'de bu GRAFİK için
+~90vh, en kısa fazlar için ~60vh (ölçüldü — Eylül 2026'nın İKİNCİ geçişinden
+sonra, aşağıya bakın).
+
+**İçerik (ikon/başlık/kalemler) fazın kendisinden GEÇ başlıyor** — Eylül
+2026'nın ikinci geçişi, canlı test geri bildirimi: metin ~1.5s/~30vh daha
+geç görünsün. `ICON_WINDOW`/`RULE_WINDOW`/`TITLE_WINDOW`/`ITEMS_FROM`/
+`ITEMS_TO` `new = (old + 0.236) / 1.236` affine formülüyle yeniden
+hesaplandı (türetim `docs/design-system.md` §8). **`PHASE_ENVELOPE`'A
+DOKUNULMADI** — kökün kendi fade-in'i hâlâ erken (q=0.06): dokunulsaydı
+faz 1→2 devrinde (`leadingPhaseProgress`) kök uzunca süre görünmez kalır,
+video oynarken boş bir çerçeve asılı dururdu. Yeni bir içerik penceresi
+eklerken bu ayrımı koruyun: KÖK erken görünsün, İÇERİK geç gelsin.
+
+**Hizmet fazlarının uzunluğu iki yerde birlikte ayarlanır:**
+`heroPhases.ts`'teki `SERVICE_WEIGHTS` ve `globals.css`'teki `--hero-travel`.
+Ağırlıklar oransal: yalnızca hizmet ağırlığını büyütmek intro ile kapanışı
+kısaltır. Ağırlık başına yolu (~95.5vh) sabit tutmak için bütçe de aynı
+oranda büyütülür — **bu iki dosya HER ZAMAN birlikte değişir.** Faz
+sınırını aşan köprüler (`HANDOFF_SPAN`, `SCATTER_*`, `INDICATOR_PAD`)
+`useHeroScroll.ts`'te **ağırlık birimi** (`WEIGHT_UNIT =
+1 / HERO_WEIGHT_TOTAL`) cinsinden yazılı; ham p sabiti eklemeyin, toplam
+değişince sessizce kısalır. Video playhead'i (`VIDEO_FADE`,
+`driveVideoLayer`) bu ağırlık/pencere değişikliklerinin HİÇBİRİNDEN
+etkilenmez — hep fazın tam yerel `q ∈ [0,1]`'ini kendi süresine eşler.
 
 Bu **bilinçli bir tasarım kararı**: scroll-snap veya benzeri bir "durdurma"
 mekanizması **kullanılmıyor** — kullanıcı hızlı scroll yaparsa fazı hızlı
@@ -180,6 +206,18 @@ zemine geçer.
   `--nav-solid-after` yüksekliğinde akış-dışı bir kutu) gözlemleniyor.
   Sentinel viewport'un üstünden tamamen çıktığında (`isIntersecting ===
   false`) nav solid'e döner; geri scroll'da kendiliğinden şeffaflaşır.
+  **Tek belgelenmiş istisna:** `app/components/ScrollDirection.tsx`
+  (Eylül 2026, özel scroll imleci için — bkz. `docs/design-system.md` §7)
+  gerçekten üçüncü bir `window` scroll listener'ı ekliyor. Bunun burada
+  uyarılan maliyeti taşımamasının sebebi işin kendisi: `IntersectionObserver`
+  kullanılamıyor (yön için art arda iki `scrollY` okuması gerekiyor, kesişim
+  değil), ama dinleyici PASİF, rAF'la karede en çok bir kez çalışıyor ve
+  DOM'a yalnızca yön DEĞİŞTİĞİNDE (`dataset.scrollDir`) yazıyor — hero'nun
+  `tick()`'i gibi her karede iş yapan bir döngü değil. Yeni bir istisna
+  eklemeden önce bu üçünü karşılaştırın: hero'nunki sürekli veri okuyup DOM
+  yazıyor (zorunlu, per-frame scrub), nav'ınki hiç okumuyor (event tabanlı,
+  gözlemci), ScrollDirection'ınki nadiren yazıyor (event tabanlı, eşiğe
+  bağlı bayrak).
 - **Hero'nun kendi scroll state'ine (`useHeroScroll.ts`) hiç dokunmaz** —
   eşik geçişinde yalnızca tek bir boolean state (`solid`) güncellenir, her
   frame'de iş yapılmaz.

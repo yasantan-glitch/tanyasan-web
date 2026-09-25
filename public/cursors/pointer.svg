@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Tıklanabilir öğeler (a, button, [role=button], summary, label[for],
+       select). arrow.svg'nin AYNI silüeti + amber bir işaret: site
+       paletinin aksan tonu, TANYASAN logotype'ındaki elmas noktayla
+       aynı geometri (45°'ye döndürülmüş kare) — yeni bir şekil dili
+       icat edilmedi, markanın kendi işareti kullanıldı. Tek ton — amber
+       dolgu — arrow.svg'yle aynı kural. Hotspot arrow.svg'yle AYNI (3,2):
+       iki imleç arasında geçiş sırasında imlecin ucu kaymamalı. -->
+  <path
+    d="M3 2 L3 19 L8 15.5 L11.5 22 L14.5 20.5 L11 14 L18 14 Z"
+    fill="#e8ae30"
+    stroke="#e8ae30"
+    stroke-width="1.25"
+    stroke-linejoin="miter"
+  />
+  <rect
+    x="15.5"
+    y="15.5"
+    width="5"
+    height="5"
+    transform="rotate(45 18 18)"
+    fill="#e8ae30"
+    stroke="#e8ae30"
+    stroke-width="1"
+  />
+</svg>

@@ -66,6 +66,30 @@ const CASE_PARAGRAPHS = [
 ];
 
 /**
+ * Bandın dört karesi, gösterim SIRASINDA: açılış (yönetim paneli) artık sol
+ * bloğun İÇİNDE değil, üçünün BAŞINDA sağ şeritte akıyor (bkz. aşağıdaki
+ * "Sabit anlatı + yetenek indeksi" notu). Eskiden `.home-case-split__media`
+ * sabit sol blokta duran ayrı bir kare, üçü de akan şeritteydi; artık dördü
+ * de aynı jesti (case-focus) paylaşan tek bir akan şerit.
+ */
+const CASE_SHOTS = [CASE_LEAD_SHOT, ...CASE_SUPPORT_SHOTS];
+
+/**
+ * Sol bloğun "yetenek indeksi" — Eylül 2026'da açılış karesinin yerine
+ * geçti (bkz. docs/design-system.md §12). YENİ METİN YOK: numaralar sıradan,
+ * etiketler `CASE_SHOTS`'un kendi `caption`'ından türüyor. Açılış karesinin
+ * künyesi "EMLAK CRM PRO — YÖNETİM PANELİ" biçiminde ("—"den sonrası panel
+ * adı); ajans/ürün adı bant başlığında zaten söylenmiş olduğu için indekste
+ * yalnızca panel adı kalıyor, öneki tekrar etmiyor.
+ */
+const CASE_INDEX = CASE_SHOTS.map((shot, index) => ({
+  number: String(index + 1).padStart(2, "0"),
+  label: shot.caption.includes("—")
+    ? shot.caption.split("—")[1].trim()
+    : shot.caption,
+}));
+
+/**
  * Bandın başındaki hairline + numaralı işaret. Sayfa-yerel: yalnızca anasayfa
  * kullanıyor ve altı bandın sırası bu sayfanın kendi anlatısı — /hizmetler'in
  * `NN / 06` sayacı hizmetlerin sırasını sayıyor, bu ise bölümleri. İkisini
@@ -246,25 +270,22 @@ export default function Home() {
           bağlantısı alttaki CTA ve o iç rotaya gidiyor. */}
       <section className="surface-ink surface-ink-deep seam px-(--spacing-gutter) py-(--spacing-section-loose)">
         <div className="mx-auto max-w-(--container-wide)">
-          {/* Bandın tepe noktası olma biçimi: SOL SÜTUNUN TAMAMI —
-              işaret, başlık, açılış karesi, açıklama ve CTA — tek bir
-              SABİT blok. Sağ sütun ise normal akışta kalıyor, yani üç
-              destek karesi sol blok ekranda dururken altından yukarı
-              akıyor. Anlatı sabit, kanıt akıyor.
+          {/* SABİT ANLATI + YETENEK İNDEKSİ (Eylül 2026, kullanıcı geri
+              bildirimi ile revize). Eskiden sol blok işaret + başlık +
+              AÇILIŞ KARESİ + açıklama + CTA idi ve tarayıcıda 857–863px
+              ölçülüyordu — sticky için `min-height: 950px` kapısı gerekti,
+              yani 1440×900/1366×768 gibi yaygın laptoplarda sticky HİÇ
+              devreye girmiyordu. Açılış karesi de kendi tavanıyla (28rem)
+              sınırlı olduğu için sağdaki destek karelerinden küçük kalıyor,
+              hiyerarşi tersine dönüyordu.
 
-              Başlık ve CTA artık split'in DIŞINDA DEĞİL, sol bloğun
-              içinde: eskiden başlık sıradan bir h2 olarak yukarı kaçıyor,
-              metin de görselin YANINDA ayrı bir sütun olarak akıyordu —
-              scroll ilerledikçe blok dağılıyordu. Aynı anlatının parçaları
-              artık aynı sabit kutuda duruyor.
-
-              Sağ şeridin sol bloktan UZUN olması mekanizmanın şartı
-              (yoksa pin görünmez); şerit aralığı bu yüzden
-              --spacing-section (globals.css `.home-case-split__stream`).
-
-              ≤860px'te ve kısa ekranda tek sütuna/normal akışa düşer;
-              okuma sırası: işaret → başlık → ana görsel → açıklama →
-              CTA → üç destek karesi. */}
+              Çözüm mekanizmayı korudu (sol sabit anlatı + sağda akan kanıt),
+              yalnızca sol bloğun İÇERİĞİNİ hafifletti: açılış karesi sağ
+              şeride taşındı (dördüncü destek karesi değil, ŞERİDİN BAŞI —
+              bkz. `CASE_SHOTS`), yerine `CASE_INDEX` (dört satırlık numaralı
+              yetenek listesi, YENİ METİN YOK — `CASE_SHOTS`'un caption'larından
+              türüyor) geldi. Blok kısalınca sticky kapısı da düştü (bkz.
+              aşağıdaki `@media` notu, globals.css). */}
           <div className="home-case-split">
             <div className="home-case-split__anchor">
               <SectionMarker index={3} label="Öne Çıkan İş" />
@@ -281,37 +302,8 @@ export default function Home() {
                 SADECE ANLATMIYORUZ, YAPIYORUZ.
               </h2>
 
-              {/* Açılış karesi. `preload` VERİLMİYOR (Next 16'da `priority`nin
-                  yerini aldı) — bant katlanın çok altında, hero'nun ilk boyaması
-                  bloklanmamalı. Kaynak PNG ~3330×1852; next/image onu build'de
-                  AVIF/WebP'ye ve gerçek görüntü ölçüsüne indiriyor. */}
-              <figure className="home-case-split__media">
-                <div className="home-case-frame">
-                  <Image
-                    src={CASE_LEAD_SHOT.src}
-                    alt={CASE_LEAD_SHOT.alt}
-                    fill
-                    sizes="(max-width: 860px) 100vw, 48vw"
-                    style={{ objectFit: "cover" }}
-                  />
-                </div>
-                <figcaption className="home-case-caption eyebrow text-muted">
-                  {CASE_LEAD_SHOT.caption}
-                </figcaption>
-              </figure>
-
-              {/* Açıklama GÖRSELİN ALTINDA, yanında değil. `data-enter` YOK —
-                  bandın imza hareketi diyafram (bkz. globals.css
-                  `case-aperture`), yalnızca ekranlar hareket ediyor. Metin
-                  ilk karede zaten okunur durumda: sakin kalması bandın
-                  hareketini iki yere bölmüyor, tek bir odak noktası
-                  bırakıyor (frontend-design'ın "spend your boldness in one
-                  place" ilkesi). */}
               {/* `mt-*` YOK: bloğun dikey ritmi tamamen
-                  `.home-case-split__anchor > * + *`ta (globals.css).
-                  Eskiden ikisi birlikte vardı ve hangisinin geçerli
-                  olduğu Tailwind'in katman sırasına bağlıydı — blok iki
-                  farklı aralık taşıyordu. */}
+                  `.home-case-split__anchor > * + *`ta (globals.css). */}
               {CASE_PARAGRAPHS.map((paragraph, index) => (
                 <p
                   key={paragraph}
@@ -322,6 +314,24 @@ export default function Home() {
                   {paragraph}
                 </p>
               ))}
+
+              {/* Yetenek indeksi — sağdaki dört karenin sözel özeti. Her satır
+                  kendi `--case-shot-N` view-timeline'ına bağlı (globals.css):
+                  karşılığı gelen ekran okuma bölgesinden geçerken satır
+                  soluktan tam opaklığa, numarası soluk amberden tam amber'e
+                  dönüyor — saf CSS scroll-spy, JS yok. `aria-hidden`: aynı
+                  bilgi zaten her karenin görünür `figcaption`'ında var,
+                  burada ekran okuyucuya tekrar okutmuyoruz. */}
+              <ul className="home-case-index" aria-hidden="true">
+                {CASE_INDEX.map((entry) => (
+                  <li key={entry.number}>
+                    <span className="home-case-index__num eyebrow">
+                      {entry.number}
+                    </span>
+                    <span className="eyebrow">{entry.label}</span>
+                  </li>
+                ))}
+              </ul>
 
               {/* /portfolyo/emlak-crm-pro henüz KURULMADI — /hizmetler ve
                   /hakkimda'daki CTA'lar da aynı adrese gidiyor, tutarlı.
@@ -335,14 +345,17 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Üç destek karesi. Sıra §5.2'nin cümlesini takip ediyor:
-                portföy yönetimi → harita üzerinde analiz → raporlama.
-                `data-enter` YOK (yukarıdaki notla aynı gerekçe) —
-                eklenseydi figürün kendisi enter-rise ile yükselirken
-                içindeki img aynı anda diyaframla açılırdı, aynı görsel
-                alanda iki çakışan hareket (§8). */}
+            {/* Dört kare, açılış dahil — sıra §5.2'nin cümlesini takip
+                ediyor: yönetim paneli → portföy yönetimi → harita üzerinde
+                analiz → raporlama. `data-enter` YOK: bandın hareketi
+                `case-focus`'un kendisi (globals.css), eklenseydi figür
+                `enter-rise` ile yükselirken içindeki img aynı anda odak
+                jestiyle açılırdı — aynı görsel alanda iki çakışan hareket
+                (§8). Künyeye `CASE_INDEX`'in numarası ekleniyor: sol
+                bloktaki indeksle aynı numaralandırma, iki liste birbirini
+                doğruluyor. */}
             <div className="home-case-split__stream">
-              {CASE_SUPPORT_SHOTS.map((shot) => (
+              {CASE_SHOTS.map((shot, index) => (
                 <figure key={shot.src}>
                   <div className="home-case-frame">
                     <Image
@@ -354,6 +367,9 @@ export default function Home() {
                     />
                   </div>
                   <figcaption className="home-case-caption eyebrow text-muted">
+                    <span className="home-case-caption__num">
+                      {CASE_INDEX[index].number}
+                    </span>{" "}
                     {shot.caption}
                   </figcaption>
                 </figure>
@@ -392,29 +408,46 @@ export default function Home() {
           className="home-portfolio-rail"
           style={
             {
-              "--home-portfolio-units":
-                PORTFOLIO_ITEMS.length +
-                PORTFOLIO_ITEMS.filter((item) => item.wide).length,
+              // Yatay rayda `wide` iş (Wellness) GİZLİ (globals.css gated
+              // blok, Eylül 2026 kullanıcı kararı) — birim sayısı yalnızca
+              // raydaki kareleri sayar. Taban ızgara bu değişkeni okumuyor.
+              "--home-portfolio-units": PORTFOLIO_ITEMS.filter(
+                (item) => !item.wide
+              ).length,
             } as React.CSSProperties
           }
         >
           <div className="home-portfolio-stage">
+            {/* İşaret+başlık ve lede artık İKİ AYRI ÇOCUK
+                (`.home-portfolio-head__title` / `__lede`), dikey yığından
+                çıkarıldı: sabit sahnede (`@media (min-height: 800px)`,
+                globals.css) ikisi TEK SATIRA yatıyor — sol işaret+başlık,
+                sağda alta hizalı lede. Kazanılan dikey pay doğrudan
+                karelere gidiyor (`--portfolio-tile-w` büyüyor, aynı yerde).
+                Taban hâlde (dikey liste/mobil/reduced-motion) `flex-wrap`
+                sayesinde bugünkü gibi alt alta kalıyor, JSX'te iki dal
+                yok. */}
             <div className="home-portfolio-head mx-auto max-w-(--container-wide)">
-              <SectionMarker index={4} label="Portfolyo" flip />
-              {/* Punto inline style'da DEĞİL CSS'te
-                  (.home-portfolio-head h2): başlık sabit sahnede sınırlı bir
-                  dikey bütçe paylaştığı için yeterince uzun ekranda bir
-                  kademe iniyor, taban hâlde display-2xl kalıyor. Inline
-                  style ikisini birden ifade edemezdi — bant 3'ün
-                  `.home-case-split__title`'ındaki aynı gerekçe. */}
-              <h2
-                className="home-portfolio-title font-display text-strong"
-                data-enter="mask"
-              >
-                KURUMSAL KİMLİKTEN KAMPANYAYA
-              </h2>
+              <div className="home-portfolio-head__title">
+                <SectionMarker index={4} label="Portfolyo" flip />
+                {/* Punto inline style'da DEĞİL CSS'te
+                    (.home-portfolio-head h2): başlık sabit sahnede sınırlı bir
+                    dikey bütçe paylaştığı için yeterince uzun ekranda bir
+                    kademe iniyor, taban hâlde display-2xl kalıyor. Inline
+                    style ikisini birden ifade edemezdi — bant 3'ün
+                    `.home-case-split__title`'ındaki aynı gerekçe. */}
+                <h2
+                  className="home-portfolio-title font-display text-strong"
+                  data-enter="mask"
+                >
+                  KURUMSAL KİMLİKTEN KAMPANYAYA
+                </h2>
+              </div>
               {/* `mt-8` YOK: bloğun dikey ritmi .home-portfolio-head'te. */}
-              <p className="text-lead text-muted max-w-(--container-prose)" data-enter>
+              <p
+                className="home-portfolio-head__lede text-lead text-muted max-w-(--container-prose)"
+                data-enter
+              >
                 Farklı sektörlerden seçilmiş sekiz iş — logo ve kurumsal kimlik
                 çalışmalarından sosyal medya kampanyalarına.
               </p>
@@ -441,7 +474,13 @@ export default function Home() {
                     {/* fill + sizes: çerçevenin oranı CSS'te (1/1, geniş olan 2/1),
                         görsel onu cover ediyor. `preload` VERİLMİYOR (Next 16'da
                         `priority`nin yerini aldı) — bu görseller katlanın çok
-                        altında, hero'nun ilk boyaması bloklanmamalı. */}
+                        altında, hero'nun ilk boyaması bloklanmamalı.
+
+                        `--pan-scale`: gated bloktaki pencere parallax'ının
+                        ölçeği (globals.css). `wide` (Wellness) için TABANDAN
+                        BÜYÜK: içeriği zaten `.home-portfolio-media--boost`
+                        ile büyütülmüş, parallax'ın kendisi bunun üstüne
+                        biniyor — küçük tutulsaydı iş yeniden küçük dururdu. */}
                     <div className="home-portfolio-frame">
                       <Image
                         src={item.src}
@@ -452,7 +491,15 @@ export default function Home() {
                             ? "(max-width: 860px) 100vw, 62vw"
                             : "(max-width: 860px) 50vw, 31vw"
                         }
-                        style={{ objectFit: "cover" }}
+                        className={
+                          item.wide ? "home-portfolio-media--boost" : undefined
+                        }
+                        style={
+                          {
+                            objectFit: "cover",
+                            "--pan-scale": item.wide ? 1.22 : 1.08,
+                          } as React.CSSProperties
+                        }
                       />
                     </div>
                     <figcaption className="home-portfolio-caption">

@@ -130,6 +130,54 @@ Tailwind v4'ün 4px tabanlı `--spacing` skalası (`p-4`, `gap-6`…) korunur;
   `0.01ms`'e indirir, `scroll-behavior: auto` yapar — brief'in hero scroll
   animasyonu için gerekli statik geri dönüş altyapısı.
 
+### Özel imleç (Eylül 2026)
+
+Saf CSS, JS yok (yönlü ok istisnası aşağıda) — `cursor: url()` ile dört SVG
+(`public/cursors/`). **Cursor lens'le ilgisi yok**: o (aynı ay bilinçli
+olarak tamamen kaldırıldı, bkz. git tarihi `0311c8f`) native imleci
+GİZLEYİP yerine bir büyüteç/glow motoru süren tamamen ayrı bir mekanizmaydı;
+bu yalnızca native imlecin GÖRÜNÜMÜNÜ değiştiriyor, imleç native kalmaya
+devam ediyor.
+
+- **Dört varyant**: `arrow` (varsayılan), `pointer` (`a`, `button`,
+  `[role="button"]`, `summary`, `label[for]`, `select`), `scroll-down` /
+  `scroll-up` (yalnızca gerçek bir scroll mekanizmasının olduğu kaplar:
+  `.hero-stage`, `.home-rail`, `.home-portfolio-rail`, `/hizmetler`'in
+  `.rail`'i). `arrow`/`pointer` AYNI silüeti ve AYNI hotspot'ı (`3 2`)
+  paylaşıyor — pointer'a yalnızca amber bir elmas ekleniyor (TANYASAN
+  logotype'ındaki motifle aynı geometri). `scroll-*` farklı bir aile
+  (Eylül 2026'da yeniden çizildi — kullanıcı geri bildirimi: eski tek
+  `scroll.svg`, ok eklenmiş bir imleçti, istenen "ince amber bir çemberin
+  İÇİNDE yöne göre değişen bir ok"tu): ince amber (#E8AE30) bir çember +
+  içinde amber ok, hotspot çemberin merkezi (`16 16`). Hepsi çift ton (koyu
+  dolgu / amber + beyaz kontur): hem `surface-paper` hem `surface-ink`
+  üstünde görünür.
+- **Yön, `ScrollDirection.tsx`in yazdığı `html[data-scroll-dir]`'den
+  geliyor** (`app/components/ScrollDirection.tsx`, `app/layout.tsx`'e
+  mount). Bileşen render etmez; pasif bir `scroll` dinleyicisi rAF'la
+  kısılır, yalnızca YÖN DEĞİŞTİĞİNDE (bir ölü bölge payıyla, `DEADBAND = 4`
+  px — trackpad'in geri tepmesi oku titretmesin diye) `dataset.scrollDir`
+  yazar. Bu, "nav ikinci bir scroll listener eklemez" kuralının (bkz.
+  `docs/CLAUDE.md`) BELGELENMİŞ tek istisnası — gerekçe orada. Bayrak
+  yokken (ilk yükleme, JS kapalı) varsayılan `scroll-down` — sayfanın doğal
+  yönü.
+- **Kapı**: `(hover: hover) and (pointer: fine)` — yalnızca gerçek fare/
+  trackpad; dokunmatikte kural hiç uygulanmıyor (doğrulandı). Scroll
+  varyantı ayrıca `prefers-reduced-motion: no-preference` istiyor: o kaplar
+  reduced-motion'da ya hiç render edilmiyor (`.hero-stage`) ya da pin/scrub'ı
+  kaybedip düz belgeye düşüyor (`.home-rail` vb.) — mekanizma yoksa imleç de
+  "burada özel bir kaydırma var" demiyor (doğrulandı: reduced-motion'da
+  `.home-rail` `arrow`'a dönüyor).
+- **Metin girişleri** (`input`, `textarea`, `[contenteditable]`) sistemin
+  `text` imlecini koruyor; `:disabled` → `not-allowed`. `forced-colors:
+  active` altında (Windows yüksek kontrast) tüm özel imleçler `auto`'ya
+  döner — SVG orada OS'un kendi imleciyle çarpışabilir.
+- **İç içe seçiciler elle yazılı**: `.hero-stage a` gibi kurallar CSS
+  özgüllüğü gereği gerekiyor — `a` tek etiket seçici, `.hero-stage` tek sınıf
+  seçici; sınıf etiketten daha özgül olduğu için `.hero-stage`'in temel
+  kuralı `a`yı otomatik ezerdi, iç içe yazılmadıkça linkler de `scroll`
+  imlecini alırdı.
+
 ## 8. Hero — scroll-scrubbing
 
 `app/components/hero/` altında kuruldu (`Hero.tsx`, `useHeroScroll.ts`,
@@ -164,20 +212,79 @@ kaynakta durur; `[start, end]` aralıkları ağırlıklardan **türetilir**
 (`PHASE_RANGES`) — `useHeroScroll`'un `read()` döngüsünde faz sınırı sabiti
 yok. Bir ağırlık değişince tüm zamanlama kendiliğinden yeniden dağılır.
 
-| # | id | ağırlık | pay | ~travel (800vh) |
+| # | id | ağırlık | pay | ~travel (1200vh) |
 |---|---|---|---|---|
-| 1 | `intro` | 1.30 | 0.000–0.155 | 124vh |
-| 2 | `grafik` | 1.15 | 0.155–0.292 | 110vh |
-| 3 | `dijital` | 1.05 | 0.292–0.417 | 100vh |
-| 4 | `web` | 0.85 | 0.417–0.518 | 81vh |
-| 5 | `yazilim` | 0.95 | 0.518–0.631 | 90vh |
-| 6 | `foto` | 0.85 | 0.631–0.732 | 81vh |
-| 7 | `danismanlik` | 0.85 | 0.732–0.833 | 81vh |
-| 8 | `resolve` | 1.40 | 0.833–1.000 | 133vh |
+| 1 | `intro` | 1.300 | 0.000–0.103 | 124vh |
+| 2 | `grafik` | 1.990 | 0.103–0.262 | 190vh |
+| 3 | `dijital` | 1.817 | 0.262–0.406 | 174vh |
+| 4 | `web` | 1.471 | 0.406–0.524 | 140vh |
+| 5 | `yazilim` | 1.644 | 0.524–0.654 | 157vh |
+| 6 | `foto` | 1.471 | 0.654–0.771 | 140vh |
+| 7 | `danismanlik` | 1.471 | 0.771–0.889 | 140vh |
+| 8 | `resolve` | 1.400 | 0.889–1.000 | 134vh |
 
-Ağırlık = temel süre + kalem sayısı payı; faz 1 ve 8 en uzun nefesi alır.
-Bütçe `--hero-travel: 800vh` + sticky sahne = `--hero-span ≈ 900vh`
-(8 ekran). Toplam ağırlık 8.40, faz başına ~95vh.
+Ağırlık = temel süre + kalem sayısı payı. Bütçe `--hero-travel: 1200vh` +
+sticky sahne = `--hero-span ≈ 1300vh`. Toplam ağırlık 12.564, ağırlık başına
+~95.5vh.
+
+**Hizmet fazları uzatıldı, İKİ AYRI GEÇİŞTE (Eylül 2026).**
+
+*Birinci geçiş — fazlar çok kısaydı.* Kullanıcı geri bildirimi: hizmet
+başlıkları okunamadan geçiyordu. Ölçüm: eski bütçede (ağırlıklar 1.15 / 1.05 /
+0.85 / 0.95 / 0.85 / 0.85, `--hero-travel: 800vh`) "her şey görünür" platosu
+GRAFİK'te ~47vh, 0.85'lik fazlarda ~35vh'ydi, yani tek bir tekerlek hamlesi.
+İki kaldıraç birlikte kullanıldı: (1) hizmet ağırlıkları ×1.4, `--hero-travel`
+aynı oranda 800 → 1020vh (mobil 520 → 660vh) — ağırlık başına düşen yol
+(~95vh) sabit kaldı, intro/kapanış süresi değişmedi; (2) faz içi girişler
+sıkıştırıldı (aşağıda "Faz içi koreografi"), kazanılan pay platoya gitti.
+
+*İkinci geçiş — metin hâlâ çok çabuk beliriyordu.* Canlı testte yeni bir
+geri bildirim: bu kez fazların kendisi değil, İÇİNDEKİ METNİN GELİŞİ çok
+hızlıydı — istenen, ikon/başlık/kalemlerin ~1.5 saniye (≈30vh) daha geç
+görünmesiydi. Bu FARKLI bir problem: birinci geçiş fazın TOPLAM süresini
+uzatmıştı, bu ikincisi fazın İÇİNDEKİ metnin NE ZAMAN başladığını
+geciktiriyor. Çözüm yine iki parçalı ve birbirine bağlı:
+
+1. **Hizmet ağırlıkları İKİNCİ kez ×1.236, `--hero-travel` aynı oranda
+   1020 → 1200vh** (mobil 660 → 780vh, aynı ~%65 sıkıştırma oranı
+   korunarak). Yine ağırlık başına yol sabit kalıyor, intro/kapanış
+   süresi değişmiyor (124vh / 134vh).
+2. **İçerik pencereleri (`ICON_WINDOW`/`RULE_WINDOW`/`TITLE_WINDOW`/
+   `ITEMS_FROM`/`ITEMS_TO`, `useHeroScroll.ts`) affine dönüşümle yeniden
+   yazıldı**: `yeni = (eski + 0.236) / 1.236`. Bu, "fazı %23.6 uzat, eklenen
+   payı EN BAŞA sabit bir gecikme olarak koy" işleminin yerel `q`
+   karşılığı — türetim: fazın eski mutlak konumu `V`, eklenen gecikme `D`,
+   yeni faz uzunluğu `eski×1.236` olduğunda `yeni_q = (V+D)/(eski×1.236)`;
+   `D` her fazda kendi eski uzunluğunun SABİT `%23.6`'sı olacak şekilde
+   seçildiğinde (`D = eski_vh × 0.236`) faz uzunluğu ne olursa olsun bu
+   ifade `(eski_q + 0.236)/1.236`'ya sadeleşiyor — yani TEK bir formül
+   altı fazın hepsinde geçerli. **`PHASE_ENVELOPE`'A BİLEREK
+   DOKUNULMADI**: kökün (`.hero-phase` kutusu, opacity) kendi fade-in'i
+   hâlâ q=0.06'da başlıyor. Dokunulsaydı faz 1→2 devrinde
+   (`leadingPhaseProgress`, `HANDOFF_SPAN`) kök uzunca bir süre tamamen
+   görünmez kalırdı — video zaten oynuyorken boş bir çerçeve asılı
+   dururdu (canlı ekran görüntüsüyle doğrulandı: kök erken fade-in
+   sayesinde bu boşluk hiç açılmıyor, geçiş sırasında her zaman video ya
+   da metin görünür).
+
+Ortalama gecikme ~30vh (kısa fazlarda ~27vh, GRAFİK gibi uzun fazlarda
+~36vh — fazın kendi uzunluğuyla orantılı, tek bir sabit değil). Video
+playhead'i (`VIDEO_FADE`, `driveVideoLayer`) HİÇ DEĞİŞMEDİ: hâlâ fazın tam
+yerel `q ∈ [0,1]`'ini kendi süresine 0→1 eşliyor, fazın kaç vh sürdüğünden
+bağımsız — bu yüzden video her zaman doğru fazla eşleşmeye devam ediyor,
+yalnızca ikon/başlık/kalemler daha geç katılıyor.
+
+Faz sınırını aşan köprüler (`HANDOFF_SPAN`, `SCATTER_LEAD`,
+`SCATTER_SUB_LEAD`, göstergenin payı) ham `p` ile değil **ağırlık birimi**
+(`1 / HERO_WEIGHT_TOTAL`, `heroPhases.ts`) cinsinden yazılı olduğu için bu
+ikinci geçişte de HİÇ dokunulmadı — `HERO_WEIGHT_TOTAL` büyüyünce mutlak
+vh'leri (handoff ±~22vh) otomatik korundu.
+
+Headless Chrome ölçümü (tam opak plato, yani kök, başlık ve tüm kalemler
+≥0.98), ikinci geçiş SONRASI: 1440×900 ve 1920×1080'de GRAFİK **90vh**,
+DİJİTAL 74vh, YAZILIM 66vh, WEB/FOTO/DANIŞMANLIK 60vh. 390×844'te sırasıyla
+56 / 46 / 44 / 38vh. Yedi sınırın hiçbirinde iki faz aynı anda görünür değil
+(ölçüldü, `overlaps: 0`). Scroll-snap yine yok (kullanıcı kararı).
 
 **Faz 1 (statement).** Ortadaki TANYASAN logo grafiği kaldırıldı — logonun
 tek yeri nav (`.site-header-logo` artık şeffaf nav'da da görünüyor). Yerine
@@ -196,9 +303,9 @@ gövde içinde inen bir tekerlek noktası. Nokta tek düz iniş yapmaz, **nefes
 alır**: görünmezken belirip `scale 1.25`'e büyür ve amber'a döner
 (`--color-accent`, koyu zeminde AAA), inerken `scale 1`'e iner, dipte küçülüp
 solar (`@keyframes hero-scroll-wheel`, 2.4s, `--ease-in-out-soft`, sonsuz).
-İlk ve son kare görünmez olduğu için döngü başa sararken sıçrama yok. Küre
-noktalarıyla aynı idiom (`hero-orb-dot`: `transform-box: fill-box`, renk
-tepe noktasında aksana döner) — sahnede ikinci bir hareket dili açılmadı.
+İlk ve son kare görünmez olduğu için döngü başa sararken sıçrama yok. Kürenin
+diliminde de aynı idiom var (`hero-orb-wave`: renk tepe noktasında aksana
+döner), yani sahnede ikinci bir hareket dili açılmadı.
 
 Döngü **CSS'te**, JS söndürmesi sarmalayıcıda: `.hero-scroll-wheel`
 keyframe'i taşır, `useHeroScroll` yalnızca `.hero-scroll-hint`'in
@@ -211,7 +318,7 @@ mount olursa `animation: none` savunması noktayı durağan bırakır.
 ayrı bir `span` (`HERO_STATEMENT_LINES`, `.hero-statement-word`) ve kendi
 yönüne savruluyor — bazıları sola, bazıları sağa, aynı anda yukarı kayıp
 bulanıklaşarak. Cümle "çözülüyor". Eğri `scatterU`, handoff'tan
-`SCATTER_LEAD = 0.05` kadar önce başlar ve handoff ile **aynı anda** biter;
+`SCATTER_LEAD` (0.42 ağırlık birimi ≈ 40vh) kadar önce başlar ve handoff ile **aynı anda** biter;
 böylece sınırda ne ani kesim ne de geride kalan kelime olur.
 
 Yön/mesafe/gecikme **deterministik**: `hash01(n) = frac(sin(n·127.1)·43758.5453)`
@@ -354,7 +461,9 @@ doğru cevaptı.
 3.8em'lik blok dikeyde ortalı duruyor ve kısa masaüstü pencerelerinde
 (≤800px) CTA bandına iniyordu; guard onu sınırlıyor. 918px'lik tipik sahnede
 15svh = 138px, token tavanı 136px — yani normal masaüstünde **etkisiz**.
-Mobilde `--text-display-2xl` (değişmedi).
+Mobilde de artık AYNI token, `min(..., 13svh)` ile (Eylül 2026, canlı test
+düzeltmesi — bkz. aşağıdaki "Mobil kapanış düzeni" alt bölümü); eskiden
+`--text-display-2xl` idi.
 
 Ölçüldü (1680px, sütun 1054px): "FİKİRDEN" 592px → %56 dolu, satır kutularında
 `scrollWidth == clientWidth` (yatay taşma yok), satır kutusuyla metin kutusu
@@ -371,95 +480,92 @@ Slogan ve CTA **açık zemine göre** stilleniyor (`.on-paper`, bkz. §2) ve ren
 geçişi gerekmiyor: wash `q=0.12`'de tamamlanıyor, slogan `0.20`'de, CTA
 `0.58`'de belirmeye başlıyor — ikisi de koyu zeminde hiç görünmüyor.
 
-**Küre.** Sağda, butonların üstünde duran bir nokta bulutu. **280 nokta**
-(140 seyrek kalıyordu). Koordinatlar VE her noktanın nefes parametreleri
-`outroOrb.ts`'te **deterministik** üretiliyor — `Math.random` yok (faz 1'in
-kelime saçılmasıyla aynı `hash01`, artık ortak `heroMath.ts`'te), modül
-seviyesinde bir kez hesaplanıyor. Burada determinizm ayrıca **zorunlu**:
-değerler SSR HTML'ine inline custom property olarak yazılıyor, sunucu ile
-istemci birebir aynı diziyi üretmezse hydration patlar (doğrulandı: iki ardışık
-yüklemede ilk 20 noktanın `style` metni birebir aynı, konsolda hydration
-uyarısı yok).
+**Küre.** Sağda, butonların üstünde duran bir nokta küresi. **680 nokta.**
+Koordinatlar ve nefes dilimleri `outroOrb.ts`'te **deterministik** üretiliyor.
+`Math.random` yok (faz 1'in kelime saçılmasıyla aynı `hash01`, ortak
+`heroMath.ts`'te) ve modül seviyesinde bir kez hesaplanıyor. Burada
+determinizm ayrıca **zorunlu**: değerler SSR HTML'ine attribute olarak
+yazılıyor, sunucu ile istemci aynı diziyi üretmezse hydration patlar.
 
-Dağılım **Fibonacci (altın açı) kafesi**: kutuplarda yığılan enlem/boylam
-ızgarasının aksine noktaları yüzeye eşit aralıklı serer. İzdüşüm ortografik; z
-noktanın **yarıçapını** ve **opaklığını** belirliyor — arka yarıküre küçük ve
-soluk kaldığı için düz bir daire değil hacimli bir küre okunuyor. Sabit bir
-eğim (`ORB_TILT`) var: kafes ekseni tam dikeyken kutuplardaki düzenli sarmal
-tepede ve dipte simetrik bir "kapak" gibi okunuyordu.
+**Karar değişti (Eylül 2026): düzensiz bulut → gerçekçi küre.** Önceki
+sürüm 280 noktalı ve bilinçli olarak düzensiz bir buluttu: karesel hash'le
+0.45–1.7× boyut jitter'ı, dış hattı 7 birime kadar şişiren bir lob alanı ve
+her noktanın kendi yönüne gittiği per-nokta animasyon. Kullanıcı geri
+bildirimi: seyrek ve düzensiz okunuyordu; istenen, noktaları küre yüzeyine
+oturan, düzgün dağılmış ve daha sık bir küreydi. SVG korundu (Canvas
+seçeneği değerlendirildi, kullanıcı SVG'de kaldı).
 
-**Boyut çeşitliliği** iki katmanlı: derinliğe bağlı taban yarıçap (0.8→3.9,
-üs **1.7** ile — ön yüzeydeki birkaç nokta öne çıkarken arka yarıküre topluca
-küçük kalıyor) × per-nokta çarpan `0.45 + hash01(n+911)² × 1.25`. Hash'in
-**karesi** alınıyor: çoğunluk küçük kalır, azınlık belirgin şekilde büyür.
-Ölçüldü: 0.38–5.60 birim, noktaların %39'u 1.2'nin altında, %9'u 3.5'in
-üstünde — istenen "büyük noktalar arasında çok daha küçükler" dokusu düz bir
-dağılımdan değil bu eğrilikten geliyor.
+- **Dağılım** yine Fibonacci (altın açı) kafesi. Noktaları yüzeye eşit
+  aralıklı serer; 680 noktada komşu aralığı ~12 viewBox birimi. Sabit bir
+  eğim (`ORB_TILT`) kutuplardaki sarmalın simetrik bir "kapak" gibi
+  okunmasını kırıyor. Küre yarıçapı 82'den 88'e çıktı: lob şişkinliği
+  kalktığı için taşma payına daha az gerek var.
+- **Boyut yalnızca derinlikten geliyor:** `0.7 → 2.3` birim (üs 1.4),
+  üstüne yalnızca ±%6 hash payı. Jitter büyük kalsaydı yüzey kırılırdı.
+- **Işık.** Opaklık = taban 0.10 + derinlik × 0.50 + Lambert × 0.40. Işık
+  sol üst önden geliyor. Arka yarıküre küçük ve soluk, aydınlık taraf
+  dolgun: perspektif matrisi gerekmeden hacimli okunuyor.
+- **Boyama sırası:** dilim içinde yarıçapa, dilimler arasında ortalama
+  derinliğe göre. Arkadaki bir dilim DOM'da öndekinin üstüne binmiyor.
 
-### Kürenin nefesi: per-nokta CSS animasyonu
+### Kürenin nefesi: dilim seviyesinde dalga
 
-Tek bir `<g>` keyframe'i **kaldırıldı**. O kurulumda bütün bulut aynı anda
-şişip aynı anda renk değiştiriyordu: mükemmel küresel ve mekanik. Artık her
-nokta, kendi süresi/gecikmesi/genliğiyle **tek bir paylaşılan** `@keyframes
-hero-orb-dot` kuralını sürüyor:
+Per-nokta animasyon **kaldırıldı**; eski dokümanın "geri çekilme yolu"
+(noktaları gruplayıp animasyonu `<g>` seviyesine taşımak) uygulandı. Noktalar
+**görünen dikey eksen etrafındaki boylamlarına** göre 10 dilime ayrılıyor
+(`ORB_GROUP_COUNT`). Her dilim (`<g>`) tek bir paylaşılan `@keyframes
+hero-orb-wave`'i sürüyor:
 
-- **Silüet asimetrisi:** nokta 3B radyal yönünde dışa çıkıyor
-  (`--odx`/`--ody`, viewBox birimi → CSS'te `px`; `transform-box: fill-box`
-  sayesinde 1px = 1 kullanıcı birimi). Genlik, yöne bağlı bir **lob alanından**
-  geliyor: düşük frekanslı iki harmoniğin çarpımı (`sin(2.1·ux + 1.7·uz) ·
-  cos(1.6·uy)`) + ±%10 hash jitter. Frekanslar bilinçli olarak düşük — yüksek
-  frekansta komşu noktalar zıt yönlere gider ve bulut kaynayan bir gürültüye
-  döner; istenen birkaç geniş şişkinlik. Ölçüldü: genlik 0.10–7.12 birim
-  (ortalama 3.02), yani dış hat yönlere göre gerçekten farklı miktarda şişiyor.
-- **Faz ve süre KONUMA BAĞLI DÜZGÜN ALANLARDAN** geliyor, saf hash'ten değil.
-  Bu, sahnenin en kritik tasarım kararı: saf hash olsaydı komşu noktalar
-  bağımsız titrer ve bulut TV karıncasına dönerdi. Düzgün alan sayesinde
-  komşular **neredeyse** aynı fazda olur → bulutun etrafında dolaşan tutarlı
-  bir şişme dalgası, ama hiçbir yerde tam simetri yok. Hash yalnızca ince bir
-  kırılma olarak ekleniyor ki alan matematiksel bir desen gibi okunmasın.
-  Ölçüldü: 168 farklı süre (4.23–7.46s), 225 farklı gecikme. Farklı süreler
-  vuru (beat) yaratıyor — desen gözle görülür biçimde asla tekrarlamıyor.
-- **Gecikmeler NEGATİF:** her nokta döngünün ortasından başlıyor, yani ilk
-  karede bulut zaten asimetrik. Pozitif gecikmeyle hepsi bir süre kıpırdamadan
-  bekler ve sahneye "sıra sıra" girerdi.
-- **Renk** aynı keyframe'de `color` üzerinden dönüyor
-  (`--color-fg-on-paper-muted ↔ --color-accent`), daireler
-  `fill: currentColor`. Gecikme ve süreler farklı olduğu için amber bulutta
-  aynı anda parlamak yerine **içinde dolaşıyor**.
+- Ölçek **viewBox merkezinden** (`transform-box: view-box`, orijin %50):
+  dilim radyal yönde `scale(1.035)`'e kadar dışa çıkıyor, silüet küresel
+  kalıyor. Daha büyük genlik, dilim sınırlarında noktalar arasında görünür
+  bir yarık açıyordu.
+- Gecikmeler dilim sırasına göre kaydırılmış ve **negatif**
+  (`-g / 10 × 7.2s`). Yani ilk karede dalga zaten yolda; şişkinlik ve amber
+  ton kürenin etrafında dolaşıyor ve yavaş bir dönüş gibi okunuyor.
+- Tepe döngünün yalnızca **orta %40'ında** (keyframe 30% / 50% / 70%). Düz
+  0→50→100 eğrisinde aynı anda kürenin yarısı amber görünüyordu (ekran
+  görüntüsüyle ölçüldü); bu hâliyle dar bir bant.
+- Renk dilimde `color` animasyonuyla dönüyor (`--color-fg-on-paper-muted ↔
+  --color-accent`), daireler `fill: currentColor`.
 
-**Neden CSS, neden JS rAF değil.** Bu döngü scroll'dan bağımsız ve sonsuz.
-rAF'ta olsaydı 280 elemana kare başına iki özellik yazmak gerekirdi (~34k stil
-yazımı/sn) ve bu dekoratif iş, video playhead'ini süren mevcut `tick()` ile
-**aynı kare bütçesine** binerdi. CSS'te JS işi sıfır; tarayıcı ekran dışında ve
-arka plan sekmesinde animasyonu kendiliğinden kısıyor; `prefers-reduced-motion`
-motorda dal açmadan çözülüyor. Determinizm de kaybolmuyor, çünkü değerler
-runtime'da değil modül seviyesinde üretiliyor.
-
-Bedeli saklamıyoruz: 280 animasyonlu eleman = kare başına 280 stil recalc +
-~250×250 CSS px'lik boyama. İki kural bunu sınırlıyor: noktalara `will-change`
-**verilmiyor** (280 ayrı katman oluşurdu) ve boyama alanı küçük tutuluyor.
-Ölçüm kötü çıkarsa geri çekilme yolu hazır: noktaları ~12 loba gruplayıp
-animasyonu `<g>` seviyesine taşımak (280 → 12 animasyon; silüet asimetrisi
-korunur, faz çözünürlüğü düşer). SSR yükü ~20 KB ham (280 × ~72 bayt), tekrar
-eden bir blok olduğu için gzip'te önemsiz.
+**Maliyet:** 280 animasyonlu eleman yerine 10. Noktalar durağan, per-nokta
+inline `style` (custom property) yazılmadığı için SSR yükü de nokta başına
+küçüldü. `will-change` hâlâ verilmiyor: dilimler yüzlerce nokta taşıyor,
+ayrı katman kazançtan çok bellek maliyeti. Döngü neden CSS'te: scroll'dan
+bağımsız ve sonsuz; rAF'ta olsaydı video playhead'ini süren `tick()` ile aynı
+kare bütçesine binerdi. Süre tek kaynakta (`ORB_WAVE_DURATION`), SVG köküne
+`--odur` olarak yazılıyor.
 
 Üç ayrı eleman zorunlu — sarmalayıcı yerleşimi, içteki div scroll'a bağlı
-görünürlüğü, daireler nefesi: görünürlük ve nefes aynı elemanda olsaydı her
+görünürlüğü, dilimler nefesi: görünürlük ve nefes aynı elemanda olsaydı her
 frame yazılan transform animasyonun karesini ezerdi.
 
-**Mobilde** küre küçülüp (34vw) sahnenin **sağ üstüne**, sloganın üstündeki boş
-alana geçiyor; masaüstündeki "butonların üstünde" konumu dar ekranda alt bandı
-kalabalıklaştırıyordu.
+**Mobilde** küre küçülüp (30vw) sloganla CTA arasındaki banda, sol kenara
+(raya yakın) yerleşiyor — "slogan → küre → CTA" dikey okuması (Eylül 2026,
+canlı test düzeltmesi: eskiden sağ üstte, sloganın ÜSTÜNDE duruyordu, okuma
+sırası ters ve küre kayık okunuyordu; bkz. aşağıdaki "Mobil kapanış düzeni"
+alt bölümü). Masaüstündeki "butonların üstünde" konumu dar ekranda alt bandı
+kalabalıklaştırıyordu, bu yüzden mobilde ayrı bir yerleşim korunuyor.
 
-**Faz içi koreografi** (yerel `q`): ikon `q=0.10`'da ağdan doğar (ölçek +
-blur çözülür), ayraç çubuğu `0.18`'de yukarıdan aşağı çizilir, başlık
-`0.28`, kalemler `0.30–0.46` arasında `staggerDraw()` ile — logo çizimiyle
-**aynı** stagger formülü, iki hareket aynı ritmi paylaşsın diye.
+**Faz içi koreografi** (yerel `q`): ikon `q=0.256`'da ağdan doğar (ölçek +
+blur çözülür), ayraç çubuğu `0.288`'de yukarıdan aşağı çizilir, başlık
+`0.321`, kalemler `0.337–0.466` arasında `staggerDraw()` ile — logo
+çizimiyle **aynı** stagger formülü, iki hareket aynı ritmi paylaşsın diye.
+Bu değerler "Hizmet fazları uzatıldı" bölümündeki İKİNCİ geçişin (metin
+gecikmesi) sonucu; kök (`PHASE_ENVELOPE`) hâlâ `q=0.06`'da fade-in'e
+başlıyor, yalnızca bu içerik pencereleri geç geliyor.
 
-`ITEMS_TO = 0.46` keyfi değil: giriş ne kadar geç biterse "her şey görünür"
-platosu o kadar kısalır. Bu değerle plato faz süresinin **%43'ü**
-(q 0.445→0.871). Kullanıcı seçimi gereği scroll-snap yok; hızlı scroll'a
-karşı tek koruma bütçe + bu plato.
+`ITEMS_TO = 0.466` keyfi değil: giriş ne kadar geç biterse "her şey görünür"
+platosu o kadar kısalır. Bu değerle plato faz süresinin **%51.4'ü**
+(q 0.466→0.98 civarı — gerçek sönme `rOut`la biraz daha erken başladığı için
+ölçülen plato bundan az kısa çıkıyor, bkz. yukarıdaki ölçüm tablosu).
+Sırasıyla `0.46` (plato %43, birinci geçiş öncesi) → `0.34` (plato %53,
+birinci geçiş) → `0.466` (ikinci geçiş, metin gecikmesi için EN BAŞA ~%24
+eklendi, plato ORANI benzer kaldı ama ARTIK DAHA UZUN BİR FAZIN içinde,
+yani plato MUTLAK vh olarak da büyük ölçüde korundu — ölçüldü, yukarıdaki
+tablo). Kullanıcı seçimi gereği scroll-snap yok; hızlı scroll'a karşı tek
+koruma bütçe + bu plato.
 
 Faz zarfı `cue(q, 0.06, 0.98, 0.14, 0.12)`: çıkış faz aralığının **içinde**
 biter, sonraki fazın girişi kendi aralığının %10'unda başlar — bu yüzden iki
@@ -481,7 +587,7 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   mp4, ardından 859 KB'lık monitör PNG'si) kullanımdan kaldırıldı ve
   `public/images/outro/` silindi.
 - **Mobil:** Anlatı bölünmüyor — aynı 8 faz, sıkıştırılmış bütçe. `≤860px`'te
-  `--hero-travel: 520vh` (~5 ekran), faz başlığı `display-2xl → display-xl`,
+  `--hero-travel: 660vh` (~6.5 ekran; Eylül 2026'dan önce 520vh), faz başlığı `display-2xl → display-xl`,
   kalemler `body → body-sm`, ikon/ayraç bir kademe küçülür, faz göstergesi
   gizlenir. Eşik `useHeroScroll`'daki `isMobile()` ile aynı (860px). Override
   `:root` üzerinde — Tailwind v4'te `@theme` media query kabul etmiyor.
@@ -520,6 +626,40 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   mimaride (bu bölümün başı) hangi klibi temsil ettiği artık anlamsızdı —
   hem interaktif dalda hem reduced-motion dalında `.hero-bg-static`'in aynı
   düz zeminine geçildi, dosya ve referansları kaldırıldı.
+
+### Mobil kapanış düzeni (Eylül 2026)
+
+Canlı test geri bildirimi: küre sloganın ÜSTÜNDE, kayık duruyordu ve dikey
+ray "Projelerimiz" butonunun tam ortasından geçiyordu. Okuma sırası
+yukarıdan aşağı **slogan → küre → CTA** olacak şekilde yeniden dizildi
+(`app/globals.css`, `≤860px` bloğu — yalnızca CSS, JS'e dokunulmadı):
+
+- **`--hero-outro-rail-x` %68 → %90.** CTA artık gutter'dan gutter'a tam
+  genişlikte akıyor (`.hero-outro-cta`), yani rayın x'i doğrudan bir
+  butonun üstüne denk gelebiliyordu. Ölçüldü: "Projelerimiz" butonunun sağ
+  kenarı 390px genişlikte ~%78'de, 360px'te (buton piksel genişliği
+  neredeyse sabit kaldığı için, oransal olarak) ~%85'e çıkıyor — ray %90'a
+  çekilerek en dar ekranda bile en az ~19px pay bırakılıyor (ölçüldü:
+  390px'te 46px, 360px'te 19px).
+- **Slogan artık sahnenin ÜST bandında**, CTA'nın üstünde değil — kendi
+  kapanış cümlesi ilk okunan şey olsun diye. `inset-block-start:
+  calc(var(--nav-h) + 1.5rem)`: ham bir `svh` değeri nav'ın kendi
+  yüksekliğine (mobilde 3.75rem) neredeyse birebir denk geliyordu,
+  "FİKİRDEN"in üst kenarı fixed header'a yapışıyordu (gözlemlendi,
+  düzeltildi). Punto bir kademe büyüdü: `--text-display-2xl` →
+  `--text-hero-statement` (faz 1'in statement'ıyla AYNI token — kapanışın
+  açılışla aynı ağırlıkta okunması zaten §8'in kuralı), `min(...,
+  13svh)` ile üst sınırlanıyor ki 4 satır 844px'lik bir ekranda küreye ve
+  CTA'ya yer bıraksın.
+- **Küre sloganla CTA arasındaki banda**, sol kenara (raya yakın)
+  taşındı — eskiden sağ üstte, sloganın üstündeki boşluktaydı.
+- Rayın dikey kapsamı (`outroLayout()`, `useHeroScroll.ts`) değişmedi:
+  nokta hâlâ CTA satırının hemen üstünde duruyor (bkz. Tur 3'ün "mobil
+  kapanış çizgisi butonun üstünden geçiyor" düzeltmesi) — yalnızca YATAY
+  konum (`--hero-outro-rail-x`) değişti.
+- Doğrulama: 390×844 ve 360×740'ta ekran görüntüsüyle — slogan tepede
+  nav'dan ayrık, küre ortada, ray "Projelerimiz"in sağında, hiçbir
+  elemanda üst üste binme yok.
 
 ## 9. Hizmetler sayfası (`/hizmetler`)
 
@@ -992,16 +1132,71 @@ da aynı adrese gidiyor. **emlakcrmpro.com bu bantta geçmiyor**: brief §5.2
 dış domaini yalnızca vaka çalışması sayfasının sonuna, küçük bir bağlantı
 olarak koyuyor. Bölüm ürün satmıyor, yazılım yeteneğini kanıtlıyor.
 
-### Hareket: diyafram
+#### Eylül 2026: açılış karesi şeride taşındı, yetenek indeksi eklendi
 
-Bandın imza jesti — `@keyframes case-aperture` (`globals.css`). Dört ekran
-görüntüsü de scroll ile viewport'a girerken dar bir yatay yarıktan tam boya
-açılıyor (`clip-path: inset(46% 0 46% 0) → inset(0)`, eş zamanlı hafif bir
-`scale(1.06) → 1`). Gerekçe **design-dna ölçümünden** geliyor, gözle tahminden
-değil: dört karenin zemini de `measure-colors.mjs` ile ölçüldü, dördü de
-kremimsi beyaz (%63-83 kaplama) ve `#141414` bandına oturuyor — koyu bir
-odada dört ekran. Diyafram bu metaforu tekrar ediyor: karanlıkta bir yarıktan
-ışık taşıyor.
+Kullanıcı geri bildirimi: bant zayıf duruyordu. Ölçüldü — eski sol blok
+(işaret + başlık + açılış karesi + 2 paragraf + CTA) tarayıcıda 857–863px
+(1440/1512/1920 genişliklerde), sticky kapısı `min-height: 950px`'ti; yani
+**1440×900 ve 1366×768 gibi yaygın laptoplarda sticky HİÇ devreye
+girmiyordu** — "sabit anlatı" iddiasının kendisi çalışmıyordu. Açılış karesi
+de kendi tavanıyla (28rem) sınırlı olduğu için sağdaki destek karelerinden
+küçük kalıyor, hiyerarşi tersine dönüyordu.
+
+Mekanizma (sol sabit anlatı + sağda akan kanıt) **korundu**, yalnızca sol
+bloğun içeriği hafifledi:
+
+- **Açılış karesi sağ şeride taşındı** — dördüncü destek karesi değil,
+  şeridin BAŞI (`CASE_SHOTS = [CASE_LEAD_SHOT, ...CASE_SUPPORT_SHOTS]`,
+  page.tsx). Dört kare artık aynı boyut sınıfında ve aynı jesti paylaşıyor
+  (aşağıdaki "Hareket" bölümü).
+- **Yerine `CASE_INDEX`** geldi: dört satırlık numaralı bir yetenek listesi.
+  YENİ METİN YOK — numaralar sıradan, etiketler `CASE_SHOTS`'un kendi
+  `caption`'ından türüyor (açılış karesinin "EMLAK CRM PRO — YÖNETİM
+  PANELİ" künyesinden yalnızca "—"den sonrası kalıyor, ajans/ürün adı bant
+  başlığında zaten söylenmiş). `aria-hidden`: aynı bilgi zaten her karenin
+  görünür `figcaption`'ında var.
+- **Saf CSS scroll-spy, JS yok.** Her figür `timeline-scope` ile açılan
+  kendi `--case-shot-N` view-timeline'ını ADLANDIRIYOR (`view-timeline`,
+  bir animasyon DEĞİL — img'in kendi anonim `view()`'iyle çakışmaz); ilgili
+  indeks satırı o adı `animation-timeline` ile OKUYOR ve karşılığı gelen
+  kare okuma bölgesinden geçerken soluktan (opaklık 0.4) tam opaklığa
+  çıkıyor. §12'nin "aynı adlı named view-timeline'a bağlı animasyon elemanı
+  başına birdir" kısıtı ihlal edilmiyor: her isme yalnızca BİR figür kaynak,
+  BİR satır tüketici bağlanıyor.
+- **Blok içi ritim 2rem'den 1.5rem'e indi** (portfolyo bandının kendi sticky
+  bütçesi için kullandığı AYNI değer) — tek ve uniform bir ritim, ayrı bir
+  "index/CTA'ya daha çok boşluk" istisnası kalkı. Ölçüldü: yeni blok
+  678–684px (1440–1920 genişlik), en dar `861–1366px` aralığında (paragraflar
+  bir satır daha kırıyor) 702px.
+- **Sticky kapısı `min-height: 950px` → `800px`** — en kötü ölçüm (702px) +
+  üst offset (`--nav-h + 1rem` = 88px) = 790px, yuvarlanarak 800px;
+  portfolyo bandının (aşağıda) kendi sticky kapısıyla AYNI sayı, ikinci bir
+  "sihirli" eşik icat edilmedi. Sonuç: **1440×900 ve 1920×1080'de sticky artık
+  çalışıyor**; 1366×768 gibi gerçekten kısa ekranlar hâlâ (bilinçli olarak)
+  normal akışa düşüyor — bant orada da eksiksiz okunuyor.
+- **Grid oranı 1.05fr/1fr'den 0.8fr/1.2fr'e** — sol blok yalnızca metin
+  taşıdığı için dar bir sütuna sığıyor, kazanılan genişlik sağdaki dört
+  ekranın daha büyük görünmesine gidiyor.
+
+### Hareket: odak geçişi
+
+Bandın imza jesti — `@keyframes case-focus` (`globals.css`). Dört ekran
+görüntüsü de (Eylül 2026'dan önce YALNIZCA üç destek karesi; açılış karesi
+şeride taşınınca dördü de aynı jesti paylaşıyor, bkz. yukarıki alt bölüm)
+scroll ile viewport'tan geçerken dar bir yatay yarıktan tam boya açılıyor
+(`clip-path: inset(46% 0 46% 0) → inset(0)`, eş zamanlı hafif bir
+`scale(1.06) → 1`), orta bantta tam açık ve tam opak bir PLATO'da durup
+üstten çıkarken geri çekilip söner — yani odak şeritte aşağı doğru geziniyor:
+dört ekran, tek sistem, sırayla öne çıkan yetenekler. Gerekçe
+**design-dna ölçümünden** geliyor, gözle tahminden değil: dört karenin
+zemini de `measure-colors.mjs` ile ölçüldü, dördü de kremimsi beyaz
+(%63-83 kaplama) ve `#141414` bandına oturuyor — koyu bir odada dört ekran.
+Jest bu metaforu tekrar ediyor: karanlıkta bir yarıktan ışık taşıyor.
+
+Dinlenme opaklığı (keyframe'in 0%/100%'ü) 0.4/0.45 — Eylül 2026'dan önce
+0.55/0.62'ydi; açılış karesi de bu geçişi kullanmaya başlayınca şeridin İLK
+karesi ekrana girerken eski değerle fazla "zaten açık" görünüyordu, odak anı
+yeterince belirgin değildi.
 
 **Renk kullanılmıyor.** Aynı ölçüm karelerin kendi aksanlarının birbirinden
 (ve site paletinden) tamamen ayrı olduğunu gösterdi — turuncu, mavi, mor,
@@ -1015,46 +1210,41 @@ kalmalı — ServiceImage'in "çerçeve her zaman görünür, yalnızca içerik 
 disipliniyle aynı ayrım. Çerçevenin kendisine uygulansaydı transform kenarlığı
 da ölçekler, "kapı" değil "kutunun kendisi büyüyor" gibi okunurdu.
 
-**Sticky açılış karesiyle uyumu bedava.** Açılış karesi artık sabit sol
-bloğun (`.home-case-split__anchor`) İÇİNDE, o blok sticky konumlanıyor;
-`ServiceRail.tsx`'teki notla aynı fizik gereği, pin'lendiği anda elemanın
-kendi `view()` kesişimi sabitlenir (bu yüzden ray sürekli bir scrub'ı kendi
-`view()`'ine bağlayamıyordu). Burada bu bir sorun DEĞİL: aranan zaten sürekli
-bir scrub değil TEK SEFERLİK bir açılış. `animation-range: entry 0% entry
-65%` yalnızca elemanın viewport'a GİRİŞ fazını (pin'lenmeden hemen önceki
-kısa dilimi) ölçüyor; `both` fill tamamlandıktan sonra `to` karesinde
-kalıyor — pin'liyken donuk kalması aranan davranışın ta kendisi. Üç destek
-karesi kendi `view()`'lerinde, `nth-of-type` ile hafifçe kademeli menzillerle
-(art arda değil üst üste binerek — SplitWords'teki OVERLAP mantığıyla aynı
-gerekçe) açılıyor.
+**Menzil karenin viewport'tan TAM GEÇİŞİ** (`cover 0% → cover 100%`),
+kademe `nth-of-type` ile DEĞİL karelerin kendi konumlarıyla geliyor — her
+kare ekrandan kendi sırasında geçiyor, yani odak şeritte kendiliğinden
+aşağı doğru geziniyor (kareler `--spacing-section` arayla ayrı anlarda
+geçiyor, art arda değil üst üste binerek okunuyor — SplitWords'teki OVERLAP
+mantığıyla aynı gerekçe). Dört kare TEK bir kuralı paylaşıyor, üç ayrı
+`nth-of-type` istisnası yok (Eylül 2026'dan önce açılış karesi ayrı bir
+`entry`-tabanlı tek-seferlik açılış — `case-aperture` — kullanıyordu, o
+kaldırıldı; bkz. yukarıki alt bölüm).
 
-Seçici artık `.home-case-split__stream`e bağlı, `__flow`'a DEĞİL: sağ sütun
-bağımsız akan şerit olduğu için ata değişti, ve şeritte yalnızca üç destek
-figürü olduğundan `nth-of-type` indeksleri **bir kaydı**. İlk destek karesi
-(`nth-of-type(1)`) artık ayrı bir kuralla değil, `.home-case-frame > img`
-taban kuralıyla aynı menzili (`entry 0% entry 65%`) paylaşıyor; yalnızca
-2. ve 3. kareler (`nth-of-type(2)`/`nth-of-type(3)`) geriden başlatılıyor.
+**Sol bloğun yetenek indeksi de aynı fizikten besleniyor.** Her figür kendi
+`--case-shot-N` view-timeline'ını ADLANDIRIYOR (`view-timeline`, farklı bir
+mekanizma — `animation-timeline` DEĞİL, dolayısıyla img'in kendi anonim
+`view()`'iyle çakışmaz); ilgili indeks satırı o adı okuyarak kendi karesi
+odaktayken yanıyor. Ayrıntı: yukarıki alt bölüm.
 
-**Metin sakin kalıyor.** İki paragraftan ve üç destek figüründen `data-enter`
-bilerek kaldırıldı: figürde kalsaydı figürün kendisi `enter-rise` ile
-yükselirken içindeki `img` aynı anda diyaframla açılır, aynı görsel alanda
-iki çakışan hareket olurdu. Bandın hareketi tek bir yerde toplanıyor —
-yalnızca ekranlar açılıyor, metin ilk kareden itibaren okunur.
+**Metin sakin kalıyor.** İki paragraftan, yetenek indeksinden ve dört
+figürden `data-enter` bilerek kaldırıldı: figürde kalsaydı figürün kendisi
+`enter-rise` ile yükselirken içindeki `img` aynı anda odak jestiyle açılır,
+aynı görsel alanda iki çakışan hareket olurdu. Bandın hareketi tek bir yerde
+toplanıyor — yalnızca ekranlar açılıyor, metin ilk kareden itibaren okunur.
 
 **Gramer kısıtı.** Komşu bantlar zaten kinetik tipografi (bant 1, `SplitWords`)
-ve pin+pan (bant 2, `home-rail-*`) kullanıyor; bant 4 stagger grid kullanacak.
-Diyafram bu üçünden ayrı bir aile (`reveal`), bandın "amiral gemi" ağırlığını
-komşularıyla aynı jesti tekrarlamadan taşıyor.
+ve pin+pan (bant 2, `home-rail-*`) kullanıyor; bant 4 kendi pinli rayı +
+iki efektini kullanıyor (aşağıda). Bu bant DERİNLİKTE scrub ediyor — ayrı
+bir eksen, komşularıyla aynı jesti tekrarlamıyor.
 
 **Fallback.** `@supports (animation-timeline: view())` + `no-preference`
 sağlanmazsa (tarayıcı desteği yok / reduced-motion / JS kapalı) kural hiç
 görülmez, `img` hiçbir zaman `clip-path`/`transform` almaz — resting hâli
 zaten tam açık görüntü (§8'in "animasyonsuz durağan hâl doğru olmak zorunda"
-disiplini). Mobilde de aynı kural geçerli: mekanizma elemanın KENDİ `view()`
-giriş fazına bağlı olduğu için `.home-case-split__anchor`'ın sticky'den
-taban (statik) hâle düşmesi (`≤860px`, veya sticky'nin `min-height: 760px`
-kapısına takıldığı kısa ekranlar) diyaframı etkilemiyor, ayrı bir mobil
-menzili yazmaya gerek kalmadı.
+disiplini). Mobilde de aynı kural geçerli: `.home-case-split__anchor`'ın
+sticky'den taban (statik) hâle düşmesi (`≤860px`, veya sticky'nin
+`min-height: 800px` kapısına takıldığı kısa ekranlar) odak geçişini
+etkilemiyor, ayrı bir mobil menzili yazmaya gerek kalmadı.
 
 #### Eksik içerik — bilinçli boşluk
 
@@ -1198,7 +1388,9 @@ dördü de tarayıcıda doğrulandı.
 
 Başlık ve kareler artık aynı dikey bütçeyi paylaştığı için ikisi de bir kademe
 küçülüyor: punto `display-2xl` → `display-xl` (`.home-case-split__title`'daki
-aynı gerekçe), kare `22vw` → `19vw`.
+aynı gerekçe). Kare genişliği Eylül 2026'da `19vw/21rem` tavanından
+`24vw/28rem`'e büyüdü — bkz. aşağıki alt bölüm, sebep başlığın tek satıra
+inmesi.
 
 **`--portfolio-strip-h` sahnede TEKRAR beyan edilmek zorunda** ve bu bir kopya
 değil: bir custom property'nin içindeki `var()`, **özelliğin beyan edildiği
@@ -1210,6 +1402,113 @@ boşluk ve yalan bir kapı hesabı. Formül kendi elemanında yeniden beyan edil
 düzeliyor. Aynı tuzak `--portfolio-tile-w`yi türeten her ölçü için geçerli;
 `.home-portfolio-track > figure` ve `home-portfolio-slide` etkilenmiyor, çünkü
 onlar değişkeni **kullanım yerinde** okuyor.
+
+#### Eylül 2026: başlık tek satıra indi, sıra değişti, iki efekt eklendi
+
+Kullanıcı geri bildirimi: ilk kare (Wellness Antalya, kurumsal kimlik)
+diğerlerine göre belirgin küçük/eksik kalıyordu.
+
+**Başlık artık DİKEY YIĞIN değil TEK SATIR** (`@media (min-height: 800px)`
+gated bloğu — yalnızca sabit sahne kurulduğunda). Eskiden işaret+başlık+lede
+üç ayrı çocuk olarak `> * + *` ile alt alta dizilip 298px yer kaplıyordu;
+gerçek sebep kullanıcının "kareler küçük" bulmasının kaynağıydı — dar bir
+şeride sıkışan başlık, kareye ayrılabilecek dikey bütçenin çoğunu yiyordu.
+İşaret+başlık artık kendi mini-sütununda (`.home-portfolio-head__title`),
+lede sağda alt kenardan hizalı (`flex-end`, bant 3'ün künyeleri gibi) —
+`justify-content: space-between`. Ölçüldü: satır 212–219px (1440–1920
+genişliklerde). Kazanılan pay doğrudan `--portfolio-tile-w`ya gitti:
+`clamp(13rem, 19vw, 21rem)` → `clamp(14rem, 24vw, 28rem)`, 1440px'te
+317px → 346px (+%9). `--portfolio-strip-h` aynı formülle büyüdü (366px →
+438px), sticky kapısı (800px) aynı kaldı — 1366×768 gibi kısa ekranlar hâlâ
+taban gride düşüyor, bu kapının zaten hedefiydi.
+
+**Sıra değişti** (`portfolio.ts`): `wide` (Wellness) baştan 5. sıraya
+(index 4) taşındı. Grid geometrisi DEĞİŞMEDİ — 3×3, 9 hücre; satır 1 üç
+normal iş, satır 2 bir normal iş + `wide`, satır 3 üç normal iş (CSS grid
+auto-placement bunu otomatik dolduruyor). Yatay pinli rayda ise sıra
+DOĞRUDAN "ne zaman göründüğü": ray artık dört doygun sosyal medya işiyle
+(Golden Rose, Nur Pastaneleri, iki Rixos kampanyası) açılıyor, Wellness
+beşinci kare olarak geliyor — ilk izlenim artık en düşük kontrastlı işle
+kurulmuyor.
+
+**Wellness'in kendi görsel zayıflığı ayrıca telafi edildi**
+(`.home-portfolio-media--boost`, UNGATED — mobil ve reduced-motion'da da
+geçerli): `scale(1.14)` + `saturate(1.16) contrast(1.08) brightness(1.03)`.
+Kaynak dosyaya DOKUNULMADI; gerekçe hero videosundaki
+`--hero-video-filter`le aynı disiplin — zayıf bir kaynağı CSS'te telafi
+etmek, içerik uydurmak değil. `object-fit: cover` görseli kadraja
+SIĞDIRIYOR ama içeriği büyütmüyordu; ölçekle içerik (kırtasiye takımı)
+çerçeveyi daha çok dolduruyor.
+
+**İki yeni efekt** (kullanıcı isteği: "daha çekici ve düzenli, efekt
+kullanarak"), yalnızca `≥861px` gated blokta:
+
+1. **Varış perdesi** (`@keyframes portfolio-curtain`,
+   `.home-portfolio-track > figure .home-portfolio-frame`): kareler
+   pin'lenmeden hemen önce, sahne yukarı sürüklenirken alttan açılıyor.
+   Figürün KENDİ anonim `view()`'i kullanılıyor ama yalnızca `entry` fazı —
+   `data-enter-stagger`'ın burada KAPATILAN `cover`-tabanlı deseninin AYNISI
+   DEĞİL (o, tile pin'lendikten sonra hiç tamamlanmayan bir geçişti); bant
+   3'ün eski `case-aperture`'ı gibi TEK SEFERLİK ve pin'den ÖNCE biten bir
+   açılış (`both` ile pin boyunca açık kalıyor). `--enter-i` (page.tsx'te
+   zaten `data-enter-stagger` için satır içi yazılı, aynı değişken burada
+   PAYLAŞILIYOR) kademe veriyor: tile'lar tek satırda aynı anda ekrana
+   girse de menzil ofseti her birini farklı bir anda açıyor, dalga gibi
+   okunuyor. Clip-path DOĞRUDAN çerçeveye uygulanıyor (kenarlık dahil) —
+   bant 3'ün kalın gri paspartası gibi ayrı bir katman yok, "kare kendi
+   kutusundan doğuyor" okuması yeterli.
+2. **Pencere parallax'ı** (`@keyframes portfolio-pan`,
+   `.home-portfolio-track > figure .home-portfolio-frame > img`): img,
+   track'in yatay kaymasına göre hafifçe ters yönde süzülüyor (klasik
+   derinlik parallax'ı, tek katman). Figürün KENDİ `view()`'i DEĞİL, NAMED
+   `--home-portfolio` timeline'ına bağlı — img'in kendi `view()`'i de
+   pin'de donardı, oysa parallax'ın TÜM kayma boyunca sürmesi gerekiyor.
+   Track zaten bu isme bağlı `home-portfolio-slide`'ı taşıyor; burada
+   FARKLI bir eleman (img) kendi TEK animasyonuyla aynı ismi okuyor — §12'nin
+   kısıtı yalnızca AYNI elemanda iki animasyonu yasaklıyor, ihlal edilmiyor.
+   Ölçek `--pan-scale` (page.tsx'te satır içi) normal karelerde 1.08,
+   Wellness'te 1.22 — `.home-portfolio-media--boost` zaten büyütüyor,
+   parallax'ın kendisi onun üstüne biniyor, img'i çerçeveden taşıracak
+   kadar büyütüyor ki kayma sırasında kenar boşluğu hiç görünmesin.
+
+Mobil (`≤860px`) ve reduced-motion'da her iki efekt de KURULMUYOR
+(`@media (min-width: 861px)` gated blokta) — taban grid değişmedi, yalnızca
+`.home-portfolio-media--boost` (ungated) orada da geçerli.
+
+#### Eylül 2026, ikinci geçiş: Wellness masaüstü rayda tamamen gizli
+
+Yukarıdaki düzeltmeye (5. sıraya taşıma + boost + efektler) rağmen canlı
+testte Wellness Antalya hâlâ diğer kareler kadar dolgun görünmüyordu.
+Teşhis: sorun konum ya da kırpma değil, GÖRSELİN KENDİSİ — kırtasiye takımı
+beyaz kâğıt ve açık gri zeminde, ince/düşük kontrastlı nesneler; kenardan
+kenara doygun kampanya afişlerinin yanında CSS ile (daha fazla yakınlaştırma
+kartvizitleri keser, daha fazla renk düzeltmesi müşteri işini değiştirir)
+gerçekten eşit yoğunluğa getirilemiyor.
+
+**Karar: rayda gizlemek, veriden SİLMEMEK.** `PORTFOLIO_ITEMS`'tan tamamen
+çıkarmak mobil ızgarayı (2 sütun, Wellness tam satır) ve taban 3×3 ızgarayı
+(9 hücre) da 7 işe göre yeniden kurmayı gerektirirdi — ikisinde de mobilde
+bu kare zaten SORUNSUZ (kullanıcı doğruladı), yalnızca masaüstü YATAY RAYDA
+zayıf duruyordu. Bu yüzden:
+
+- `.home-portfolio-item--wide { display: none; }` yalnızca gated blokta
+  (`≥861px`, hareket açık) — `.home-portfolio-item--wide`'ın eski çift-
+  genişlik kuralı (grid-column/inline-size/flex-basis) kalktı, yerini bu
+  tek satır aldı.
+- `page.tsx`: `--home-portfolio-units` artık `PORTFOLIO_ITEMS.filter(item
+  => !item.wide).length` (7) — geniş işi SAYMIYOR, ray tam 7 kareyle akıp
+  son karede (`Zenges Enerji`) tam gutter hizasında duruyor (ölçüldü, ekran
+  görüntüsüyle doğrulandı: `home-portfolio-slide`'ın hedef `translate3d`'i
+  7 birime göre hesaplandığı için taşma/eksik kalma yok).
+- Taban ızgara (mobil + reduced-motion) **8 işle aynen kalıyor** —
+  `PORTFOLIO_ITEMS`e dokunulmadı, yalnızca CSS'te bir görünürlük kuralı
+  eklendi. `.home-portfolio-media--boost` orada geçerli olmaya devam
+  ediyor (doğrulandı: reduced-motion ve 390px'te 8 kare görünür).
+- **Bedel:** `.home-portfolio-head__lede`'nin metni ("Farklı sektörlerden
+  seçilmiş **sekiz** iş…") rayda görünen 7 kareyle artık birebir
+  eşleşmiyor. Metne dokunmama kısıtı gereği bilerek DEĞİŞTİRİLMEDİ —
+  cümle sekiz işin TAMAMINI (taban ızgarada + vaka çalışmalarında) anlatan
+  bir toplam beyanı, tek bir bandın anlık görünümünü sayan bir sayaç değil.
 
 ### Aynı marka + kategori iki kez: künyedeki `event` alanı
 

@@ -1,85 +1,87 @@
 import { hash01 } from "./heroMath";
 
 /**
- * Faz 8'in nokta bulutu küresi — geometrisi VE nefes alma parametreleri
- * deterministik üretilir.
+ * Faz 8'in nokta küresi — geometrisi VE nefes gruplaması deterministik
+ * üretilir.
  *
  * Math.random YOK (faz 1'in kelime saçılmasıyla aynı disiplin, bkz.
- * heroMath.ts): küre her yüklemede aynı görünmeli ve aynı ritimde nefes
- * almalı, aksi halde tasarlanmış değil kazara oluşmuş gibi okunur. Burada
- * ayrıca zorunlu: değerler SSR HTML'ine inline custom property olarak
- * yazıldığı için sunucu ve istemci birebir aynı diziyi üretmek zorunda
- * (hydration uyuşmazlığı olmaz).
+ * heroMath.ts): küre her yüklemede aynı görünmeli, aksi halde tasarlanmış
+ * değil kazara oluşmuş gibi okunur. Burada ayrıca zorunlu: değerler SSR
+ * HTML'ine attribute olarak yazıldığı için sunucu ve istemci birebir aynı
+ * diziyi üretmek zorunda (hydration uyuşmazlığı olmaz).
+ *
+ * KARAR DEĞİŞTİ (Eylül 2026, kullanıcı geri bildirimi): önceki sürüm 280
+ * noktalı, bilinçli olarak DÜZENSİZ bir buluttu — karesel boyut jitter'ı, dış
+ * hattı yönlere göre şişiren bir lob alanı ve her noktanın kendi yönüne
+ * giden per-nokta animasyonu. Sonuç küre değil seyrek bir bulut gibi
+ * okunuyordu. Artık hedef GERÇEKÇİ bir küre: sık, yüzeye düzgün oturan
+ * noktalar; boyut ve ton yalnızca derinlikten ve ışıktan geliyor.
  *
  * Dağılım: Fibonacci (altın açı) kafesi. Kutuplarda yığılan enlem/boylam
- * ızgarasının aksine noktaları küre yüzeyine eşit aralıklı serer, yani
- * silüet her yönden aynı yoğunlukta okunur.
+ * ızgarasının aksine noktaları küre yüzeyine eşit aralıklı serer.
  *
- * İzdüşüm ortografik: z yalnızca noktanın YARIÇAPINI ve OPAKLIĞINI belirler.
- * Arka yarıküre küçük ve soluk kaldığı için düz bir daire değil, hacimli bir
- * küre olarak okunuyor — perspektif matrisi gerekmeden.
+ * İzdüşüm ortografik: z yalnızca noktanın YARIÇAPINI ve OPAKLIĞINI belirler;
+ * üstüne sol üst önden gelen bir Lambert ışığı biniyor. Arka yarıküre küçük
+ * ve soluk, aydınlık taraf dolgun — perspektif matrisi gerekmeden hacimli.
  *
- * NEFES ALMA BURADA HESAPLANIR, CSS'TE SÜRÜLÜR: her nokta kendi gecikmesi,
- * süresi ve genliğiyle tek bir paylaşılan @keyframes'i (hero-orb-dot) sürer.
- * Tek bir <g> animasyonu yerine per-nokta olmasının sebebi, kürenin dış
- * hattının mükemmel küresel kalmaması ve rengin bulutta aynı anda değil
- * içinde dolaşarak dönmesi (bkz. docs/design-system.md §8).
+ * NEFES GRUP SEVİYESİNDE: noktalar boylamlarına göre ORB_GROUP_COUNT dilime
+ * ayrılıyor, her dilim (<g>) küre merkezinden hafifçe şişiyor ve gecikmeler
+ * dilim sırasına göre kaydırılmış. Şişkinlik kürenin etrafında DOLAŞIYOR —
+ * yavaş bir dönüş gibi okunuyor, silüet küresel kalıyor. 680 animasyon
+ * yerine 10: per-nokta animasyonun bedelini (bkz. docs/design-system.md §8)
+ * artık ödemiyoruz.
  */
 
-/** SVG viewBox'ı: kare, 200×200. Nefeste noktalar dışa doğru taştığı için
- * küre yarıçapı 200'ün yarısı değil, 82 — en büyük genlik + en büyük nokta
- * bile kutunun içinde kalır. */
+/** SVG viewBox'ı: kare, 200×200. Nefeste dilimler dışa taştığı için küre
+ * yarıçapı 200'ün yarısı değil, 88 — en büyük ölçek + en büyük nokta bile
+ * kutunun içinde kalır. */
 export const ORB_VIEWBOX = 200;
 const ORB_CENTER = ORB_VIEWBOX / 2;
-const ORB_RADIUS = 82;
+const ORB_RADIUS = 88;
 
-/** Nokta sayısı. 140 seyrek kalıyordu; 280 dokuyu doldururken hâlâ tek bir
- * paylaşılan keyframe ve küçük bir boyama alanıyla (240×240 CSS px)
- * çalışılabilir bir sayı. */
-const ORB_POINT_COUNT = 280;
+/** Nokta sayısı. 680'de komşu aralığı ~12 viewBox birimi: yüzey sürekli bir
+ * doku olarak okunuyor, noktalar yine tek tek seçilebiliyor. */
+const ORB_POINT_COUNT = 680;
 
-/** Derinliğe bağlı taban yarıçap. Üstüne per-nokta çarpan biniyor. */
-const ORB_R_BASE_MIN = 0.8;
-const ORB_R_BASE_MAX = 3.9;
-/** Derinlik eğrisi: üs 1 değil 1.7 — ön yüzeydeki birkaç nokta belirgin
- * biçimde öne çıkarken arka yarıküre topluca küçük kalıyor. */
-const ORB_R_DEPTH_POW = 1.7;
-/** Per-nokta boyut çarpanı. Hash'in KARESİ alınıyor: çoğunluk küçük kalır,
- * azınlık belirgin şekilde büyür — "büyük noktalar arasında çok daha
- * küçükler" dokusu düz bir dağılımdan değil bu eğrilikten geliyor. */
-const ORB_R_JITTER_MIN = 0.45;
-const ORB_R_JITTER_SPAN = 1.25;
-/** Uç değer emniyeti: en öndeki en şanslı nokta bile disk gibi görünmesin. */
-const ORB_R_MAX = 5.6;
+/** Derinliğe bağlı yarıçap aralığı. Jitter yalnızca ±%6 — boyut farkı
+ * rastlantıdan değil derinlikten gelmeli, yoksa yüzey kırılır. */
+const ORB_R_MIN = 0.7;
+const ORB_R_MAX = 2.3;
+const ORB_R_DEPTH_POW = 1.4;
 
-const ORB_OPACITY_MIN = 0.18;
-const ORB_OPACITY_SPAN = 0.8;
+/** Opaklık = taban + derinlik payı + ışık payı. */
+const ORB_OPACITY_BASE = 0.1;
+const ORB_OPACITY_DEPTH = 0.5;
+const ORB_OPACITY_LIGHT = 0.4;
 
-/** Nefeste bir noktanın dışa doğru kat edebileceği en büyük yol (viewBox
- * birimi ≈ yarıçapın %8.5'i). Yön 3B radyal, yani küre gerçekten şişiyor. */
-const ORB_BREATH_UNITS = 7;
+/** Işık yönü (birim vektör): sol (−x), üst (SVG'de −y), öne doğru (+z). */
+const LIGHT = (() => {
+  const v = [-0.45, -0.55, 0.7];
+  const len = Math.hypot(v[0], v[1], v[2]);
+  return v.map((c) => c / len);
+})();
 
-/** Nefes süresi aralığı (sn). Farklı süreler vuru (beat) yaratır: bulutun
- * bütünü gözle görülür biçimde asla tekrarlamaz. */
-const ORB_DUR_MIN = 4.4;
-const ORB_DUR_SPAN = 2.8;
+/** Nefes dilimi sayısı. 10 dilim dalganın gözle görülür adımlarla değil
+ * akarak dolaşmasına yetiyor; her dilim ayrı bir animasyon olduğu için daha
+ * fazlası yalnızca maliyet. */
+export const ORB_GROUP_COUNT = 10;
+
+/** Dalganın kürenin etrafında bir tur atma süresi (sn). */
+export const ORB_WAVE_DURATION = 7.2;
 
 export interface OrbDot {
   cx: number;
   cy: number;
   r: number;
   opacity: number;
-  /** Nefesin tepe anında noktanın kat ettiği yol (viewBox birimi). CSS'e
-   * `px` olarak yazılır — SVG'de 1px = 1 kullanıcı birimi. */
-  dx: number;
-  dy: number;
-  /** Tepe anındaki ölçek. */
-  scale: number;
-  /** Saniye, NEGATİF: nokta döngünün ortasından başlar, yani ilk karede
-   * bulut zaten asimetrik. Pozitif gecikmeyle hepsi bir süre kıpırdamadan
+}
+
+export interface OrbGroup {
+  /** Saniye, NEGATİF: dilim döngünün ortasından başlar, yani ilk karede
+   * dalga zaten yolda. Pozitif gecikmeyle dilimler bir süre kıpırdamadan
    * bekler ve sahneye "sıra sıra" girerdi. */
   delay: number;
-  duration: number;
+  dots: OrbDot[];
 }
 
 /** Altın açı — Fibonacci kafesinin boylam adımı. */
@@ -94,8 +96,11 @@ const ORB_TILT = 0.42;
 
 const round = (value: number, digits: number) => Number(value.toFixed(digits));
 
-export const ORB_DOTS: OrbDot[] = (() => {
-  const dots: OrbDot[] = [];
+export const ORB_GROUPS: OrbGroup[] = (() => {
+  const groups: OrbGroup[] = Array.from({ length: ORB_GROUP_COUNT }, (_, g) => ({
+    delay: round(-(g / ORB_GROUP_COUNT) * ORB_WAVE_DURATION, 2),
+    dots: [],
+  }));
   const cosT = Math.cos(ORB_TILT);
   const sinT = Math.sin(ORB_TILT);
 
@@ -114,52 +119,42 @@ export const ORB_DOTS: OrbDot[] = (() => {
 
     // depth 0 = en arka, 1 = en ön.
     const depth = (uz + 1) / 2;
+    const light = Math.max(ux * LIGHT[0] + uy * LIGHT[1] + uz * LIGHT[2], 0);
 
-    const rBase =
-      ORB_R_BASE_MIN + Math.pow(depth, ORB_R_DEPTH_POW) * (ORB_R_BASE_MAX - ORB_R_BASE_MIN);
-    const rJitter = ORB_R_JITTER_MIN + hash01(i + 911) ** 2 * ORB_R_JITTER_SPAN;
-
-    /**
-     * Lob alanı: düşük frekanslı İKİ harmoniğin çarpımı. Genliği yöne göre
-     * değiştirdiği için sağ/sol/üst/alt farklı miktarda şişer — dış hat
-     * mükemmel küresel kalmaz. Frekanslar bilinçli olarak düşük: yüksek
-     * frekansta komşu noktalar zıt yönlere gider ve bulut kaynayan bir
-     * gürültüye döner, oysa istenen birkaç geniş şişkinlik.
-     */
-    const lobeRaw = Math.sin(2.1 * ux + 1.7 * uz) * Math.cos(1.6 * uy);
-    const lobe =
-      (0.1 + 0.9 * (0.5 + 0.5 * lobeRaw)) * (0.9 + 0.2 * hash01(i + 617));
-    const amp = ORB_BREATH_UNITS * lobe;
+    const r =
+      (ORB_R_MIN + Math.pow(depth, ORB_R_DEPTH_POW) * (ORB_R_MAX - ORB_R_MIN)) *
+      (0.94 + 0.12 * hash01(i + 911));
+    const opacity = Math.min(
+      (ORB_OPACITY_BASE + depth * ORB_OPACITY_DEPTH + light * ORB_OPACITY_LIGHT) *
+        (0.94 + 0.06 * hash01(i + 337)),
+      1
+    );
 
     /**
-     * Süre ve faz KONUMA BAĞLI DÜZGÜN ALANLARDAN geliyor, saf hash'ten
-     * değil. Saf hash olsaydı komşu noktalar bağımsız titrer ve bulut TV
-     * karıncasına dönerdi; düzgün alan sayesinde komşular neredeyse aynı
-     * fazda olur ve bulutun etrafında dolaşan tutarlı bir şişme dalgası
-     * doğar. Hash yalnızca ince bir kırılma olarak ekleniyor ki alan
-     * matematiksel bir desen gibi okunmasın.
+     * Dilim: dikey eksen etrafındaki boylam. Eğimden ÖNCEKİ (x, z) değil
+     * ekrandaki (ux, uz) kullanılıyor ki dalga görünen dikey eksen etrafında
+     * dönsün — eğik eksende dönen bir dalga "yalpalıyor" gibi okunuyordu.
      */
-    const durField = 0.5 + 0.5 * Math.sin(1.3 * uy + 2.2 * uz + 0.4);
-    const duration =
-      (ORB_DUR_MIN + durField * ORB_DUR_SPAN) * (0.96 + 0.08 * hash01(i + 199));
+    const azimuth = Math.atan2(ux, uz); // -π..π
+    const g = Math.min(
+      Math.floor(((azimuth + Math.PI) / (2 * Math.PI)) * ORB_GROUP_COUNT),
+      ORB_GROUP_COUNT - 1
+    );
 
-    const phaseField = 0.5 + 0.5 * Math.sin(2.6 * ux - 1.4 * uy + 0.8);
-    const phase = (phaseField + 0.22 * hash01(i + 457)) % 1;
-
-    dots.push({
+    groups[g].dots.push({
       cx: round(ORB_CENTER + ux * ORB_RADIUS, 2),
       cy: round(ORB_CENTER + uy * ORB_RADIUS, 2),
-      r: round(Math.min(rBase * rJitter, ORB_R_MAX), 2),
-      opacity: round(
-        (ORB_OPACITY_MIN + depth * ORB_OPACITY_SPAN) * (0.85 + 0.15 * hash01(i + 337)),
-        3
-      ),
-      dx: round(ux * amp, 2),
-      dy: round(uy * amp, 2),
-      scale: round(1 + 0.16 * lobe + 0.14 * hash01(i + 733), 3),
-      delay: round(-phase * duration, 2),
-      duration: round(duration, 2),
+      r: round(r, 2),
+      opacity: round(opacity, 3),
     });
   }
-  return dots;
+
+  // Boyama sırası: arkadaki noktalar önce. Dilim içinde nokta yarıçapına
+  // (derinliğin tekdüze bir fonksiyonu) göre; dilimler arasında ortalama
+  // derinliğe göre — arka yarıküredeki bir dilim DOM'da öndekinin üstüne
+  // binmesin. Gecikme dilime bağlı sabit kaldığı için sıra dalgayı bozmuyor.
+  const meanR = (group: OrbGroup) =>
+    group.dots.reduce((sum, dot) => sum + dot.r, 0) / Math.max(group.dots.length, 1);
+  for (const group of groups) group.dots.sort((a, b) => a.r - b.r);
+  return groups.sort((a, b) => meanR(a) - meanR(b));
 })();

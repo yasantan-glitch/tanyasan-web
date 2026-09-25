@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Varsayılan imleç. Sistemin ok imlecinin silüetiyle aynı aile (yön ve
+       oran tanıdık kalsın, kullanıcı yeniden öğrenmesin) ama §4'ün "keskin"
+       şekil diliyle çizildi: sivri, dolgusuz köşeler (stroke-linejoin: miter),
+       standart oktan biraz daha ince. Tek ton — amber dolgu — hem açık hem
+       koyu yüzeyde (surface-paper / surface-ink) marka aksanıyla okunuyor.
+       Hotspot (3,2), ucun tam üstünde. -->
+  <path
+    d="M3 2 L3 19 L8 15.5 L11.5 22 L14.5 20.5 L11 14 L18 14 Z"
+    fill="#e8ae30"
+    stroke="#e8ae30"
+    stroke-width="1.25"
+    stroke-linejoin="miter"
+  />
+</svg>
