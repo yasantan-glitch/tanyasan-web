@@ -3,9 +3,14 @@ import Link from "next/link";
 
 import { ServiceImage } from "@/app/components/services/ServiceImage";
 import ServiceRail from "@/app/components/services/ServiceRail";
+import { railTiming } from "@/app/components/services/railTiming";
 import { NAV_CTA } from "@/app/components/nav/navLinks";
 import { SERVICES } from "@/app/content/services";
 import { SERVICE_MEDIA } from "@/app/content/serviceMedia";
+
+/** Rayın duraklamalı eğrisi ve panel başına koreografi menzilleri. Render
+ * anında, panel sayısından türüyor — gerekçesi railTiming.ts'te. */
+const RAIL = railTiming(SERVICES.length);
 
 export const metadata: Metadata = {
   title: "Hizmetler — Tan Yasan Reklam ve Tasarım Ajansı",
@@ -73,7 +78,8 @@ export default function HizmetlerPage() {
 
           --rail-panels İÇERİKTEN geliyor: hizmet eklenince hem ray genişliği
           hem scroll bütçesi kendiliğinden büyür, senkronlanacak ikinci bir
-          sayı yok.
+          sayı yok. Aynı sayıdan türeyen --rail-ease (duraklamalı eğri) ve
+          panel başına menziller de öyle — bkz. railTiming.ts.
 
           Yüzey artık panel başına DÖNÜŞMÜYOR. Yatayda dönüşümlü zemin, her
           panel geçişinde tam ekran bir renk çakması demek — dikeyde ritim
@@ -82,7 +88,19 @@ export default function HizmetlerPage() {
       <ServiceRail
         panelCount={SERVICES.length}
         className="rail surface-ink"
-        style={{ "--rail-panels": SERVICES.length } as React.CSSProperties}
+        style={
+          {
+            "--rail-panels": SERVICES.length,
+            // Duraklamalı kayma eğrisi. Düzlükleri = panel ortalandığında
+            // yaşanan scroll gecikmesi.
+            "--rail-ease": RAIL.ease,
+            // Aynı haritanın sayıları: CSS'in değil, ServiceRail.tsx'in
+            // klavye köprüsünün okuduğu iki değer (panel i'nin durağı
+            // nerede başlıyor hesabı orada tekrar yazılmasın diye).
+            "--rail-hold": RAIL.hold,
+            "--rail-move": RAIL.move,
+          } as React.CSSProperties
+        }
       >
         <div className="rail-viewport">
           <div className="rail-track">
@@ -90,11 +108,26 @@ export default function HizmetlerPage() {
               // Altı kalemin altısında da bir görsel var (serviceMedia.ts).
               const media = SERVICE_MEDIA[service.id];
 
+              const panelWindow = RAIL.windows[index];
+
               return (
                 <article
                   key={service.id}
                   id={service.id}
                   className="rail-panel service-section"
+                  // Panelin KENDİ geçiş menzilleri. Dört sayı da aynı
+                  // zaman çizgisine (`--rail`) ait: geliş = bir önceki
+                  // geçiş, çıkış = kendi geçişi. CSS bunları
+                  // `animation-range`e koyuyor; başka hiçbir yerde panel
+                  // indeksi hesaplanmıyor.
+                  style={
+                    {
+                      "--panel-in-from": panelWindow.inFrom,
+                      "--panel-in-to": panelWindow.inTo,
+                      "--panel-out-from": panelWindow.outFrom,
+                      "--panel-out-to": panelWindow.outTo,
+                    } as React.CSSProperties
+                  }
                 >
                   <div className="rail-panel__grid">
                     <div className="service-head">
@@ -110,7 +143,12 @@ export default function HizmetlerPage() {
                       </h2>
                     </div>
 
-                    <div>
+                    {/* `rail-panel__body` sınıfı YATAY RAY İÇİN: başlık
+                        sütunu geçişte çakılı kalırken açıklama + liste bu
+                        sarmalayıcıyla birlikte sola sıyrılıp başlığın
+                        altında kayboluyor (globals.css, `rail-body-*`).
+                        Dikey fallback'te sınıfın hiçbir kuralı yok. */}
+                    <div className="rail-panel__body">
                       <p className="text-lead max-w-(--container-prose)">
                         {service.lead}
                       </p>

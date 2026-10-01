@@ -291,6 +291,32 @@ düzeltme de yapıldı:
 bir sayfa eklerken `navLinks.ts`'i güncellemeye gerek yok, adresler zaten
 oradan geliyor; yapılması gereken yalnızca o route'ta bir sayfa oluşturmak.
 
+# `/hizmetler` yatay rayı — duraklar ve başlık nöbeti
+
+Gerekçe `docs/design-system.md` §9 "Rayın duraklaması ve başlık nöbeti".
+Kısaca:
+
+- **Zamanlamanın tek kaynağı `app/components/services/railTiming.ts`.** Panel
+  sayısından (içerikten) üç şey türüyor: `--rail-ease` (duraklamalı `linear()`
+  eğrisi), panel başına `animation-range` değerleri ve klavye köprüsünün
+  okuduğu `--rail-hold` / `--rail-move`. CSS'te panel indeksi YOK, keyframe
+  yüzdeleri panel sayısına bağlı DEĞİL — hizmet eklemek yalnızca
+  `services.ts`'i ilgilendirir.
+- **Eğrinin düzlükleri = duraklar**, segmentleri doğrusal olmak ZORUNDA:
+  başlığı ekranda çakılı tutan karşı öteleme ancak sabit hızı iptal edebilir.
+  Eğriyi `ease`/`cubic-bezier` ile değiştirmeyin, başlık geçişte kayar.
+- **Keyframe'deki %45 ile `45vw` aynı kararın iki yüzü** (`rail-head-*`):
+  geçişte track tam 100vw kayıyor, ilk %45'te çakılı tutmak tam 45vw karşı
+  öteleme demek. Biri değişirse diğeri de değişmeli.
+- **İki animasyon, iki dolgu kipi:** `-in` → `both`, `-out` → `forwards`.
+  `-out`u `both` yapmak geliş animasyonunu tamamen ezer (canlı testte
+  doğrulandı). İlk panelin `-in`i, son panelin `-out`u `:first-child` /
+  `:last-child` ile `none`.
+- **Maske plakası** (`.service-head::before`) rayın zemin rengiyle aynı; 50vw
+  genişliğini büyütmeyin, komşu panelin çakılı başlığını örter.
+- Koreografinin tamamı gated bloğun `min-width: 861px` dalında —
+  `≤860px` ve `reduced-motion` fallback'leri değişmedi.
+
 # Portfolyo sayfaları — `/portfolyo`, `/portfolyo/emlak-crm-pro`
 
 Gerekçe `docs/design-system.md` §13. Kısaca:

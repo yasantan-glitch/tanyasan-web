@@ -89,15 +89,29 @@ export default function ServiceRail({
       if (travel <= 0) return;
 
       // İKİ RAY, İKİ HESAP.
-      // /hizmetler'de panel = tam ekran, kayma doğrusal ve panel i yolun
-      // i/(n-1) noktasında tam ortalanıyor — aşağıdaki basit oran.
+      // /hizmetler'de panel = tam ekran. Kayma ARTIK DOĞRUSAL DEĞİL:
+      // zaman çizgisi durak/geçiş diye bölünmüş (railTiming.ts) ve panel i
+      // kendi DURAĞI boyunca ortalı duruyor — i/(n-1) oranı bugün yanlış
+      // yere, geçişin ortasına düşerdi. Durağın ortası hedefleniyor:
+      // i*(hold+move) + hold/2. İki sayı CSS'ten okunuyor (satır içi
+      // custom property olarak zaten orada) — formül ikinci kez
+      // yazılmıyor, `--home-rail-arrive-share`teki aynı kalıp.
       // Anasayfada ise solda SABİT bir başlık plakası var ve paneller onun
       // altına girip kayboluyor: aynı oran, odaklanan paneli plakanın
       // ALTINA sürebilirdi. Plaka varsa oranı indeksten değil GERÇEK
       // GEOMETRİDEN çıkarıyoruz — panelin sol kenarı tam plakanın sağına
       // gelsin. Plaka yoksa (/hizmetler) tek satır bile değişmiyor.
       const lede = section.querySelector<HTMLElement>(".home-rail-lede");
-      let progress = index / Math.max(panelCount - 1, 1);
+      const styles = getComputedStyle(section);
+      const hold = parseFloat(styles.getPropertyValue("--rail-hold"));
+      const move = parseFloat(styles.getPropertyValue("--rail-move"));
+
+      let progress =
+        Number.isFinite(hold) && Number.isFinite(move)
+          ? index * (hold + move) + hold / 2
+          : // Değişkenler yoksa (anasayfa rayı, ya da eğri hiç kurulmamışsa)
+            // eski doğrusal harita hâlâ doğru cevap.
+            index / Math.max(panelCount - 1, 1);
 
       if (lede && lede.offsetParent !== null) {
         // Track'in kat edeceği toplam yatay yol (CSS'teki home-rail-slide

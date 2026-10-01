@@ -196,9 +196,11 @@
      Panel sayısı içerikten geliyor (SERVICES.length → --rail-panels,
      satır içi yazılıyor), bu yüzden hizmet eklenince bütçe kendiliğinden
      büyür — ikinci bir yerde senkronlanacak sayı yok.
-     90vh: bir panelin okunması için gereken yol. Daha kısası paneli
-     "geçiliyor" gibi gösteriyor, daha uzunu scroll'u ağırlaştırıyor. */
-  --rail-travel: 90vh;
+     Ekim 2026: 90vh → 100vh. Yol artık ikiye bölünüyor (durak + geçiş,
+     bkz. railTiming.ts); eski bütçede geçişe düşen pay, başlık
+     koreografisinin sığamayacağı kadar kısalıyordu. 100vh'de bir panel
+     döngüsü ≈ 49vh durak + 61vh geçiş. */
+  --rail-travel: 100vh;
 
   /* Anasayfa özet rayı — /hizmetler'in tam-ekran rayından farklı ölçek.
      ORADA tek panel TÜM ekranı kaplar (bir bölüm, "adım adım okuma");
@@ -2856,7 +2858,14 @@
       .rail-track {
         flex-direction: row;
         inline-size: calc(var(--rail-panels) * 100vw);
-        animation: rail-slide linear both;
+        /* EĞRİ `linear` DEĞİL `--rail-ease`: panel sayısından türeyen,
+           düzlükleri olan bir `linear()` (railTiming.ts üretiyor, satır
+           içi geliyor). Her düzlük bir DURAK — panel tam ortalandığında
+           track kıpırdamıyor, kullanıcı scroll etmeye devam etse bile
+           hizmet ekranda duruyor (Ekim 2026 kullanıcı kararı). Değişken
+           yoksa (eski HTML, test) `linear`a düşer ve ray eski doğrusal
+           hâliyle çalışır. */
+        animation: rail-slide var(--rail-ease, linear) both;
         animation-timeline: --rail;
         /* `contain` = bölümün viewport'u TAMAMEN kapladığı aralık, yani
            tam olarak pin'in sürdüğü süre. Varsayılan `cover` aralığı
@@ -2871,6 +2880,108 @@
         flex: 0 0 100vw;
         padding-block: 0;
         max-block-size: 100%;
+      }
+
+      /* ---- Geçiş koreografisi: çakılı başlık, altından sıyrılan gövde --
+         Track geçiş boyunca TAM 100vw ve SABİT HIZLA kayıyor (eğrinin
+         düzlükler arası segmentleri doğrusal — railTiming.ts). Bu iki şey
+         aşağıdaki karşı ötelemeyi mümkün kılıyor: başlığı ekranda
+         çakılı tutmak için gereken şey, track'in kaymasını birebir iptal
+         eden doğrusal bir `translateX`.
+
+         Geçişin içi İKİYE bölünüyor (keyframe'lerdeki %45):
+         1. İLK %45 — başlık ekranda ÇAKILI (karşı öteleme), gövde ve
+            görsel track'le birlikte sola kayıp başlığın ALTINDA kaybolur
+            (`z-index` + sönme).
+         2. KALAN %55 — başlık bırakılır; track'in kalan yolu + ötelemenin
+            geri alınması birleşip başlığı ekrandan hızla süpürür. Aynı
+            anda bir sonraki panelin başlığı sağdan girip yerine oturur.
+
+         HER PANEL İKİ ANİMASYON TAŞIYOR, ikisi de aynı `--rail` zaman
+         çizgisinde ama FARKLI menzillerde: `-in` kendi gelişinde, `-out`
+         kendi çıkışında. Menziller satır içi custom property olarak
+         geliyor (railTiming.ts) — CSS panel indeksi bilmiyor.
+
+         DOLGU KİPLERİ ÇAKIŞMAYI ÇÖZÜYOR: iki animasyon da aynı özelliği
+         (`transform`/`opacity`) yazıyor. `-in` → `both` (menzilinden önce
+         ve sonra dolduruyor), `-out` → `forwards` (menzilinden ÖNCE hiç
+         dolgu yapmıyor). Böylece sıra şu: geliş `-in`e ait, durak boyunca
+         `-in`in son karesi geçerli, çıkış `-out`a ait. `-out` geriye
+         doğru da dolgu yapsaydı (`both`) `-in`i tamamen ezerdi ve geliş
+         animasyonu hiç görünmezdi. */
+      .rail-panel .service-head {
+        /* Gövde başlığın ALTINDAN geçsin diye. */
+        position: relative;
+        z-index: 2;
+        isolation: isolate;
+        animation:
+          rail-head-in linear both,
+          rail-head-out linear forwards;
+        animation-timeline: --rail, --rail;
+        animation-range:
+          contain var(--panel-in-from) contain var(--panel-in-to),
+          contain var(--panel-out-from) contain var(--panel-out-to);
+      }
+
+      /* MASKE PLAKASI — "başlığın altında kaybolsun"un gerçek karşılığı.
+         Rayın kendi zemin rengi, başlık sütununun arkasında, sütunun sağ
+         kenarından sola doğru uzanan opak bir dikdörtgen. Duruşta
+         görünmez (zeminle aynı renk); geçişte, sola sıyrılan gövde ona
+         girdiği anda yutuluyor — sönmeye ek olarak GERÇEK bir örtme.
+         Anasayfa rayındaki `.home-rail-lede` plakasının aynı fikri.
+
+         50vw: sütunu ve solundaki payı kapatmaya fazlasıyla yeter. Daha
+         genişi (100vw) komşu panelin alanına taşar ve geçişin ortasında
+         ÖNCEKİ panelin çakılı başlığını örterdi — 50vw'de iki plaka
+         birbirine hiç değmiyor (başlığın en fazla 45vw'lik karşı
+         ötelemesi + sütun genişliği, 100vw'lik panel aralığının altında
+         kalıyor).
+
+         `inset-block` taşması: başlık sütunu yalnızca kendi metni kadar
+         yüksek, gövde ise ekran boyu — plaka panelin tamamını kapsasın
+         diye iki yöne de taşırılıyor. `.rail-viewport`ın `overflow: clip`i
+         fazlasını kesiyor. */
+      .rail-panel .service-head::before {
+        content: "";
+        position: absolute;
+        inset-block: -100vh;
+        inset-inline-end: 0;
+        inline-size: 50vw;
+        background-color: var(--color-ink-900);
+        z-index: -1;
+      }
+
+      .rail-panel__body,
+      .rail-panel__media {
+        position: relative;
+        z-index: 1;
+        animation:
+          rail-body-in linear both,
+          rail-body-out linear forwards;
+        animation-timeline: --rail, --rail;
+        animation-range:
+          contain var(--panel-in-from) contain var(--panel-in-to),
+          contain var(--panel-out-from) contain var(--panel-out-to);
+      }
+
+      /* İLK PANELİN GELİŞİ, SON PANELİN ÇIKIŞI YOK. İlk panel ray pin'e
+         girdiğinde zaten okunur olmalı (bir geliş animasyonu onu
+         başlangıçta ekran dışında tutardı); son panelin arkasından gelen
+         bir panel yok, çıkması için bir sebep de. Menzili zorlamak yerine
+         animasyon adı `none`a çekiliyor — tek satır, yan etkisiz. */
+      .rail-panel:first-child .service-head {
+        animation-name: none, rail-head-out;
+      }
+      .rail-panel:first-child .rail-panel__body,
+      .rail-panel:first-child .rail-panel__media {
+        animation-name: none, rail-body-out;
+      }
+      .rail-panel:last-child .service-head {
+        animation-name: rail-head-in, none;
+      }
+      .rail-panel:last-child .rail-panel__body,
+      .rail-panel:last-child .rail-panel__media {
+        animation-name: rail-body-in, none;
       }
 
       /* ÜÇ SÜTUN — yatayın en önemli düzen kararı.
@@ -3385,6 +3496,71 @@
         }
       }
     }
+  }
+}
+
+/* /hizmetler rayının geçiş koreografisi. Dört keyframe, iki çift:
+   başlık (`head`) ve gövde+görsel (`body`), her biri geliş (`-in`) ve
+   çıkış (`-out`) için. Kuralları ve dolgu kiplerinin gerekçesi
+   `.rail-panel .service-head` yorumunda.
+
+   45vw NEREDEN: geçiş boyunca track tam 100vw kayıyor ve ilk %45'te
+   başlığı çakılı tutmak için tam o kadar — 0.45 × 100vw — karşı öteleme
+   gerekiyor. İki sayı (keyframe'deki %45 ve 45vw) AYNI kararın iki
+   yüzü; biri değişirse diğeri de değişmeli, yoksa başlık geçişte
+   kayar. */
+@keyframes rail-head-in {
+  /* Önceki panel çıkışını tamamlayana dek sağda, ekran dışında bekler. */
+  0%,
+  45% {
+    transform: translateX(45vw);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes rail-head-out {
+  0% {
+    transform: translateX(0);
+  }
+  /* Ekranda çakılı: track ne kadar kaydıysa o kadar geri. */
+  45% {
+    transform: translateX(45vw);
+  }
+  /* Bırakılır — track'in kalanıyla birlikte ekranın dışına süpürülür. */
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes rail-body-in {
+  /* Eski başlık ekrandan süpürülürken görünmez bekler; %55'ten sonra
+     kendi başlığıyla birlikte belirip panelle aynı anda yerine oturur.
+     Daha erken başlasa iki panelin gövdesi aynı anda ekranda olurdu. */
+  0%,
+  55% {
+    opacity: 0;
+    transform: translateX(-3vw);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rail-body-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  /* Çakılı başlığın altına girerken sönüyor. Asıl kayma track'ten
+     geliyor (başlık dururken gövde 45vw sola gidiyor); buradaki -3vw
+     yalnızca "çekiliyor" hissini veren fazladan pay. */
+  42%,
+  100% {
+    opacity: 0;
+    transform: translateX(-3vw);
   }
 }
 

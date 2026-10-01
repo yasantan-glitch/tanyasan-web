@@ -766,6 +766,65 @@ sıranın ve zamanlamanın tek kaynağı, içerik bir katman aşağı indi. Alte
 (sayfanın kendi kopyasını taşıması) altı kalemlik listeyi iki yerde
 tutmak demekti — footer ve /portfolyo da aynı listeyi isteyecek.
 
+### Rayın duraklaması ve başlık nöbeti (Ekim 2026)
+
+Yatay ray ilk hâlinde **tek bir doğrusal kayma** idi: dikey scroll ilerledikçe
+track sabit hızla sola gidiyordu, hiçbir panel durmuyordu. Kullanıcı isteği
+iki parçalı: (1) her hizmet tam ortalandığında ray *bir süre dursun*, (2)
+geçiş sırasında **başlık yerinde çakılı kalsın, açıklama ve görsel onun
+altında kaybolsun, sonra başlık da ekrandan çıksın** — ve ileri/geri scroll'da
+hepsi geri sarsın.
+
+**Duraklar: `linear()` eğrisi, panel sayısından türüyor.** Duraklamalı kayma,
+`@keyframes` yüzdeleri panel SAYISINA bağlı bir eğri demek (altı hizmet için
+altı düzlük) — ama `--rail-panels` içerikten geliyor ve "hizmet eklenince
+CSS'e dokunulmaz" projenin kuralı. Çözüm: eğri
+`app/components/services/railTiming.ts`'te ÜRETİLİP `--rail-ease` olarak satır
+içi veriliyor. Sunucu bileşeninde, render anında — istemciye tek satır JS
+gitmiyor. Zaman çizgisi `n` durak + `n-1` geçişe bölünüyor; bir durağın bir
+geçişe oranı `RAIL_HOLD_RATIO` (0.8). Altı panelde bir döngü ≈ 49vh durak +
+61vh geçiş (`--rail-travel` bu yüzden 90vh → 100vh çıktı: eski bütçede geçişe
+düşen pay başlık koreografisine yetmiyordu).
+
+**Başlık nöbeti: iki animasyon, iki menzil, iki dolgu kipi.** Her panelin
+başlık sütunu ve gövdesi aynı `--rail` zaman çizgisine bağlı İKİ animasyon
+taşıyor — `-in` kendi gelişinde, `-out` kendi çıkışında. Menziller panel
+başına satır içi custom property olarak geliyor (yine `railTiming.ts`); CSS
+panel indeksi bilmiyor. Geçişin içi ikiye bölünüyor: ilk %45'te başlık
+ekranda **çakılı** (track'in kaymasını birebir iptal eden `translateX`, bu
+yüzden eğrinin düzlükler arası segmentleri doğrusal olmak ZORUNDA), kalan
+%55'te bırakılıp süpürülüyor. Aynı anda sıradaki panelin başlığı sağdan
+girip yerine oturuyor — bir nöbet devri.
+
+İki animasyon aynı özelliği yazdığı için **dolgu kipleri çakışmayı çözüyor**:
+`-in` → `both`, `-out` → `forwards`. `-out` geriye doğru da dolgu yapsaydı
+(`both`) `-in`i tamamen ezerdi ve geliş animasyonu hiç görünmezdi. İlk
+panelin gelişi ve son panelin çıkışı yok: `:first-child` / `:last-child`
+ilgili animasyonu `none`a çekiyor — menzili zorlamaktan daha az yan etkili.
+
+**"Altında kaybolsun" gerçek bir örtme.** Sönme tek başına yetmiyordu: metin
+başlığın harflerinin üstünden geçip bulanık bir çakışma yaratıyordu. Başlık
+sütununun arkasına, rayın kendi zemin rengiyle (`--color-ink-900`) opak bir
+maske plakası kondu (`::before`) — duruşta görünmez, geçişte sola sıyrılan
+gövdeyi yutuyor. Anasayfa rayındaki `.home-rail-lede` plakasının aynı fikri.
+Genişliği 50vw: daha genişi (100vw) komşu panelin alanına taşıp geçişin
+ortasında ÖNCEKİ panelin çakılı başlığını örterdi.
+
+**Klavye köprüsü aynı haritayı okuyor.** `ServiceRail.tsx` eskiden paneli
+`i/(n-1)` oranında arıyordu; kayma artık doğrusal olmadığı için bu bugün
+geçişin ortasına düşerdi. Hedef artık durağın ortası — `i*(hold+move) +
+hold/2`. İki sayı CSS'ten okunuyor (`--rail-hold`, `--rail-move`), formül
+ikinci kez yazılmıyor; `--home-rail-arrive-share`teki aynı kalıp.
+
+**Geri sarma bedava.** Scroll-driven animasyonlarda ileri/geri simetri
+yapısal: ölçüldü, yukarı scroll'da track transform'u, başlık konumları ve
+opaklıklar birebir aynı değerlere dönüyor. JS state olmadığı için histerezis
+de yok.
+
+`≤860px` ve `prefers-reduced-motion: reduce` HİÇ etkilenmedi: koreografinin
+tamamı mevcut gated bloğun `min-width: 861px` dalında. Fallback'te başlık ve
+gövde transform'suz, opaklık 1, plaka hiç doğmuyor.
+
 ## 10. Hakkımda sayfası (`/hakkimda`)
 
 İlk sürümü brief §5.8'in birinci-tekil metniyle kuruldu; içerik sonradan eski
