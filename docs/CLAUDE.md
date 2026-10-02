@@ -296,24 +296,32 @@ oradan geliyor; yapılması gereken yalnızca o route'ta bir sayfa oluşturmak.
 Gerekçe `docs/design-system.md` §9 "Rayın duraklaması ve başlık nöbeti".
 Kısaca:
 
+- **Track KAYMIYOR; paneller aynı ızgara hücresinde üst üste.** Her parça
+  (başlık, gövde, görsel) yalnızca kendi hareket etmesi gerektiğinde kendi
+  `transform`unu sürüyor. "Sabit görünen bir şeyi iki hareketin farkıyla elde
+  etmek" (kayan track + karşı öteleme) YASAK: ilk sürümde başlık bu yüzden
+  titriyordu — iki compositor katmanının kesirli ötelemeleri ayrı ayrı
+  piksele yuvarlanıyor.
 - **Zamanlamanın tek kaynağı `app/components/services/railTiming.ts`.** Panel
-  sayısından (içerikten) üç şey türüyor: `--rail-ease` (duraklamalı `linear()`
-  eğrisi), panel başına `animation-range` değerleri ve klavye köprüsünün
-  okuduğu `--rail-hold` / `--rail-move`. CSS'te panel indeksi YOK, keyframe
-  yüzdeleri panel sayısına bağlı DEĞİL — hizmet eklemek yalnızca
-  `services.ts`'i ilgilendirir.
-- **Eğrinin düzlükleri = duraklar**, segmentleri doğrusal olmak ZORUNDA:
-  başlığı ekranda çakılı tutan karşı öteleme ancak sabit hızı iptal edebilir.
-  Eğriyi `ease`/`cubic-bezier` ile değiştirmeyin, başlık geçişte kayar.
-- **Keyframe'deki %45 ile `45vw` aynı kararın iki yüzü** (`rail-head-*`):
-  geçişte track tam 100vw kayıyor, ilk %45'te çakılı tutmak tam 45vw karşı
-  öteleme demek. Biri değişirse diğeri de değişmeli.
-- **İki animasyon, iki dolgu kipi:** `-in` → `both`, `-out` → `forwards`.
-  `-out`u `both` yapmak geliş animasyonunu tamamen ezer (canlı testte
-  doğrulandı). İlk panelin `-in`i, son panelin `-out`u `:first-child` /
-  `:last-child` ile `none`.
-- **Maske plakası** (`.service-head::before`) rayın zemin rengiyle aynı; 50vw
-  genişliğini büyütmeyin, komşu panelin çakılı başlığını örter.
+  sayısından (içerikten) panel başına `animation-range` değerleri ve klavye
+  köprüsünün okuduğu `--rail-hold` / `--rail-move` türüyor. CSS'te panel
+  indeksi YOK — hizmet eklemek yalnızca `services.ts`'i ilgilendirir.
+- **Keyframe'ler:** `rail-enter` (gelen panelin üç parçası tek gövde, 100vw →
+  0), `rail-body-leave` (gövde+görsel %55'te `--rail-hide-x` kadar sola, başlığın
+  altına), `rail-head-leave` (%55'e dek 0, sonra −45vw). **%55 ile 45vw
+  bağlı:** başlık çıkarken gelen panelle aynı hızda gitsin diye 45 = 100 − 55.
+- **Geometri değişkenleri** (`.rail`, gated blok): `--rail-head-w` (başlık
+  sütunu, ızgarada da bu kullanılıyor), `--rail-edge`, `--rail-hide-x`. Başlık
+  sütununu ızgarada değiştirirseniz değişkeni değiştirin, ayrı sayı yazmayın.
+- **İki animasyon, iki dolgu kipi:** `enter` → `both`, `leave` → `forwards`.
+  `leave`i `both` yapmak gelişi ezer. İlk panelin `enter`i, son panelin
+  `leave`i `:first-child` / `:last-child` ile `none`.
+- **Maske plakası** (`.service-head::before`) sola tam `--rail-edge` kadar
+  taşıyor; daha genişi, geçişin ikinci yarısında gelen panelin plakasının
+  giden başlığı örtmesine yol açar.
+- **Klavye köprüsü** (`ServiceRail.tsx`) rayın canlı olduğunu iki biçimde
+  tanıyor: track ekrandan genişse (anasayfa) ya da ilk iki panel aynı
+  konumdaysa (/hizmetler, üst üste).
 - Koreografinin tamamı gated bloğun `min-width: 861px` dalında —
   `≤860px` ve `reduced-motion` fallback'leri değişmedi.
 

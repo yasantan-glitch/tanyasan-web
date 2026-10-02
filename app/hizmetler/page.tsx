@@ -8,7 +8,7 @@ import { NAV_CTA } from "@/app/components/nav/navLinks";
 import { SERVICES } from "@/app/content/services";
 import { SERVICE_MEDIA } from "@/app/content/serviceMedia";
 
-/** Rayın duraklamalı eğrisi ve panel başına koreografi menzilleri. Render
+/** Rayın durak/geçiş haritası ve panel başına koreografi menzilleri. Render
  * anında, panel sayısından türüyor — gerekçesi railTiming.ts'te. */
 const RAIL = railTiming(SERVICES.length);
 
@@ -72,14 +72,14 @@ export default function HizmetlerPage() {
 
       {/* Altı hizmet, YATAY RAY. Dikey scroll panelleri yana kaydırır;
           başlık bandı ve kapanış CTA'sı dikey kalır, ray ikisinin arasında
-          bir ada. Hareketin tamamı CSS'te (globals.css `rail-slide` +
-          `scroll-timeline`) — JS yalnızca klavye köprüsü için, gerekçesi
+          bir ada. Hareketin tamamı CSS'te (globals.css `rail-enter` /
+          `rail-*-leave` + `view-timeline`) — JS yalnızca klavye köprüsü için, gerekçesi
           ServiceRail.tsx'te.
 
           --rail-panels İÇERİKTEN geliyor: hizmet eklenince hem ray genişliği
           hem scroll bütçesi kendiliğinden büyür, senkronlanacak ikinci bir
-          sayı yok. Aynı sayıdan türeyen --rail-ease (duraklamalı eğri) ve
-          panel başına menziller de öyle — bkz. railTiming.ts.
+          sayı yok. Aynı sayıdan türeyen panel başına geliş/çıkış
+          menzilleri de öyle — bkz. railTiming.ts.
 
           Yüzey artık panel başına DÖNÜŞMÜYOR. Yatayda dönüşümlü zemin, her
           panel geçişinde tam ekran bir renk çakması demek — dikeyde ritim
@@ -91,10 +91,7 @@ export default function HizmetlerPage() {
         style={
           {
             "--rail-panels": SERVICES.length,
-            // Duraklamalı kayma eğrisi. Düzlükleri = panel ortalandığında
-            // yaşanan scroll gecikmesi.
-            "--rail-ease": RAIL.ease,
-            // Aynı haritanın sayıları: CSS'in değil, ServiceRail.tsx'in
+            // Durak/geçiş haritasının sayıları: CSS'in değil, ServiceRail.tsx'in
             // klavye köprüsünün okuduğu iki değer (panel i'nin durağı
             // nerede başlıyor hesabı orada tekrar yazılmasın diye).
             "--rail-hold": RAIL.hold,

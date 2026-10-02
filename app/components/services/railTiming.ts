@@ -8,18 +8,19 @@
  * kalıp altından açıklama + görsel sıyrılsın, ardından başlık da ekrandan
  * çıksın.
  *
- * NEDEN BURADA (CSS'te değil): duraklamalı kayma, `@keyframes` yüzdeleri
- * panel SAYISINA bağlı olan bir eğri demek — altı hizmet için altı düzlük.
- * `--rail-panels` içerikten geliyor (SERVICES.length) ve hizmet eklenince
- * CSS'e dokunulmaması projenin kuralı. Çözüm: eğriyi `linear()` olarak
- * burada ÜRETİP custom property ile veriyoruz. Sunucu bileşeninde, render
- * anında çalışır — istemciye tek bir JS satırı gitmez.
+ * NEDEN BURADA (CSS'te değil): duraklar ve geçişler zaman çizgisinde panel
+ * SAYISINA bağlı yüzdelere düşüyor. `--rail-panels` içerikten geliyor
+ * (SERVICES.length) ve hizmet eklenince CSS'e dokunulmaması projenin
+ * kuralı. Çözüm: yüzdeleri burada ÜRETİP custom property ile veriyoruz.
+ * Sunucu bileşeninde, render anında çalışır — istemciye JS gitmez.
  *
- * ÜÇ ÇIKTI, TEK HESAP:
- * 1. `ease`      → `.rail-track`in `rail-slide` eğrisi (düzlükler = duraklar)
- * 2. `windows`   → panel başına `animation-range` değerleri (başlık/gövde
- *                  koreografisi; her panel KENDİ geçişini biliyor)
- * 3. `hold`/`move` → ServiceRail.tsx'in klavye köprüsü aynı haritayı
+ * (İlk sürüm burada bir de track'i süren `linear()` eğrisi üretiyordu;
+ * track artık kaymıyor — paneller üst üste, gerekçe globals.css'te.)
+ *
+ * İKİ ÇIKTI, TEK HESAP:
+ * 1. `windows`   → panel başına `animation-range` değerleri (her panel
+ *                  KENDİ geliş ve çıkış penceresini biliyor)
+ * 2. `hold`/`move` → ServiceRail.tsx'in klavye köprüsü aynı haritayı
  *                  okusun diye (sayı ikinci kez yazılmıyor; aynı kalıp
  *                  `--home-rail-arrive-share`te de var)
  */
@@ -41,8 +42,6 @@ export type RailWindow = {
 };
 
 export type RailTiming = {
-  /** `.rail-track`in `animation-timing-function` değeri. */
-  ease: string;
   /** Bir duraklamanın tüm zaman çizgisine oranı (0–1). */
   hold: number;
   /** Bir geçişin tüm zaman çizgisine oranı (0–1). */
@@ -59,8 +58,8 @@ const pct = (value: number) => `${(value * 100).toFixed(4)}%`;
  *   |--hold0--|--move0--|--hold1--|--move1--| … |--hold(n-1)--|
  *   0                                                        1
  *
- * Durak i:  [ i*(h+m) , i*(h+m)+h ]   — track kıpırdamaz, panel ortalı
- * Geçiş i:  [ i*(h+m)+h , (i+1)*(h+m) ] — track tam 100vw kayar
+ * Durak i:  [ i*(h+m) , i*(h+m)+h ]   — panel i ekranda, hiçbir şey kıpırdamaz
+ * Geçiş i:  [ i*(h+m)+h , (i+1)*(h+m) ] — panel i çıkar, i+1 gelir
  */
 export function railTiming(
   panels: number,
@@ -71,18 +70,6 @@ export function railTiming(
   const move = moves > 0 ? 1 / (panels * holdRatio + moves) : 0;
   const hold = moves > 0 ? holdRatio * move : 1;
   const cycle = hold + move;
-
-  // `linear()` eğrisi: her durak için ÇIFT giriş konumlu bir durak noktası —
-  // aynı çıkış değeri iki giriş yüzdesi arasında sabit kalır, yani track o
-  // aralıkta hiç kıpırdamaz. Aradaki segmentler doğrusal: geçişler sabit
-  // hızda olur (başlık koreografisi bu doğrusallığa dayanıyor — karşı
-  // öteleme ancak sabit hızı iptal edebilir).
-  const stops: string[] = [];
-  for (let i = 0; i < panels; i += 1) {
-    const value = moves > 0 ? i / moves : 0;
-    const from = i * cycle;
-    stops.push(`${Number(value.toFixed(6))} ${pct(from)} ${pct(from + hold)}`);
-  }
 
   const windows: RailWindow[] = [];
   for (let i = 0; i < panels; i += 1) {
@@ -105,7 +92,6 @@ export function railTiming(
   }
 
   return {
-    ease: panels > 1 ? `linear(${stops.join(", ")})` : "linear",
     hold,
     move,
     windows,

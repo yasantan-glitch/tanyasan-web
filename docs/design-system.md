@@ -825,6 +825,36 @@ de yok.
 tamamı mevcut gated bloğun `min-width: 861px` dalında. Fallback'te başlık ve
 gövde transform'suz, opaklık 1, plaka hiç doğmuyor.
 
+### Revizyon: kayan track kaldırıldı, başlık titremesi (Ekim 2026)
+
+İlk sürümün başlığı scroll sırasında **titriyordu**. Sebep yapısaldı: track
+bütün halinde kayıyor, başlık ise track'in hareketini birebir silen bir
+karşı ötelemeyle "çakılı" tutuluyordu. Hesapta fark sıfırdı, ama iki ayrı
+compositor katmanının kesirli ötelemeleri ayrı ayrı piksele yuvarlandığı için
+her karede ±1px oynuyordu — metinde en çok göze batan şey. Ders: sabit
+görünmesi gereken bir şey, iki hareketin farkıyla elde edilmez.
+
+Yeni yapı:
+
+- **Track kaymıyor.** Altı panel aynı ızgara hücresinde üst üste duruyor;
+  `rail-slide` ve `--rail-ease` (duraklamalı `linear()` eğrisi) kaldırıldı.
+  Duraklar artık bir eğrinin düzlüğü değil, pencerelerin arasındaki boşluk:
+  durakta hiçbir animasyon aktif değil.
+- **Her parça yalnızca kendi hareketini yapıyor.** Başlığın `transform`u
+  duruş boyunca ve gövde altına kayarken tam `0` — titreyecek bir şey yok
+  (Playwright'la ölçüldü: başlığın sol kenarı bu aralıkta tek bir değer).
+- **Geçiş (i → i+1):** ilk %55'te gövde + görsel tek gövde hâlinde sola kayıp
+  başlığın opak plakasının altında kaybolur; mesafe (`--rail-hide-x`)
+  görselin sağ kenarını tam başlığın sağ kenarına getirecek şekilde
+  geometriden hesaplanıyor, yani görsel tam %55'te kayboluyor. O an başlık
+  sola süzülüp çıkıyor (−45vw). Gelen panel pencerenin tamamında sağdan
+  100vw → 0 geliyor; ikinci yarıda giden başlıkla aynı hızda hareket
+  ettikleri için yeni bölüm eskiyi itiyormuş gibi okunuyor.
+- **Geri scroll** her şeyi aynı yoldan geri sarar — konum scroll'un saf
+  fonksiyonu.
+- **Klavye köprüsü** üst üste düzeni de "canlı ray" olarak tanıyor (ilk iki
+  panelin konumu aynı); hedef formül (durağın ortası) değişmedi.
+
 ## 10. Hakkımda sayfası (`/hakkimda`)
 
 İlk sürümü brief §5.8'in birinci-tekil metniyle kuruldu; içerik sonradan eski

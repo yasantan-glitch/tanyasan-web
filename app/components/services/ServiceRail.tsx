@@ -5,7 +5,7 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 /**
  * Yatay ray'lerin (bugün ikisi var: /hizmetler'in tam ekran rayı ve
  * anasayfanın özet rayı) KLAVYE KÖPRÜSÜ. Rayın görsel hareketinin tamamı
- * CSS'te (globals.css, `*-slide` + `view-timeline`); burada hiçbir stil
+ * CSS'te (globals.css, `view-timeline` + keyframe'ler); burada hiçbir stil
  * yazılmıyor, hiçbir frame sürülmüyor. Mekanik ikisinde de birebir aynı
  * olduğu için tek dosya paylaşılıyor — `panelSelector` hangi ray'in
  * panellerini arayacağını söylüyor (varsayılan `/hizmetler`'inki, geriye
@@ -73,15 +73,23 @@ export default function ServiceRail({
       const panel = target.closest<HTMLElement>(panelSelector);
       if (!panel || !section) return;
 
-      // Ray canlı mı? Yatay hâlde track ekranın birkaç katı genişliktedir;
-      // dikey listede panel genişliği bölümün genişliğine eşittir. Medya
-      // sorgusunu ve @supports'u JS'te kopyalamak yerine SONUCU ölçüyoruz
-      // — kural değişirse burası kendiliğinden takip eder.
+      // Ray canlı mı? Medya sorgusunu ve @supports'u JS'te kopyalamak
+      // yerine SONUCU ölçüyoruz — kural değişirse burası kendiliğinden
+      // takip eder. İki canlı biçim var:
+      // - anasayfa: track ekranın birkaç katı genişlikte (yatay şerit);
+      // - /hizmetler: paneller AYNI hücrede üst üste (globals.css, kayan
+      //   track yok) — ilk iki panelin konumu birebir aynı.
+      // Dikey fallback'te ikisi de yanlış: paneller alt alta.
       const track = panel.parentElement;
       if (!track) return;
-      if (track.scrollWidth <= section.clientWidth + 1) return;
+      const list = panels();
+      const stacked =
+        list.length > 1 &&
+        list[0].offsetTop === list[1].offsetTop &&
+        list[0].offsetLeft === list[1].offsetLeft;
+      if (!stacked && track.scrollWidth <= section.clientWidth + 1) return;
 
-      const index = panels().indexOf(panel);
+      const index = list.indexOf(panel);
       if (index < 0) return;
 
       // Bölümün dikey yolu: toplam yükseklik eksi pin'in kendi ekranı.
@@ -89,10 +97,9 @@ export default function ServiceRail({
       if (travel <= 0) return;
 
       // İKİ RAY, İKİ HESAP.
-      // /hizmetler'de panel = tam ekran. Kayma ARTIK DOĞRUSAL DEĞİL:
-      // zaman çizgisi durak/geçiş diye bölünmüş (railTiming.ts) ve panel i
-      // kendi DURAĞI boyunca ortalı duruyor — i/(n-1) oranı bugün yanlış
-      // yere, geçişin ortasına düşerdi. Durağın ortası hedefleniyor:
+      // /hizmetler'de panel = tam ekran ve zaman çizgisi durak/geçiş diye
+      // bölünmüş (railTiming.ts): panel i kendi DURAĞI boyunca ekranda —
+      // i/(n-1) oranı yanlış yere, bir geçişin ortasına düşerdi. Durağın ortası hedefleniyor:
       // i*(hold+move) + hold/2. İki sayı CSS'ten okunuyor (satır içi
       // custom property olarak zaten orada) — formül ikinci kez
       // yazılmıyor, `--home-rail-arrive-share`teki aynı kalıp.
