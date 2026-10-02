@@ -2894,7 +2894,13 @@
            (ızgarada da bu değişken kullanılıyor).
            Görselin sağ kenarı = 100vw − edge, başlığınki = edge + head-w
            → aradaki fark `--rail-hide-x`. */
-        --rail-head-w: 15rem;
+        /* Başlık yazı boyutu ve sütun genişliği BİRBİRİNE BAĞLI: en uzun
+           kelime ("DANIŞMANLIK") 7,7em; 8,2em pay bırakıyor. Sabit 15rem
+           (240px) bu kelimeyi sütunun dışına taşırıp açıklamanın üstüne
+           bindiriyordu. Yeni hizmet eklenirken en uzun kelime ~8em'i
+           geçerse çarpanı büyütün. */
+        --rail-title-fs: clamp(1.75rem, 2.6vw, 2.5rem);
+        --rail-head-w: calc(var(--rail-title-fs) * 8.2);
         --rail-edge: max(
           var(--spacing-gutter),
           (100vw - var(--container-wide)) / 2
@@ -2914,6 +2920,10 @@
         inline-size: 100vw;
         padding-block: 0;
         max-block-size: 100%;
+      }
+
+      .rail-panel .service-title {
+        font-size: var(--rail-title-fs);
       }
 
       .rail-panel .service-head,
