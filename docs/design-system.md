@@ -499,16 +499,23 @@ karede yeniden yazılması demekti.
 - **Dönüş:** dikey eksen etrafında 48 sn'de bir tur, eksen izleyiciye 0.38
   rad eğik, ±0.05 rad hafif yalpa (31 sn). Derinlik parçacığın boyutunu
   (0.6 → 1.6px) ve opaklığını belirliyor; arka yarıküre küçük ve soluk.
-- **Dağılma alanı EKRANA sabit** (sağ alt). Küre onun içinden dönerek
-  geçiyor: o yana gelen parçacık yüzeyden kopup dışa savruluyor, arkaya
-  dönünce yerine oturuyor. Yani dağılma donuk bir yara değil, sürekli akan
-  bir hareket. Her parçacığın kopma eşiği ve savrulma mesafesi kendine özel
-  (seed): kenarda düzensiz bir saçak.
+- **Dağılma: nabız, kalıcı yara değil** (Ekim 2026, ikinci tur). İlk
+  sürümde dağılma ekrana sabit bir alandı ve küre o yanından HEP parçalanmış
+  duruyordu. Kullanıcı geri bildirimi: "dağılıp hemen toplanan", organik bir
+  küre olsun. Şimdi iki katman var:
+  - **Yüzey dalgası:** sürekli, yarıçapın ±%3.5'i kadar radyal dalgalanma
+    (üç düşük frekanslı sinüs, küreyle birlikte dönüyor). Küre hiç tam
+    durmuyor ama silüeti hep küre.
+  - **Dağılma nabzı:** 6.5 sn'de bir, kürenin bir yanından öbür yanına
+    1.4 sn'de bir dalga geçiyor. Değdiği parçacıklar 0.5 sn'de dışa açılıp
+    1.7 sn'de yumuşakça yerlerine toplanıyor; nabızlar arasında küre bütün.
+    Açılma mesafesi parçacığa özel (çoğu az, azı çok: saçak). Dalganın yönü
+    her nabızda altın açı kadar dönüyor, aynı yerden tekrar etmiyor.
 - **Renk:** gövde `--color-fg-on-paper` (mürekkep), kenar ışığı ve
   savrulanların bir kısmı `--color-accent` (amber). Auros'un lavanta-pembe
-  rolünü bizde logo amberi alıyor. Amber beyaz zeminde aynı opaklıkta
-  kayboluyordu, ona taban opaklık (0.55+) verildi. Savrulanların hepsi amber
-  olunca dağılma ayrı renkte bir leke gibi okunuyordu, payı kısıldı. Renkler
+  rolünü bizde logo amberi alıyor; nabızda belirgin açılan parçacıklar da
+  amber yanıyor. Amber beyaz zeminde aynı opaklıkta kayboluyordu, ona taban
+  opaklık (0.55+) verildi. Renkler
   çalışma anında token'lardan okunuyor; canvas'a ayrıca hex yazılmıyor.
 - **Maliyet:** parçacıklar 16 kovaya (2 renk × 8 opaklık) toplanıyor; kare
   başına 16 `fillStyle` değişimi, parçacık başına değil. Çizim **30 fps

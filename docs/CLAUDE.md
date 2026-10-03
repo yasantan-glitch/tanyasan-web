@@ -51,8 +51,9 @@ kaldırıldı). `outroOrb.ts` geometri + çizim, `Hero.tsx` `HeroOutroOrb` yaşa
 döngüsü. Kurallar:
 - Dağılım deterministik (`hash01`, `Math.random` yok), Fibonacci kafesi DEĞİL
   — örgü gibi okunuyordu.
-- Dağılma alanı ekrana sabit, küre içinden döner; dağılmayı parçacığa ya da
-  küreye bağlamayın, hareket donar.
+- Dağılma KALICI DEĞİL, nabızdır: 6.5 sn'de bir geçen bir dalga parçacıkları
+  açıp hemen toplar, arada küre bütün ve yüzeyi hafifçe dalgalanır. Sabit bir
+  dağılma alanı denendi ve geri alındı — küre hep parçalanmış görünüyordu.
 - Renkler token'lardan çalışma anında okunur (`--color-fg-on-paper`,
   `--color-accent`); canvas koduna hex yazmayın.
 - 30 fps tavanı, opaklık 0'da kare atlama ve ekran dışında durma bilinçli;
