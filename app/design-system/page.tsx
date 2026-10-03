@@ -51,7 +51,7 @@ export default function DesignSystemPage() {
     <main className="surface-paper">
       {/* ================= HERO ÖRNEĞİ ================= */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="max-w-(--container-site) mx-auto">
+        <div className="max-w-(--container-page) mx-auto">
           <p className="eyebrow text-accent-auto mb-6">Tasarım Sistemi — Hero Örneği</p>
           <h1
             className="font-display font-extrabold text-accent-auto"
@@ -97,7 +97,7 @@ export default function DesignSystemPage() {
 
       {/* ================= PALET ================= */}
       <section className="px-(--spacing-gutter) py-(--spacing-section-tight)">
-        <div className="max-w-(--container-site) mx-auto">
+        <div className="max-w-(--container-page) mx-auto">
           <p className="eyebrow text-accent-auto mb-2">01 — Palet</p>
           <h2
             className="font-display font-bold mb-8"
@@ -161,7 +161,7 @@ export default function DesignSystemPage() {
 
       {/* ================= TİPOGRAFİ ================= */}
       <section className="px-(--spacing-gutter) py-(--spacing-section-tight) bg-(--color-paper-0)">
-        <div className="max-w-(--container-site) mx-auto">
+        <div className="max-w-(--container-page) mx-auto">
           <p className="eyebrow text-accent-auto mb-2">02 — Tipografi</p>
           <h2
             className="font-display font-bold mb-8"
@@ -260,7 +260,7 @@ export default function DesignSystemPage() {
 
       {/* ================= BİLEŞENLER ================= */}
       <section className="px-(--spacing-gutter) py-(--spacing-section-tight)">
-        <div className="max-w-(--container-site) mx-auto">
+        <div className="max-w-(--container-page) mx-auto">
           <p className="eyebrow text-accent-auto mb-2">03 — Bileşenler ve yüzeyler</p>
           <h2
             className="font-display font-bold mb-8"
@@ -309,7 +309,7 @@ export default function DesignSystemPage() {
 
       {/* ================= BOŞLUK / GRID ================= */}
       <section className="px-(--spacing-gutter) py-(--spacing-section-tight) bg-(--color-paper-0)">
-        <div className="max-w-(--container-site) mx-auto">
+        <div className="max-w-(--container-page) mx-auto">
           <p className="eyebrow text-accent-auto mb-2">04 — Boşluk ve container</p>
           <h2
             className="font-display font-bold mb-8"
@@ -328,14 +328,9 @@ export default function DesignSystemPage() {
               <span className="text-muted">576px</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="w-40 shrink-0 text-muted">container-site</span>
-              <div className="h-3 bg-(--color-accent-lo)" style={{ width: "min(100%, var(--container-site))" }} />
-              <span className="text-muted">1280px</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="w-40 shrink-0 text-muted">container-wide</span>
+              <span className="w-40 shrink-0 text-muted">container-page</span>
               <div className="h-3 bg-(--color-accent-dim)" style={{ width: "100%" }} />
-              <span className="text-muted">1440px</span>
+              <span className="text-muted">tam genişlik − gutter</span>
             </div>
           </div>
         </div>

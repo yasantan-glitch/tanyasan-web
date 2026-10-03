@@ -9,7 +9,14 @@ export interface NavLink {
   label: string;
 }
 
+/**
+ * Ekim 2026: menü Hayler referansının sırasına geçti (Index – Services –
+ * Portfolio – About – Blog – Contact); "Index"in Türkçe karşılığı
+ * "Anasayfa" ilk sıraya eklendi. `isActive("/")` yalnızca tam eşleşmede
+ * true döner — prefix kuralı "/"'ı her sayfada aktif gösterirdi.
+ */
 export const NAV_LINKS: readonly NavLink[] = [
+  { href: "/", label: "Anasayfa" },
   { href: "/hizmetler", label: "Hizmetler" },
   { href: "/portfolyo", label: "Portfolyo" },
   { href: "/hakkimda", label: "Hakkımda" },
@@ -24,5 +31,6 @@ export const NAV_CTA: NavLink = { href: "/iletisim", label: "Teklif Al" };
  * prefix eşleşmesi kullanılıyor (/portfolyo/emlak-crm-pro → Portfolyo).
  */
 export function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }

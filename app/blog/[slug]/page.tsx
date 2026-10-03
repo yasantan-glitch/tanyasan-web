@@ -42,7 +42,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   return (
     <>
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section-tight) pt-[calc(var(--nav-h)+var(--spacing-section))]">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           <Link href="/blog" className="eyebrow text-accent-auto">
             ← Blog
           </Link>
@@ -64,7 +64,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       </section>
 
       <section className="surface-paper px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           {/* marked ile derleme zamanında üretilen, yazının kendi
               Markdown'ından gelen HTML. */}
           <div className="blog-prose text-body" dangerouslySetInnerHTML={{ __html: post.html }} />
@@ -72,7 +72,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       </section>
 
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-site) flex-wrap items-end justify-between gap-8">
+        <div className="mx-auto flex max-w-(--container-page) flex-wrap items-end justify-between gap-8">
           <p
             className="font-display text-strong max-w-[18ch]"
             style={{

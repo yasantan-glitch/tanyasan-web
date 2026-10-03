@@ -4,6 +4,8 @@ import "./globals.css";
 import SiteHeader from "./components/nav/SiteHeader";
 import SkipLink from "./components/nav/SkipLink";
 import ScrollDirection from "./components/ScrollDirection";
+import CursorBall from "./components/CursorBall";
+import SiteFooter from "./components/footer/SiteFooter";
 
 // Display: geniş ağırlık (100–900) ve genişlik (62–125) eksenine sahip
 // endüstriyel grotesk. Hero'da büyük boyutta logonun sert diyagonalleriyle
@@ -42,15 +44,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="tr"
       className={`${archivo.variable} ${instrumentSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      {/* relative: .nav-sentinel'in (SiteHeader) konumlanacağı çerçeve. */}
       <body className="surface-paper min-h-full flex flex-col relative">
         <SkipLink />
         {/* Yön bayrağı — yalnızca scroll imlecinin oku için (bkz. bileşen). */}
         <ScrollDirection />
+        {/* Hayler imleci — native ok/pointer'ın yerine izleyen amber kare. */}
+        <CursorBall />
         <SiteHeader />
         <main id="icerik" className="flex-1">
           {children}
         </main>
+        <SiteFooter />
       </body>
     </html>
   );

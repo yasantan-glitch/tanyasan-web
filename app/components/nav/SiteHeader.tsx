@@ -2,19 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type CSSProperties } from "react";
 import { Menu } from "lucide-react";
-import { HeroLogoSolid } from "../hero/HeroLogo";
 import MobileDrawer from "./MobileDrawer";
 import { NAV_CTA, NAV_LINKS, isActive } from "./navLinks";
-import { useScrolledPastSentinel } from "./useScrolledPastSentinel";
+import { useHeaderTone } from "./useHeaderTone";
 
 /**
- * Sayfa boyunca sabit duran header.
+ * Sayfa boyunca sabit duran header — Hayler referansı (Ekim 2026).
  *
- * Anasayfada hero'nun ilk ekranı boyunca şeffaf kalır (video ve hero'nun
- * kendi logo animasyonu görünür), intro fazı bittikten sonra koyu/blur'lu
- * zemine geçer. Hero'suz sayfalarda baştan solid.
+ * Header HİÇBİR ZAMAN solid zemine geçmiyor. Altından geçen bölüme göre
+ * (bkz. `useHeaderTone`) iki şey değişiyor:
+ *   - TON: koyu bölümde beyaz logo (`/Logo_Beyaz.svg`) + açık metin, açık
+ *     bölümde koyu logo (`/Logo.svg`) + koyu metin. İki logo üst üste durur,
+ *     yalnızca opaklıkları çapraz geçer — kaynak değişimi yok, flaş yok.
+ *   - GRADYAN: arkadaki bölümün zemin renginden şeffafa inen bir katman;
+ *     içerik header'ın altından kayarken okunurluk veriyor. Hero'nun koyu
+ *     (videolu) fazlarında kapalı, orada eski scrim çalışıyor.
+ *
+ * Linkler ortada, yarı saydam/blur'lu bir kutuda (Hayler'in kutusu); aktif
+ * sayfa ters renkli bir "chip", hover'da chip alttan yuvarlanarak gelir.
  *
  * Konumlandırma `fixed`: .hero-stage'in `overflow: clip`i içeriye konan bir
  * header'ı kırpardı, ayrıca fixed olduğu için doküman akışını değiştirmiyor
@@ -22,8 +29,8 @@ import { useScrolledPastSentinel } from "./useScrolledPastSentinel";
  */
 export default function SiteHeader() {
   const pathname = usePathname();
-  const isHome = pathname === "/";
-  const { sentinelRef, solid } = useScrolledPastSentinel(isHome);
+  const headerRef = useRef<HTMLElement>(null);
+  const { tone, gradient, accent } = useHeaderTone(headerRef, pathname);
 
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -31,42 +38,77 @@ export default function SiteHeader() {
 
   return (
     <>
-      {isHome ? <div ref={sentinelRef} className="nav-sentinel" aria-hidden="true" /> : null}
+      <header
+        ref={headerRef}
+        className="site-header"
+        data-tone={tone}
+        data-gradient={gradient ? "on" : "off"}
+        data-accent={accent ? "" : undefined}
+        style={gradient ? ({ "--header-grad": gradient } as CSSProperties) : undefined}
+      >
+        <div className="site-header-gradient" aria-hidden="true" />
 
-      <header className="site-header surface-ink" data-solid={solid}>
         <div className="site-header-inner">
-          <Link href="/" className="site-header-logo" aria-label="Tan Yasan — anasayfa">
-            <HeroLogoSolid />
+          <Link
+            href="/"
+            className="site-header-logo"
+            aria-label="Tan Yasan — anasayfa"
+          >
+            {/* Düz <img>: iki SVG'nin kendi renkleri var (beyaz / koyu
+                gri wordmark + amber), next/image'in optimizer'ı SVG'yi
+                zaten geçiriyor — kazancı yok. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Logo_Beyaz.svg"
+              alt=""
+              className="site-header-logo__img site-header-logo__img--on-dark"
+              width={1080}
+              height={335}
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Logo.svg"
+              alt=""
+              className="site-header-logo__img site-header-logo__img--on-light"
+              width={1080}
+              height={335}
+            />
           </Link>
 
-          <nav aria-label="Ana menü" className="nav-links ms-auto">
+          <nav aria-label="Ana menü" className="nav-pill">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="nav-link eyebrow"
+                className="nav-pill__link eyebrow"
                 aria-current={isActive(pathname, link.href) ? "page" : undefined}
               >
-                {link.label}
+                {/* Yuvarlanan katman: metin yukarı çıkarken aynı metnin
+                    chip'li kopyası (::after, data-label) alttan gelir. */}
+                <span className="nav-pill__roll" data-label={link.label}>
+                  {link.label}
+                </span>
               </Link>
             ))}
           </nav>
 
-          <Link href={NAV_CTA.href} className="btn btn-accent eyebrow">
-            {NAV_CTA.label}
-          </Link>
+          <div className="site-header-end">
+            <Link href={NAV_CTA.href} className="btn btn-accent eyebrow">
+              {NAV_CTA.label}
+            </Link>
 
-          <button
-            ref={toggleRef}
-            type="button"
-            className="nav-toggle ms-auto"
-            aria-label="Menüyü aç"
-            aria-expanded={open}
-            aria-controls="mobil-menu"
-            onClick={() => setOpen(true)}
-          >
-            <Menu strokeWidth={1.5} aria-hidden="true" />
-          </button>
+            <button
+              ref={toggleRef}
+              type="button"
+              className="nav-toggle"
+              aria-label="Menüyü aç"
+              aria-expanded={open}
+              aria-controls="mobil-menu"
+              onClick={() => setOpen(true)}
+            >
+              <Menu strokeWidth={1.5} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </header>
 

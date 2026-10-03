@@ -1,0 +1,375 @@
+diff --git a/app/components/hero/outroOrb.ts b/app/components/hero/outroOrb.ts
+index b01423c..bb07033 100644
+--- a/app/components/hero/outroOrb.ts
++++ b/app/components/hero/outroOrb.ts
+@@ -3,84 +3,76 @@ import { hash01 } from "./heroMath";
+ /**
+  * Faz 8'in parçacık küresi — geometri ve çizim (Canvas 2D).
+  *
+- * KARAR DEĞİŞTİ (Ekim 2026, kullanıcı kararı): referans Auros'un "Particle
+- * Sphere Visual"ı — "binlerce küçük noktadan oluşan, dönen 3B bir küre;
+- * kenarlarında aksan rengini yakalayan, biyolüminesan bir veri küresi".
+- * Görselde ayrıca kürenin bir yanı DAĞILIYOR: parçacıklar o tarafta yüzeyden
+- * kopup seyrekleşiyor.
++ * Referans: Auros'un "Particle Sphere Visual"ı — binlerce küçük noktadan
++ * oluşan, dönen 3B bir küre; kenarlarında aksan rengini yakalıyor.
+  *
+- * Önceki sürüm 680 noktalı statik bir SVG'ydi; "dönme" hissi yalnızca 10
+- * dilimin sırayla şişmesinden geliyordu. Gerçek dönüş + binlerce parçacık +
+- * dağılma, her karede binlerce noktanın yeniden izdüşümü demek: SVG'de bu
+- * binlerce DOM elemanının her karede yeniden yazılması olurdu. Canvas'ta tek
+- * bir bitmap, birkaç düzine `fillRect` çağrısı grubu.
++ * HAREKET (Ekim 2026, ikinci tur — kullanıcı geri bildirimi): ilk sürümde
++ * dağılma ekrana sabit bir alandı, küre o yanından HEP parçalanmış duruyordu.
++ * İstenen: organik, canlı bir küre — "dağılıp hemen toplanan" bir dalgalanma.
++ * Şimdi üç katman var:
+  *
+- * DETERMİNİZM KORUNUYOR: Math.random yok, Fibonacci kafesi + hash01. Küre
+- * her yüklemede aynı başlıyor. (SSR zorunluluğu artık yok — canvas yalnızca
+- * istemcide çiziliyor — ama "tasarlanmış, kazara değil" disiplini aynı.)
++ * 1. DÖNÜŞ — 48 sn'de bir tur, hafif yalpa.
++ * 2. YÜZEY DALGASI — sürekli, küçük genlikli radyal dalgalanma (birkaç
++ *    sinüsün toplamı, küreyle birlikte döner). Küre hiç tam durmuyor ama
++ *    silüeti hep küre: "nefes alan" organik yüzey.
++ * 3. DAĞILMA NABZI — her ORB_PULSE_SECONDS'ta bir, kürenin bir yanından
++ *    öbür yanına bir dalga geçiyor: değdiği parçacıklar hızla dışa açılıp
++ *    (~0.5 sn) yumuşakça yerlerine toplanıyor (~1.7 sn). Nabızlar arasında
++ *    küre BÜTÜN. Dalganın yönü her nabızda altın açı kadar dönüyor — aynı
++ *    yerden tekrar etmiyor.
++ *
++ * DETERMİNİZM: Math.random yok, hash01. Küre her yüklemede aynı başlıyor.
+  *
+  * KOORDİNATLAR: birim küre. Ekran: x sağ, y AŞAĞI, z izleyiciye doğru.
+  */
+ 
+-/** Parçacık sayısı. Auros'un "binlerce" yoğunluğu. 2400'de (ilk deneme)
+- * küre seyrek, noktalar tek tek sayılabilir okunuyordu; 4200'de yüzey
+- * sürekli bir doku. */
++/** Parçacık sayısı. 2400'de küre seyrek okunuyordu; 4200'de yüzey sürekli
++ * bir doku, noktalar yine seçilebiliyor. */
+ export const ORB_PARTICLES = 4200;
+ 
+-/** Küre yarıçapı, canvas kenarının oranı olarak. Kalan pay dağılan
+- * parçacıkların gideceği alan — 0.5'e yaklaşırsa dağılma kenarda kırpılır. */
++/** Küre yarıçapı, canvas kenarının oranı. Kalan pay nabızda açılan
++ * parçacıkların alanı — 0.5'e yaklaşırsa kenarda kırpılır. */
+ export const ORB_RADIUS_RATIO = 0.33;
+ 
+-/** Bir tam tur (sn). Auros'ta dönüş ağır ve sinematik; hızlısı oyuncak
+- * gibi okunuyor. */
++/** Bir tam tur (sn). Auros'ta dönüş ağır ve sinematik. */
+ export const ORB_TURN_SECONDS = 48;
+ 
+-/** Dönme ekseninin izleyiciye eğimi (radyan): kutup hafifçe öne yatık,
+- * kafesin kutup sarmalı tepede simetrik bir "kapak" gibi okunmuyor. */
++/** Dönme ekseninin izleyiciye eğimi (radyan). */
+ const ORB_TILT = 0.38;
+ 
+-/**
+- * DAĞILMA ALANI — kürenin "çözülen" yanı. Alan EKRANA sabit (sağ alt), küre
+- * onun içinden DÖNEREK geçiyor: bir parçacık o yana geldiğinde yüzeyden
+- * kopup dışa savruluyor, arkaya dönünce yeniden yerine oturuyor. Böylece
+- * dağılma tek bir donuk yara değil, sürekli akan bir hareket.
+- *
+- * Yön: sağ-alt (ekranda y aşağı). Eşikler: dot ürünü FROM'dan küçükse hiç
+- * etkilenmiyor, TO'da tam etki.
+- */
+-const SCATTER_DIR = (() => {
+-  const v = [0.82, 0.46, 0.34];
+-  const len = Math.hypot(v[0], v[1], v[2]);
+-  return v.map((c) => c / len) as [number, number, number];
+-})();
+-const SCATTER_FROM = 0.1;
+-const SCATTER_TO = 0.92;
+-/** En uzağa savrulan parçacığın merkezden mesafesi (yarıçap cinsinden ek). */
+-const SCATTER_REACH = 0.5;
++/** Yüzey dalgasının genliği (yarıçap oranı). Fazlası silüeti bozuyor,
++ * azı fark edilmiyor. */
++const WAVE_AMP = 0.035;
++
++/** Dağılma nabzı: periyot, dalganın küreyi baştan sona geçme süresi,
++ * açılma ve toplanma süreleri (sn). Açılma hızlı, toplanma yavaş — "patlama"
++ * değil "nefes verip toplanma". */
++export const ORB_PULSE_SECONDS = 6.5;
++const PULSE_SWEEP = 1.4;
++const PULSE_OUT = 0.5;
++const PULSE_BACK = 1.7;
++/** En uzağa açılan parçacığın ek mesafesi (yarıçap cinsinden). */
++const PULSE_REACH = 0.42;
+ 
+ /** Parçacık kenarı (CSS px), derinliğe göre. Kare parçacık: Auros'taki
+- * noktalar da yuvarlak değil küçük kareler — "veri" hissi oradan geliyor. */
++ * noktalar da küçük kareler — "veri" hissi oradan. */
+ const SIZE_BACK = 0.6;
+ const SIZE_FRONT = 1.6;
+ 
+-/** Opaklık seviyeleri. Her parçacık bir kovaya düşüyor; kova başına tek
+- * `fillStyle` → kare başına ~2×ALPHA_LEVELS durum değişimi, parçacık başına
+- * değil. */
++/** Opaklık seviyeleri. Parçacıklar kovalara düşüyor; kova başına tek
++ * `fillStyle` → kare başına ~2×ALPHA_LEVELS durum değişimi. */
+ const ALPHA_LEVELS = 8;
+ 
+ export interface OrbParticles {
+   /** Birim küre koordinatları, [x0,y0,z0, x1,y1,z1, …]. */
+   pos: Float32Array;
+-  /** Parçacık başına sabit rastgelelik (0–1): savrulma payı, titreşim fazı. */
++  /** Parçacık başına sabit rastgelelik (0–1). */
+   seed: Float32Array;
+ }
+ 
+ /**
+- * DAĞILIM: hash'li düzgün rastgele (y = 1 − 2u, θ = 2πv) — Fibonacci
+- * kafesi DEĞİL. İlk denemede Fibonacci kullanıldı: noktalar kusursuz eşit
+- * aralıklı olunca küre sarmal sıralı bir "örgü" gibi okunuyordu. Auros'un
+- * dokusu organik; hafif kümelenmeler ve boşluklar onu "veri bulutu" yapıyor.
+- * Hash yine deterministik.
++ * DAĞILIM: hash'li düzgün rastgele — Fibonacci kafesi DEĞİL. Kusursuz eşit
++ * aralık sarmal bir "örgü" gibi okunuyordu; Auros'un dokusu organik.
+  */
+ export function buildOrbParticles(count: number = ORB_PARTICLES): OrbParticles {
+   const pos = new Float32Array(count * 3);
+@@ -100,17 +92,24 @@ export function buildOrbParticles(count: number = ORB_PARTICLES): OrbParticles {
+ export interface OrbPalette {
+   /** Gövde parçacıkları (açık zeminde mürekkep). */
+   body: string;
+-  /** Kenar ve savrulan parçacıklar — markanın amberi. Auros'ta bu rol
+-   * lavanta-pembe; bizde logo amberi. */
++  /** Kenar ışığı ve nabızda açılan parçacıklar — logo amberi (Auros'taki
++   * lavanta-pembenin rolü). */
+   accent: string;
+ }
+ 
+-const smoothstep = (a: number, b: number, x: number) => {
+-  const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+-  return t * t * (3 - 2 * t);
+-};
++const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
++const easeInOutSine = (x: number) => -(Math.cos(Math.PI * x) - 1) / 2;
++
++/** Nabız zarfı: 0 → 1 (hızlı açılma) → 0 (yumuşak toplanma). `u` sn,
++ * parçacığın kendi dalga anından itibaren. */
++function pulseEnvelope(u: number) {
++  if (u <= 0 || u >= PULSE_OUT + PULSE_BACK) return 0;
++  if (u < PULSE_OUT) return easeOutCubic(u / PULSE_OUT);
++  return 1 - easeInOutSine((u - PULSE_OUT) / PULSE_BACK);
++}
++
++const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+ 
+-/** Kovalar, çağrılar arasında yeniden kullanılıyor (her karede ayırma yok). */
+ type Buckets = { xs: Float32Array; ys: Float32Array; ss: Float32Array; n: number }[];
+ let bucketCache: { size: number; buckets: Buckets } | null = null;
+ 
+@@ -127,8 +126,8 @@ function getBuckets(count: number): Buckets {
+ }
+ 
+ /**
+- * Tek kare. `t` saniye. `size` canvas'ın CSS px kenarı, `dpr` cihaz oranı
+- * (bağlam zaten dpr ile ölçeklenmiş olmalı).
++ * Tek kare. `t` saniye. `size` canvas'ın CSS px kenarı (bağlam dpr ile
++ * ölçeklenmiş olmalı).
+  */
+ export function drawOrb(
+   ctx: CanvasRenderingContext2D,
+@@ -144,9 +143,6 @@ export function drawOrb(
+ 
+   ctx.clearRect(0, 0, size, size);
+ 
+-  // Dönüş: dikey eksen etrafında (yaw), sonra sabit eğim (X ekseni). Hafif
+-  // bir yalpa (±0.05 rad, 31 sn) eğimi canlı tutuyor — tam sabit eksen
+-  // mekanik okunuyordu.
+   const yaw = (t / ORB_TURN_SECONDS) * Math.PI * 2;
+   const tilt = ORB_TILT + Math.sin(t * ((Math.PI * 2) / 31)) * 0.05;
+   const cy = Math.cos(yaw);
+@@ -154,86 +150,92 @@ export function drawOrb(
+   const ct = Math.cos(tilt);
+   const st = Math.sin(tilt);
+ 
++  // Bu karenin nabzı: hangi döngüdeyiz, döngünün neresindeyiz, dalga
++  // hangi yönden geliyor. İlk nabız 1.2 sn sonra — küre önce bütün görünsün.
++  const pt = t - 1.2;
++  const cycle = Math.floor(pt / ORB_PULSE_SECONDS);
++  const local = pt - cycle * ORB_PULSE_SECONDS;
++  const ang = cycle * GOLDEN_ANGLE + 0.6;
++  // Ekran düzleminde bir yön + hafif derinlik; birim vektör.
++  const pdx = Math.cos(ang) * 0.92;
++  const pdy = Math.sin(ang) * 0.92;
++  const pdz = 0.39;
++
+   const buckets = getBuckets(count);
+   for (const b of buckets) b.n = 0;
+ 
+-  const [dx, dy, dz] = SCATTER_DIR;
+-
+   for (let i = 0; i < count; i++) {
+     const px = pos[i * 3];
+     const py = pos[i * 3 + 1];
+     const pz = pos[i * 3 + 2];
++    const s = seed[i];
+ 
+-    // yaw (Y ekseni)
++    // 2) Yüzey dalgası — nesne koordinatlarında, yani küreyle birlikte
++    // döner. Üç düşük frekanslı sinüs: tekrar eden bir desen değil, yavaşça
++    // kayan tepeler ve çukurlar.
++    const wave =
++      WAVE_AMP *
++      (Math.sin(px * 3.1 + t * 0.9) * Math.sin(py * 2.6 - t * 0.7 + pz * 1.9) +
++        0.6 * Math.sin(pz * 4.3 + py * 1.7 + t * 1.3));
++    const k = 1 + wave;
++
++    // 1) Dönüş: yaw (Y ekseni), sonra eğim (X ekseni).
+     const x1 = px * cy + pz * sy;
+     const z1 = -px * sy + pz * cy;
+-    // tilt (X ekseni)
+     const y2 = py * ct - z1 * st;
+     const z2 = py * st + z1 * ct;
+     const x2 = x1;
+ 
+-    // Dağılma: ekrana sabit alana ne kadar girdiği.
+-    const s = seed[i];
+-    const field = smoothstep(SCATTER_FROM, SCATTER_TO, x2 * dx + y2 * dy + z2 * dz);
+-    // Her parçacık aynı anda kopmuyor: seed eşiği alanın içinde parçacığa
+-    // kendi kopma noktasını veriyor; savrulma mesafesi de parçacığa özel.
+-    // Sonuç: kenarda seyrekleşen, düzensiz bir saçak.
+-    const loose = smoothstep(s * 0.55, s * 0.55 + 0.45, field);
+-    const flutter = 1 + 0.18 * Math.sin(t * 0.9 + s * 40);
+-    const push = loose * SCATTER_REACH * (0.25 + 0.75 * hash(s)) * flutter;
+-
+-    // Savrulma radyal + alan yönüne doğru hafif sürüklenme: parçacıklar
+-    // yalnızca "şişmiyor", bir yöne akıyor.
+-    const sx = x2 * (1 + push) + dx * push * 0.35;
+-    const syy = y2 * (1 + push) + dy * push * 0.35;
+-    const sz = z2 * (1 + push);
+-
+-    // Derinlik 0 (arka) … 1 (ön).
++    // 3) Nabız: dalga yön boyunca −1 → +1 ilerliyor; parçacığın sırası
++    // yöndeki izdüşümünden. Seed'den küçük bir gecikme payı cepheyi
++    // dalgalı yapıyor (düz bir çizgi değil).
++    const along = (x2 * pdx + y2 * pdy + z2 * pdz + 1) / 2; // 0..1
++    const arrive = along * PULSE_SWEEP + s * 0.25;
++    const env = pulseEnvelope(local - arrive);
++    // Her parçacık aynı mesafeye gitmiyor: çoğu biraz, azı çok — saçak.
++    const reach = PULSE_REACH * Math.pow(hash(s), 2.2);
++    const push = env * reach;
++    // Hafif sürüklenme dalga yönünde: parçacıklar yalnızca şişmiyor, akıyor.
++    const r = k + push;
++    const sx = x2 * r + pdx * push * 0.3;
++    const syy = y2 * r + pdy * push * 0.3;
++    const sz = z2 * r;
++
+     const depth = Math.min(Math.max((sz + 1) / 2, 0), 1);
+-    // Kenar ışığı (fresnel benzeri): izleyiciye yan duran yüzey.
+     const rim = Math.pow(1 - Math.abs(z2), 3);
++    const lift = Math.min(push / 0.15, 1); // ne kadar açıldı (0..1)
+ 
+-    let alpha =
+-      (0.1 + 0.9 * Math.pow(depth, 1.3)) * (1 - 0.4 * loose) *
+-      (0.85 + 0.15 * s);
+-    // Arka yarıkürenin kenarı da hafifçe görünsün (kürenin hacmi).
++    let alpha = (0.1 + 0.9 * Math.pow(depth, 1.3)) * (1 - 0.3 * lift) * (0.85 + 0.15 * s);
+     alpha = Math.max(alpha, rim * 0.35);
+ 
+-    // Renk: kenarda ya da savrulmuşsa amber. Eşik seed'le yumuşatılıyor —
+-    // keskin bir halka değil, kenara doğru yoğunlaşan bir parıltı.
+-    // Savrulanların yarısı kadarı amber (loose × 0.6): hepsi amber
+-    // olunca dağılma ayrı renkte bir leke gibi okunuyordu; Auros'ta saçak
+-    // gövdeyle aynı malzemeden, yalnızca ışığı yakalayanlar parlıyor.
+-    const accentScore = rim * 0.9 + loose * 0.6;
++    // Renk: kenar ışığı ya da nabızda belirgin açılmış parçacık amber.
++    const accentScore = rim * 0.9 + lift * 0.75;
+     const isAccent = accentScore > 0.55 + s * 0.35 ? 1 : 0;
+-    // Amber beyaz zeminde mürekkepten çok daha açık: aynı opaklıkta
+-    // kayboluyordu (ilk denemede savrulan bulut neredeyse görünmezdi).
+-    // Amber parçacıklara bir taban opaklık veriliyor.
++    // Amber beyaz zeminde mürekkepten çok açık; taban opaklık olmadan
++    // kayboluyor.
+     if (isAccent) alpha = Math.max(alpha, 0.55 + 0.35 * depth);
+ 
+     const level = Math.min(Math.floor(alpha * ALPHA_LEVELS), ALPHA_LEVELS - 1);
+-    if (level < 0) continue;
+     const b = buckets[isAccent * ALPHA_LEVELS + level];
+-    const sz2 = SIZE_BACK + (SIZE_FRONT - SIZE_BACK) * depth;
+-    b.xs[b.n] = half + sx * R - sz2 / 2;
+-    b.ys[b.n] = half + syy * R - sz2 / 2;
+-    b.ss[b.n] = sz2;
++    const side = SIZE_BACK + (SIZE_FRONT - SIZE_BACK) * depth;
++    b.xs[b.n] = half + sx * R - side / 2;
++    b.ys[b.n] = half + syy * R - side / 2;
++    b.ss[b.n] = side;
+     b.n++;
+   }
+ 
+-  for (let k = 0; k < buckets.length; k++) {
+-    const b = buckets[k];
++  for (let kk = 0; kk < buckets.length; kk++) {
++    const b = buckets[kk];
+     if (b.n === 0) continue;
+-    const accent = k >= ALPHA_LEVELS;
+-    const level = k % ALPHA_LEVELS;
+-    ctx.globalAlpha = (level + 0.5) / ALPHA_LEVELS;
++    const accent = kk >= ALPHA_LEVELS;
++    ctx.globalAlpha = ((kk % ALPHA_LEVELS) + 0.5) / ALPHA_LEVELS;
+     ctx.fillStyle = accent ? palette.accent : palette.body;
+     for (let j = 0; j < b.n; j++) ctx.fillRect(b.xs[j], b.ys[j], b.ss[j], b.ss[j]);
+   }
+   ctx.globalAlpha = 1;
+ }
+ 
+-/** seed'den ikinci, bağımsız bir 0–1 değeri (savrulma mesafesi için). */
++/** seed'den ikinci, bağımsız bir 0–1 değeri. */
+ function hash(s: number) {
+   const x = Math.sin(s * 9973.13) * 43758.5453;
+   return x - Math.floor(x);
+diff --git a/docs/CLAUDE.md b/docs/CLAUDE.md
+index 9717d88..ffc81df 100644
+--- a/docs/CLAUDE.md
++++ b/docs/CLAUDE.md
+@@ -51,8 +51,9 @@ kaldırıldı). `outroOrb.ts` geometri + çizim, `Hero.tsx` `HeroOutroOrb` yaşa
+ döngüsü. Kurallar:
+ - Dağılım deterministik (`hash01`, `Math.random` yok), Fibonacci kafesi DEĞİL
+   — örgü gibi okunuyordu.
+-- Dağılma alanı ekrana sabit, küre içinden döner; dağılmayı parçacığa ya da
+-  küreye bağlamayın, hareket donar.
++- Dağılma KALICI DEĞİL, nabızdır: 6.5 sn'de bir geçen bir dalga parçacıkları
++  açıp hemen toplar, arada küre bütün ve yüzeyi hafifçe dalgalanır. Sabit bir
++  dağılma alanı denendi ve geri alındı — küre hep parçalanmış görünüyordu.
+ - Renkler token'lardan çalışma anında okunur (`--color-fg-on-paper`,
+   `--color-accent`); canvas koduna hex yazmayın.
+ - 30 fps tavanı, opaklık 0'da kare atlama ve ekran dışında durma bilinçli;
+diff --git a/docs/design-system.md b/docs/design-system.md
+index 0c8bb03..9e4a9ba 100644
+--- a/docs/design-system.md
++++ b/docs/design-system.md
+@@ -499,16 +499,23 @@ karede yeniden yazılması demekti.
+ - **Dönüş:** dikey eksen etrafında 48 sn'de bir tur, eksen izleyiciye 0.38
+   rad eğik, ±0.05 rad hafif yalpa (31 sn). Derinlik parçacığın boyutunu
+   (0.6 → 1.6px) ve opaklığını belirliyor; arka yarıküre küçük ve soluk.
+-- **Dağılma alanı EKRANA sabit** (sağ alt). Küre onun içinden dönerek
+-  geçiyor: o yana gelen parçacık yüzeyden kopup dışa savruluyor, arkaya
+-  dönünce yerine oturuyor. Yani dağılma donuk bir yara değil, sürekli akan
+-  bir hareket. Her parçacığın kopma eşiği ve savrulma mesafesi kendine özel
+-  (seed): kenarda düzensiz bir saçak.
++- **Dağılma: nabız, kalıcı yara değil** (Ekim 2026, ikinci tur). İlk
++  sürümde dağılma ekrana sabit bir alandı ve küre o yanından HEP parçalanmış
++  duruyordu. Kullanıcı geri bildirimi: "dağılıp hemen toplanan", organik bir
++  küre olsun. Şimdi iki katman var:
++  - **Yüzey dalgası:** sürekli, yarıçapın ±%3.5'i kadar radyal dalgalanma
++    (üç düşük frekanslı sinüs, küreyle birlikte dönüyor). Küre hiç tam
++    durmuyor ama silüeti hep küre.
++  - **Dağılma nabzı:** 6.5 sn'de bir, kürenin bir yanından öbür yanına
++    1.4 sn'de bir dalga geçiyor. Değdiği parçacıklar 0.5 sn'de dışa açılıp
++    1.7 sn'de yumuşakça yerlerine toplanıyor; nabızlar arasında küre bütün.
++    Açılma mesafesi parçacığa özel (çoğu az, azı çok: saçak). Dalganın yönü
++    her nabızda altın açı kadar dönüyor, aynı yerden tekrar etmiyor.
+ - **Renk:** gövde `--color-fg-on-paper` (mürekkep), kenar ışığı ve
+   savrulanların bir kısmı `--color-accent` (amber). Auros'un lavanta-pembe
+-  rolünü bizde logo amberi alıyor. Amber beyaz zeminde aynı opaklıkta
+-  kayboluyordu, ona taban opaklık (0.55+) verildi. Savrulanların hepsi amber
+-  olunca dağılma ayrı renkte bir leke gibi okunuyordu, payı kısıldı. Renkler
++  rolünü bizde logo amberi alıyor; nabızda belirgin açılan parçacıklar da
++  amber yanıyor. Amber beyaz zeminde aynı opaklıkta kayboluyordu, ona taban
++  opaklık (0.55+) verildi. Renkler
+   çalışma anında token'lardan okunuyor; canvas'a ayrıca hex yazılmıyor.
+ - **Maliyet:** parçacıklar 16 kovaya (2 renk × 8 opaklık) toplanıyor; kare
+   başına 16 `fillStyle` değişimi, parçacık başına değil. Çizim **30 fps

@@ -33,9 +33,12 @@ export interface Partner {
 
 export const PARTNERS: readonly Partner[] = [
   {
-    src: "/images/partners/meta-ads-digital.png",
-    width: 640,
-    height: 640,
+    // Kırpılmış kopya (Ekim 2026): orijinal 640×640'ın yalnızca ~%23'ü logo,
+    // kalanı beyaz pay — rozet karesinde logo minicik kalıyordu. Orijinal
+    // dosya yerinde duruyor.
+    src: "/images/partners/meta-ads-digital-trim.png",
+    width: 449,
+    height: 163,
     label: "META BUSINESS PARTNER",
     alt: "Meta Business Partner rozeti",
   },
@@ -47,9 +50,9 @@ export const PARTNERS: readonly Partner[] = [
     alt: "Google Ads logosu",
   },
   {
-    src: "/images/partners/yandex-direct.png",
-    width: 280,
-    height: 280,
+    src: "/images/partners/yandex-direct-trim.png",
+    width: 223,
+    height: 185,
     label: "YANDEX DIRECT",
     alt: "Yandex Direct rozeti",
   },

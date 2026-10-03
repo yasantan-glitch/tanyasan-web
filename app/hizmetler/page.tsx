@@ -37,7 +37,7 @@ export default function HizmetlerPage() {
       {/* Başlık bandı. Nav bu sayfada baştan solid ve position: fixed, yani
           akışta yer kaplamıyor — üst boşluğa nav yüksekliği elle eklenir. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section-tight) pt-[calc(var(--nav-h)+var(--spacing-section))]">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           <p className="eyebrow text-accent-auto mb-6">Hizmetler</p>
           <h1
             className="font-display text-strong"
@@ -217,7 +217,7 @@ export default function HizmetlerPage() {
       {/* Kapanış. Son hizmet bölümü koyu (index 5) — bu bant ondan
           ink-deep ile ayrılıyor. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-site) flex-wrap items-end justify-between gap-8">
+        <div className="mx-auto flex max-w-(--container-page) flex-wrap items-end justify-between gap-8">
           <p
             className="font-display text-strong max-w-[18ch]"
             style={{

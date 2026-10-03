@@ -29,7 +29,7 @@ export default function BlogPage() {
       {/* Başlık bandı. Diğer üç sayfayla (/hizmetler, /hakkimda, /iletisim)
           birebir aynı kalıp. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section-tight) pt-[calc(var(--nav-h)+var(--spacing-section))]">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           <p className="eyebrow text-accent-auto mb-6">Blog</p>
           <h1
             className="font-display text-strong"
@@ -48,7 +48,7 @@ export default function BlogPage() {
       </section>
 
       <section className="surface-paper px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           {posts.length > 0 ? (
             <div>
               {posts.map((post) => (

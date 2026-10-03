@@ -33,7 +33,7 @@ export default function IletisimPage() {
       {/* Başlık bandı. Nav bu sayfada baştan solid ve position: fixed, yani
           akışta yer kaplamıyor — üst boşluğa nav yüksekliği elle eklenir. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section-tight) pt-[calc(var(--nav-h)+var(--spacing-section))]">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           <p className="eyebrow text-accent-auto mb-6">İletişim</p>
           <h1
             className="font-display text-strong"
@@ -60,10 +60,18 @@ export default function IletisimPage() {
           ≤860px'te globals.css'teki mevcut kural tek sütuna düşürüyor ve
           yapışmayı kapatıyor; bilgiler formun üstünde kalıyor. */}
       <section className="surface-paper px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="service-grid mx-auto max-w-(--container-site)">
+        <div className="service-grid mx-auto max-w-(--container-page)">
           <div className="service-head">
             <p className="eyebrow text-accent-auto">Doğrudan</p>
             <h2 className="service-title font-display text-strong">BİZE ULAŞIN</h2>
+
+            {/* Ekim 2026: bu cümle sağ sütunun başındaydı ve formu başlığın
+                ~130px altına itiyordu; artık başlığın altında, form sağda
+                başlıkla aynı çizgiden başlıyor. */}
+            <p className="text-muted mt-6 max-w-(--container-prose)">
+              Formu doldurun; ne kadar çok şey yazarsanız dönüşümüz o kadar
+              işinize yarar. Acele bir işse telefon daha hızlı.
+            </p>
 
             <div className="contact-details">
               <div>
@@ -96,8 +104,7 @@ export default function IletisimPage() {
                 </a>
               </div>
 
-              {/* Adresler content/socialLinks.ts'ten. Dizi boşken bölüm hiç
-                  render edilmiyor — yer tutucu/kırık link yazılmaz. */}
+              {/* Adresler content/socialLinks.ts'ten (footer da aynı dizi). */}
               {SOCIAL_LINKS.length > 0 ? (
                 <div>
                   <p className="eyebrow text-muted">Sosyal medya</p>
@@ -116,13 +123,7 @@ export default function IletisimPage() {
           </div>
 
           <div>
-            <p className="text-lead max-w-(--container-prose)">
-              Formu doldurun; ne kadar çok şey yazarsanız dönüşümüz o kadar
-              işinize yarar. Acele bir işse telefon daha hızlı.
-            </p>
-            <div className="mt-(--spacing-section-tight)">
-              <ContactForm />
-            </div>
+            <ContactForm />
           </div>
         </div>
       </section>
@@ -130,7 +131,7 @@ export default function IletisimPage() {
       {/* Kapanış. /hizmetler ve /hakkimda ile aynı kalıp; CTA burada NAV_CTA
           OLAMAZ (zaten o sayfadayız) — yerine telefon. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-site) flex-wrap items-end justify-between gap-8">
+        <div className="mx-auto flex max-w-(--container-page) flex-wrap items-end justify-between gap-8">
           <p
             className="font-display text-strong max-w-[18ch]"
             style={{

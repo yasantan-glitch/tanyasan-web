@@ -116,8 +116,15 @@
   --spacing-section-snug: clamp(2.75rem, 1.5rem + 3.5vw, 5rem);
   --spacing-section-loose: clamp(6rem, 2.5rem + 10vw, 13rem);
 
-  --container-site: 80rem; /* 1280 — ana içerik */
-  --container-wide: 90rem; /* 1440 — tam genişlik vitrin */
+  /* Ekim 2026 — SAYFA GENİŞLİĞİ Hayler referansına geçti: içerik
+     konteyneri YOK, her bölüm tam genişlikte, yalnızca yan boşluk
+     (--spacing-gutter ≈ Hayler'in 20/30/40/50px'i) var. Tüm sayfalar ve
+     bölümler `--container-page`i kullanır; başlangıç/bitiş çizgileri bu
+     yüzden her yerde aynı. Eski iki token yalnızca Hero'nun reduced-motion
+     dalı için duruyor (Hero'ya dokunulmuyor). */
+  --container-page: 100%;
+  --container-site: 80rem; /* yalnızca Hero (reduced-motion dalı) */
+  --container-wide: 90rem; /* yalnızca Hero */
   --container-prose: 36rem; /* ~68ch — uzun metin sütunu */
 
   /* ------------------------------------------------------------------
@@ -142,16 +149,14 @@
   --hero-phase-icon: 2.5rem;
   --hero-phase-rule: 3.5rem;
 
-
   /* ------------------------------------------------------------------
      NAV
-     --nav-solid-after: header'ın şeffaftan koyuya geçtiği scroll mesafesi.
-     Sentinel bu yüksekliktedir; viewport'un üstünden çıktığında nav
-     solid'e döner. 100svh ≈ hero'nun intro fazının bitişi (bkz.
-     heroPhases.ts intro ağırlığı 1.30 / toplam 10.68 × 1020vh ≈ 124vh).
+     Header artık solid'e geçmiyor (Ekim 2026) — eski `--nav-solid-after`
+     sentinel'i kaldırıldı; ton/gradyan useHeaderTone.ts'ten.
      ------------------------------------------------------------------ */
-  --nav-h: 4.5rem;
-  --nav-solid-after: 100svh;
+  /* Hayler: header 100px, logo / menü kutusu / buton aynı satırda, 50px
+     çizgisinde dikey ortalı (Ekim 2026 — eskiden 72px). */
+  --nav-h: 6.25rem;
 
   /* ------------------------------------------------------------------
      KATMAN
@@ -162,6 +167,7 @@
   --z-drawer-overlay: 200;
   --z-drawer: 210;
   --z-skip-link: 300;
+  --z-cursor: 400;
 
   /* ------------------------------------------------------------------
      ŞEKİL — keskin. Pill buton ve yumuşak gölge yok.
@@ -234,27 +240,6 @@
      hiçbir şeyin olmadığı bir boşluk gibi okunuyor. */
   --home-rail-arrive-share: 0.2;
 
-  /* Portfolyo bandının yatay pinli rayı — `.home-rail-*`in KOPYASI değil
-     kardeşi (bkz. `.home-portfolio-rail` yorumu). Kareler tam yükseklikte
-     bir şerit değil, viewport'un dikey ortasında duran dar bir RAF; bu
-     yüzden kendi ölçek ve zamanlama bütçesi var, `--home-rail-*`
-     değişkenleri okunmuyor. */
-  --portfolio-tile-w: clamp(15rem, 22vw, 24rem);
-  --portfolio-gap: 1.5rem;
-  /* Şerit yüksekliği = kare + künyenin payı; viewport'ta DİKEY ORTALAMAK
-     için gerekiyor. Pay 4.5rem DEĞİL 5.75rem: künyenin ikinci satırı artık
-     `KATEGORİ · ETKİNLİK` olabiliyor (bkz. portfolio.ts `event`) ve dar bir
-     karede iki satıra sarabiliyor. Pencerede `overflow: clip` var — eksik
-     pay sarmayı sessizce keserdi. */
-  --portfolio-strip-h: calc(var(--portfolio-tile-w) + 5.75rem);
-  /* Birim başına dikey scroll yolu — --home-rail-travel'dan kısa: burada
-     "raftan geçiş" değil "işleri sırayla gösterme" jesti, birim başına
-     ağır bir yol scroll'u yorar. */
-  --portfolio-travel: 55vh;
-  /* Timeline'ın ilk payı: kareler eşit üst hizada ve tam kadrajda bir an
-     DURUYOR, track bu paydan sonra kaymaya başlıyor. Kullanıcının "ilk sıra
-     tam görünür dursun" isteğinin karşılığı. */
-  --portfolio-hold-share: 0.15;
 }
 
 /* ==========================================================================
@@ -385,10 +370,15 @@
   }
 
   /* ---------------------------------------------------------------
-     SITE HEADER — fixed. Hero section'ının İÇİNE konamaz:
-     .hero-stage'in `overflow: clip`i onu kırpar. Ayrıca fixed olduğu
-     için doküman akışını değiştirmez; useHeroScroll'un layout()'ta
-     cache'lediği top/height ölçümleri geçerli kalır.
+     SITE HEADER — fixed, HİÇ solid zemine geçmiyor (Ekim 2026, Hayler
+     referansı). Hero section'ının İÇİNE konamaz: .hero-stage'in
+     `overflow: clip`i onu kırpar. Fixed olduğu için doküman akışını
+     değiştirmez; useHeroScroll'un cache'lediği ölçümler geçerli kalır.
+
+     Ton (`data-tone`) ve gradyan (`data-gradient` + `--header-grad`)
+     `useHeaderTone`'dan geliyor: header'ın altından geçen bölümün yüzeyi.
+     Renkler yalnızca buradaki üç değişkenden okunuyor; bileşenlerin
+     hiçbiri tonu ayrıca bilmiyor.
      --------------------------------------------------------------- */
   .site-header {
     position: fixed;
@@ -396,16 +386,23 @@
     inset-inline: 0;
     z-index: var(--z-nav);
     height: var(--nav-h);
-    background-color: transparent;
-    border-block-end: 1px solid transparent;
-    transition:
-      background-color var(--duration-slow) var(--ease-out-quart),
-      border-color var(--duration-slow) var(--ease-out-quart),
-      backdrop-filter var(--duration-slow) var(--ease-out-quart);
+    --header-fg: var(--color-fg-on-ink);
+    --header-chip-bg: var(--color-fg-on-ink);
+    --header-chip-fg: var(--color-ink-900);
+    --focus: var(--color-accent);
+    color: var(--header-fg);
+    transition: color var(--duration-slow) var(--ease-out-quart);
   }
 
-  /* Şeffaf durumda linklerin video üzerinde okunması için üstten inen
-     ince scrim. Video görünür kalır; okunurluk taban alır. */
+  .site-header[data-tone="light"] {
+    --header-fg: var(--color-ink-900);
+    --header-chip-bg: var(--color-ink-900);
+    --header-chip-fg: var(--color-fg-on-ink);
+    --focus: var(--color-accent-ink);
+  }
+
+  /* Koyu hero (videolu fazlar) için üstten inen ince scrim — gradyan
+     kapalıyken tek okunurluk kaynağı. Video görünür kalır. */
   .site-header::before {
     content: "";
     position: absolute;
@@ -416,62 +413,204 @@
       color-mix(in srgb, var(--color-ink-950) 55%, transparent) 0%,
       transparent 100%
     );
+    opacity: 0;
     transition: opacity var(--duration-slow) var(--ease-out-quart);
   }
 
-  .site-header[data-solid="true"] {
-    background-color: color-mix(in srgb, var(--color-ink-950) 88%, transparent);
-    backdrop-filter: blur(10px);
-    border-block-end-color: var(--hairline);
+  .site-header[data-gradient="off"][data-tone="dark"]::before {
+    opacity: 1;
   }
 
-  /* Solid zemin zaten okunurluğu veriyor — scrim çift karartma yapmasın. */
-  .site-header[data-solid="true"]::before {
+  /* Hayler'in #header-gradient'i: bölümün KENDİ zemin rengi, maskeyle
+     şeffafa iniyor. Header'dan biraz uzun — içerik altına girerken kesik
+     bir çizgi değil yumuşak bir sis görülüyor. */
+  .site-header-gradient {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: calc(var(--nav-h) + 1.5rem);
+    pointer-events: none;
+    background-color: var(--header-grad, transparent);
+    mask-image: linear-gradient(180deg, #000 45%, transparent 100%);
     opacity: 0;
+    transition:
+      opacity var(--duration-slow) var(--ease-out-quart),
+      background-color var(--duration-slow) var(--ease-out-quart);
+  }
+
+  .site-header[data-gradient="on"] .site-header-gradient {
+    opacity: 1;
   }
 
   .site-header-inner {
     position: relative;
     height: 100%;
     margin-inline: auto;
-    max-width: var(--container-site);
+    max-width: var(--container-page);
     padding-inline: var(--spacing-gutter);
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 1.5rem;
   }
 
-  /* Hero'nun kendi büyük logosu kaldırıldı (faz 1 artık tipografik bir
-     statement) — logonun tek yeri burası, o yüzden şeffaf nav'da da
-     görünür. Üstteki scrim okunurluğu veriyor. */
   .site-header-logo {
-    display: flex;
-    align-items: center;
+    position: relative;
+    display: block;
+    justify-self: start;
+    height: 3rem;
+    aspect-ratio: 1080 / 335;
   }
 
-  .site-header-logo svg {
-    height: 1.5rem;
-    width: auto;
-  }
-
-  /* Sentinel: --nav-solid-after yüksekliğinde, akış dışı. Viewport'un
-     üstünden çıkınca IntersectionObserver nav'ı solid'e çevirir.
-     Scroll listener yok — hero'nun motoruyla hiç temas etmez. */
-  .nav-sentinel {
+  .site-header-logo__img {
     position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 0;
-    width: 1px;
-    height: var(--nav-solid-after);
-    pointer-events: none;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition:
+      opacity var(--duration-slow) var(--ease-out-quart),
+      filter var(--duration-slow) var(--ease-out-quart);
   }
 
-  .nav-links {
+  /* Amber zemin (footer): logo tek renk mürekkep, buton mürekkep, kutu
+     mürekkep tonlu — amber üstüne amber hiçbir şey kalmıyor. */
+  .site-header[data-accent] .site-header-logo__img--on-light {
+    filter: brightness(0) saturate(0) opacity(0.88);
+  }
+
+  .site-header[data-accent] .nav-pill {
+    background-color: rgb(28 28 28 / 0.1);
+  }
+
+  .site-header[data-accent] .btn-accent {
+    background-color: var(--color-ink-900);
+    color: var(--color-fg-on-ink);
+  }
+
+  .site-header .btn-accent {
+    transition:
+      background-color var(--duration-slow) var(--ease-out-quart),
+      color var(--duration-slow) var(--ease-out-quart);
+  }
+
+  .site-header[data-tone="dark"] .site-header-logo__img--on-light,
+  .site-header[data-tone="light"] .site-header-logo__img--on-dark {
+    opacity: 0;
+  }
+
+  /* Ortadaki kutu — Hayler: rgba(128,128,128,.35) + blur(7px). Gri yarı
+     saydam olduğu için iki tonda da aynı değer çalışıyor (koyuda koyu gri,
+     açıkta açık gri okunuyor). Köşe --radius-md: §4'ün keskin dili. */
+  .nav-pill {
     display: flex;
     align-items: center;
-    gap: 1.75rem;
+    gap: 0.125rem;
+    padding: 0.375rem;
+    border-radius: var(--radius-md);
+    background-color: rgb(128 128 128 / 0.32);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
   }
 
+  .nav-pill__link {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    color: var(--header-fg);
+    transition:
+      background-color var(--duration-base) var(--ease-out-quart),
+      color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .nav-pill__link[aria-current="page"] {
+    background-color: var(--header-chip-bg);
+    color: var(--header-chip-fg);
+  }
+
+  /* Yuvarlanma: span kendi yüksekliği kadar yukarı çıkar; altındaki chip
+     (::before) ve chip'in üstündeki metin kopyası (::after) içeri girer.
+     Bağlantının overflow'u ikisini görünmez tutuyor. */
+  .nav-pill__roll {
+    position: relative;
+    display: block;
+    padding: 0.4rem 0.7rem;
+    transition: transform var(--duration-base) var(--ease-out-quart);
+  }
+
+  .nav-pill__roll::before,
+  .nav-pill__roll::after {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 100%;
+    height: 100%;
+  }
+
+  .nav-pill__roll::before {
+    content: "";
+    border-radius: var(--radius-sm);
+    background-color: var(--header-chip-bg);
+  }
+
+  .nav-pill__roll::after {
+    content: attr(data-label);
+    padding: 0.4rem 0.7rem;
+    color: var(--header-chip-fg);
+  }
+
+  .nav-pill__link:hover .nav-pill__roll,
+  .nav-pill__link:focus-visible .nav-pill__roll {
+    transform: translateY(-100%);
+  }
+
+  .site-header-end {
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .site-header .btn {
+    white-space: nowrap;
+  }
+
+  /* 861–1100px: altı link + logo + CTA tek satıra sığsın diye kutu ve
+     aralıklar sıkılaşıyor; ≤860px'te zaten hamburger. */
+  @media (max-width: 1100px) {
+    .site-header-inner {
+      gap: 0.75rem;
+    }
+
+    .nav-pill__roll,
+    .nav-pill__roll::after {
+      padding-inline: 0.5rem;
+    }
+
+    .site-header .btn {
+      padding-inline: 1rem;
+    }
+
+    .site-header-logo {
+      height: 2.2rem;
+    }
+  }
+
+  .nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-inline-end: calc(var(--spacing-gutter) * -0.35);
+    color: var(--header-fg, var(--color-fg-on-ink));
+  }
+
+  .nav-toggle svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* Drawer'ın linkleri (header'ın kutusu değil) — koyu panelde düz liste. */
   .nav-link {
     color: var(--color-fg-on-ink-body);
     transition: color var(--duration-base) var(--ease-out-quart);
@@ -482,19 +621,98 @@
     color: var(--color-accent);
   }
 
-  .nav-toggle {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    margin-inline-end: calc(var(--spacing-gutter) * -0.35);
-    color: var(--color-fg-on-ink);
+  /* ---------------------------------------------------------------
+     İMLEÇ TOPU — CursorBall.tsx. Konumu JS her karede `transform` ile
+     yazıyor (dış kutu, 0×0, işaretçinin tam noktası); şekil değişimi iç
+     kutuda CSS geçişiyle. Dış kutu boyutsuz olduğu için şekil büyürken
+     merkez kaymıyor (iç kutu -50%/-50% ile ortalı).
+     --------------------------------------------------------------- */
+  .cursor-ball {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    z-index: var(--z-cursor);
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-out-quart);
+    --ball: var(--color-accent);
   }
 
-  .nav-toggle svg {
-    width: 1.5rem;
-    height: 1.5rem;
+  .cursor-ball[data-visible="true"]:not([data-state="hidden"]) {
+    opacity: 1;
+  }
+
+  .cursor-ball[data-on-accent="true"] {
+    --ball: var(--color-ink-900);
+  }
+
+  .cursor-ball__shape {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    display: grid;
+    place-items: center;
+    width: 14px;
+    height: 14px;
+    border-radius: var(--radius-sm);
+    background-color: var(--ball);
+    translate: -50% -50%;
+    transition:
+      width var(--duration-base) var(--ease-out-quart),
+      height var(--duration-base) var(--ease-out-quart),
+      border-radius var(--duration-base) var(--ease-out-quart),
+      background-color var(--duration-base) var(--ease-out-quart),
+      scale var(--duration-fast) var(--ease-out-quart);
+  }
+
+  /* Hassasiyet noktası — büyük daire hâllerinde tıklanacak nokta belli
+     kalsın (Hayler'de native imleç bunu veriyor, burada native gizli). */
+  .cursor-ball__shape::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 1px;
+    background-color: var(--ball);
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out-quart);
+  }
+
+  .cursor-ball[data-state="link"] .cursor-ball__shape {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--ball) 22%, transparent);
+  }
+
+  .cursor-ball[data-state="link"] .cursor-ball__shape::after {
+    opacity: 1;
+  }
+
+  .cursor-ball[data-state="drag"] .cursor-ball__shape {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+  }
+
+  .cursor-ball__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-ink-900);
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out-quart);
+  }
+
+  .cursor-ball[data-state="drag"] .cursor-ball__label {
+    opacity: 1;
+  }
+
+  .cursor-ball[data-pressed="true"] .cursor-ball__shape {
+    scale: 0.85;
   }
 
   /* ---------------------------------------------------------------
@@ -1186,7 +1404,7 @@
   }
 
   /* --- Bölüm görseli: parçalardan bütüne birleşme ------------------------
-     Çerçeve .home-portfolio-frame'in KARDEŞİ, ikizi değil: aynı idiom (kart
+     Çerçeve galeri karelerinin KARDEŞİ, ikizi değil: aynı idiom (kart
      yok, gölge yok, yarıçap yok — §4) ama oran veriden geliyor ve içeride
      tek bir görsel değil, üst üste duran beş şerit var. Anasayfanın
      kurallarına dokunulmadı.
@@ -1741,137 +1959,11 @@
     border: none;
   }
 
-  /* Portfolyo vitrini — TABAN düzen: üç sütunlu grid, `wide` (span 2)
-     işaretli kareler `grid-auto-flow` ile otomatik yerleşiyor (Eylül 2026:
-     24 işin 6'sı `wide` — bkz. portfolio.ts dosya başlığı; artık sabit bir
-     hücre matematiği YOK, auto-placement boş hücre bırakabilir, bu kabul
-     edilebilir çünkü bu yalnızca TABAN/yedek düzen). Bu kural
-     `@supports (animation-timeline: view())` desteklenmediğinde,
-     `prefers-reduced-motion: reduce` açıkken ve ≤860px'te GEÇERLİ tek
-     düzen; yatay pinli ray (`.home-portfolio-rail`, gated blokta) bunun
-     ÜSTÜNE yazılır, altına değil.
-
-     Eskiden burada bir editoryal dikey kaydırma vardı
-     (`:nth-child(3n + 2) { margin-block-start: 3rem }`) — üst hizanın
-     kullanıcı tarafından "tutarsız" okunmasının kaynağı tam bu kuraldı,
-     kaldırıldı: ilk sıra artık eşit üst hizada. */
-  .home-portfolio-track {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--portfolio-gap);
-  }
-
-  /* TABAN HÂLDE SAHNE YOK. `display: contents` sarmalayıcıyı düzenden
-     tamamen çıkarıyor: başlık ve ray penceresi bölümün doğrudan çocuklarıymış
-     gibi akıyorlar, yani mobil / reduced-motion / desteksiz tarayıcı düzeni
-     sarmalayıcı hiç eklenmemiş gibi kalıyor. Kutu yalnızca aşağıdaki
-     yükseklik kapısının arkasında gerçek bir kutuya dönüşüyor. */
-  .home-portfolio-stage {
-    display: contents;
-  }
-
-  /* Başlık bloğunun iç ritmi — TEK KAYNAK BURASI, page.tsx'te `mt-*` YOK.
-     Bant 3'ün `.home-case-split__anchor > * + *`ındaki aynı gerekçe: ritim
-     iki yere yazılırsa hangisinin geçerli olduğu Tailwind'in katman sırasına
-     bağlı, görünmez bir bağımlılık olur.
-
-     Eylül 2026: işaret+başlık kendi mini-sütununda
-     (`.home-portfolio-head__title`), bu yüzden taban hâlde (dikey yığın)
-     iki ayrı ritim gerekiyor: sütun içi (marker→başlık) ve sütunlar arası
-     (başlık bloğu→lede). Gated blokta (`@media (min-height: 800px)`) bu
-     ikinci kural TEK SATIRA dönerken `justify-content: space-between`ile
-     değişiyor, sütun içi ritim aynı kalıyor. */
-  .home-portfolio-head > * + * {
-    margin-block-start: 2rem;
-  }
-
-  .home-portfolio-head__title > * + * {
-    margin-block-start: 0.75rem;
-  }
-
-  /* Punto CSS'te: taban hâlde (başlık serbest akışta, tam bant genişliğinde)
-     display-2xl; sabit sahnenin içinde bir kademe iniyor (aşağıdaki kapı).
-     `.home-case-split__title` ile aynı idiom. */
-  .home-portfolio-title {
-    max-inline-size: 20ch;
-    font-size: var(--text-display-2xl);
-    line-height: var(--text-display-2xl--line-height);
-    letter-spacing: var(--text-display-2xl--letter-spacing);
-    font-weight: var(--text-display-2xl--font-weight);
-  }
-
-  /* Başlıkla ray arasındaki aralık. Eskiden page.tsx'te rayın kendi
-     `mt-(--spacing-section-tight)`'iydi; başlık rayın İÇİNE girince oradan
-     buraya taşındı, çünkü ölçünün ayırdığı şey artık kardeş iki blok değil,
-     aynı kabın iki katmanı. Sahne kurulunca (aşağıda) yerini flex `gap`
-     alıyor. */
-  .home-portfolio-viewport {
-    margin-block-start: var(--spacing-section-tight);
-  }
-
-  .home-portfolio-item--wide {
-    grid-column: span 2;
-  }
-
-  /* next/image `fill` için konumlanmış çerçeve (parent position: relative
-     ZORUNLU). Oran burada veriliyor: kareler 1/1, geniş olan 2/1 — iki sütun
-     + aradaki gap'e denk gelen kadraj. */
-  .home-portfolio-frame {
-    position: relative;
-    aspect-ratio: 1 / 1;
-    overflow: clip;
-    border: 1px solid var(--hairline);
-    background-color: var(--field-bg);
-  }
-
-  .home-portfolio-item--wide .home-portfolio-frame {
-    aspect-ratio: 2 / 1;
-  }
-
-  /* Wellness Antalya (tek `wide` iş) diğerlerine göre küçük/soluk
-     okunuyordu (kullanıcı geri bildirimi, Eylül 2026) — zemini geniş,
-     kompozisyonu ortada toplanmış, düşük kontrastlı bir flat-lay;
-     yanındaki kenardan kenara doygun kampanya afişlerinin yanında
-     kayboluyordu. `object-fit: cover` görseli kadraja SIĞDIRIYOR ama
-     İÇERİĞİ büyütmüyor — bu yüzden hafif bir yakınlaştırma (`scale`,
-     merkezden) ve bir kontrast/doygunluk düzeltmesi eklendi. Kaynak
-     dosyaya DOKUNULMADI: hero videosundaki `--hero-video-filter` ile aynı
-     disiplin — zayıf bir kaynağı CSS'te telafi etmek, içerik uydurmak
-     değil. Ungated (taban) kural: mobil ve reduced-motion'da da geçerli,
-     yalnızca gated bloktaki pencere parallax'ı (aşağıda) buna binen bir
-     katman. */
-  .home-portfolio-media--boost {
-    transform: scale(1.14);
-    filter: saturate(1.16) contrast(1.08) brightness(1.03);
-  }
-
-  /* Künye: işleri bir mood board'dan portfolyoya çeviren tipografik katman.
-     Tile'lar LİNK DEĞİL (tek tek vaka sayfaları yok), bu yüzden tile'da hover
-     durumu da yok — tıklanabilirlik ima edilmiyor. */
-  .home-portfolio-caption {
-    margin-block-start: 0.875rem;
-  }
-
-  .home-portfolio-caption > span {
-    display: block;
-  }
-
-  /* --- Öne çıkan iş: Emlak CRM Pro vitrini -------------------------------
-     .home-portfolio-* kurallarının İKİZİ DEĞİL KARDEŞİ: çerçeve idiomu aynı
-     aileden (kart yok, gölge yok — §4) ama oran, düzen ve çerçevenin kendisi
-     başka. Portfolyo kareleri 1/1 kampanya/mockup kadrajları ve 1px hairline
-     ile duruyor; buradakiler 16/9 masaüstü arayüz ekran görüntüleri.
-     .home-portfolio-frame'e DOKUNULMADI.
-
-     CİHAZ ÇERÇEVESİ / TARAYICI MOCKUP'I YOK: §4'ün şekil dili kart, gölge ve
-     pill'i atıyor, sahte trafik ışıkları da brief §7'nin "atılacak" dediği
-     şablon hissi. Üstelik karelerin kendi uygulama kabuğu (sidebar + üst bar)
-     zaten var — kabuğu kabuğa sarmak olurdu.
-
-     `.home-case-grid` — bant `.home-case-split`e (sabit anlatı bloğu +
-     akan destek şeridi) geçtiğinde ölü kaldı, page.tsx artık hiç
-     basmıyor. Kaldırıldı; bkz. `.home-case-split__stream figure
-     .home-case-frame` aşağıda. */
+  /* --- Emlak CRM Pro ekran görüntüleri (vaka sayfası) ---------------------
+     Ekim 2026: anasayfanın "Öne Çıkan İş" bandı (bant 3) kaldırıldı; çerçeve
+     artık yalnızca /portfolyo/emlak-crm-pro'da. CİHAZ ÇERÇEVESİ / TARAYICI
+     MOCKUP'I YOK: karelerin kendi uygulama kabuğu (sidebar + üst bar) zaten
+     var — kabuğu kabuğa sarmak olurdu. */
 
   /* next/image `fill` için konumlanmış çerçeve (parent position: relative
      ZORUNLU). Oran burada veriliyor: kaynak kareler ≈1.80:1, çerçeve 16/9 —
@@ -1886,7 +1978,7 @@
      zeminden hem görüntülerin beyaz içeriğinden ayrışıyor. Renk paletten:
      --color-fg-on-ink-muted (#A4A5A8, logodan — .st1), zaten koyu yüzeylerde
      muted metin/ikon için kullanılan token; yeni hex icat edilmedi. Gölge
-     yok, köşe yarıçapı 0 (§4; .home-portfolio-frame ile aynı keskinlik).
+     yok, köşe yarıçapı 0 (§4).
 
      KALINLIK BİR DEĞİŞKENDEN (--case-mat) geliyor. Eylül 2026'dan önce açılış
      karesi (1440px genişliğinde) ve üç destek karesi (~464px) ayrı kalınlık
@@ -1910,17 +2002,9 @@
     background-color: var(--color-fg-on-ink-muted);
   }
 
-  /* Künye: .home-portfolio-caption ile aynı tipografik katman. Tile'lar yine
-     LİNK DEĞİL (vaka sayfasına bandın CTA'sı gidiyor), bu yüzden hover durumu da yok —
-     bandın tek bağlantısı alttaki CTA. */
+  /* Künye: kare link değil, hover durumu yok. */
   .home-case-caption {
     margin-block-start: 0.875rem;
-  }
-
-  /* Künyenin numarası — sol bloktaki `.home-case-index__num` ile aynı token,
-     iki liste (indeks + künye) aynı numaralandırmayı okuyor. */
-  .home-case-caption__num {
-    color: var(--color-accent);
   }
 
   /* Partner rozetleri. Eski sitedeki koyu zemin + DAİRESEL rozet sunumu
@@ -1934,6 +2018,9 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
+    /* Ekim 2026: çerçeveler küçüldü (sütunun tamamı yerine en çok ~44rem),
+       logolar büyüdü — kare küçük, içerik dolu. */
+    max-inline-size: 44rem;
   }
 
   /* Tile zemini yüzeyden DEĞİL, sabit --color-paper-0: meta-ads-digital.png
@@ -1950,26 +2037,47 @@
     grid-template-rows: 1fr auto;
     place-items: center;
     gap: 1rem;
-    aspect-ratio: 4 / 3;
-    /* Dolgu ve logo ölçüsü birlikte esniyor: dar masaüstünde tile ~113px'e
-       inebiliyor ve sabit 1.5rem dolgu logoya yer bırakmıyordu. */
-    padding: clamp(0.75rem, 1.5vw, 1.5rem);
+    aspect-ratio: 1 / 1;
+    padding: clamp(0.75rem, 1.2vw, 1.25rem);
     border: 1px solid var(--hairline);
     background-color: var(--color-paper-0);
+    transition:
+      transform 0.35s var(--ease-out-quart),
+      border-color 0.35s var(--ease-out-quart),
+      background-color 0.35s var(--ease-out-quart);
+  }
+
+  /* Buton hissi: hover'da kare hafifçe GERİ çekiliyor (zoom-out), logo
+     biraz daha; basınca bir kademe daha. Kenarlık aksana dönüyor. */
+  .home-partner-tile:hover,
+  .home-partner-tile:focus-visible {
+    transform: scale(0.96);
+    border-color: var(--accent-text);
+    background-color: color-mix(in srgb, var(--color-paper-0) 92%, var(--color-accent));
+  }
+
+  .home-partner-tile:active {
+    transform: scale(0.93);
+  }
+
+  .home-partner-tile:hover img,
+  .home-partner-tile:focus-visible img {
+    transform: scale(0.92);
   }
 
   /* Ölçü YÜKSEKLİKTEN sınırlanıyor, genişlikten değil: Google Ads logosu
      dikey (251×313), kare olanlarla aynı genişliğe zorlansaydı diğer ikisinden
      belirgin büyük görünürdü. Ortak yükseklik üçünü optik olarak eşitliyor. */
   .home-partner-tile img {
-    max-block-size: clamp(2.25rem, 4vw, 4.5rem);
-    max-inline-size: 100%;
+    max-block-size: clamp(3.25rem, 6vw, 6rem);
+    max-inline-size: 88%;
     inline-size: auto;
     block-size: auto;
     object-fit: contain;
+    transition: transform 0.35s var(--ease-out-quart);
   }
 
-  .home-partner-tile figcaption {
+  .home-partner-tile > span {
     color: var(--fg-muted);
     text-align: center;
     text-wrap: balance;
@@ -2022,8 +2130,12 @@
      Animasyon desteklenmiyorsa şerit `scaleY(1)`de durur: kesim
      yalnızca --seam-h kadar yukarı taşınmış olur, bozulma yok.
      --------------------------------------------------------------- */
-  .seam {
+  .seam,
+  .pf-stack {
     --seam-h: 4rem;
+  }
+
+  .seam {
     position: relative;
   }
 
@@ -2072,134 +2184,6 @@
   }
 
   /* ---------------------------------------------------------------
-     EMLAK CRM PRO — sabit anlatı bloğu, akan destek şeridi
-     Bandın tepe noktası olma biçimi: SOL SÜTUNUN TAMAMI (işaret,
-     başlık, açılış karesi, açıklama, CTA) tek bir blok, sağ sütun bu
-     bloğun yanından bağımsız akan bir şerit. Eski düzende yalnızca
-     görsel sabitti, başlık split'in dışında sıradan bir `h2` olarak
-     yukarı kaçıyordu ve metin görselin YANINDA ayrı bir sütun olarak
-     akıyordu — anlatı iki yere bölünüyordu. Artık sol blok TEK PARÇA.
-
-     Sağ şeridin sol bloktan UZUN olması mekanizmanın şartı (aksi halde
-     pin görünmez); bu yüzden şerit aralığı `--spacing-section-tight`
-     DEĞİL `--spacing-section` (aşağıda) — üç 16/9 kare + künye sol
-     bloktan belirgin uzun olsun diye.
-
-     ≤860px ve sticky desteklenmeyen/kısa ekran yerde tek sütuna düşer
-     ve bugünkü sıralamanın aynısı olur — fallback ayrıca yazılmadı,
-     akışın kendisi. --------------------------------------------------------------- */
-  .home-case-split {
-    display: grid;
-    /* 0.8fr / 1.2fr (eskiden 1.05fr / 1fr): sol blok artık yalnızca metin +
-       yetenek indeksi taşıyor (açılış karesi sağ şeride taşındı, aşağıya
-       bakın), dar bir sütuna sığıyor; kazanılan genişlik dört ekranın da
-       daha büyük görünmesi için sağa gidiyor. */
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-    gap: var(--spacing-section-tight);
-    align-items: start;
-  }
-
-  /* BLOĞUN İÇ RİTMİ — TEK KAYNAK BURASI.
-     Önceki hâlde aralık `--spacing-section-tight` (1440px'te 81.6px)
-     idi ve YALNIZCA ilk iki çocuğa uyguluyordu: paragraflar ve CTA
-     Tailwind'in `mt-8`/`mt-6`'sını koruyordu, çünkü v4'te utility
-     katmanı component katmanını yener. Yani blok iki farklı ritmi aynı
-     anda taşıyordu ve hangisinin geçerli olduğu katman sırasına
-     bağlıydı — görünmez bir bağımlılık. page.tsx'teki `mt-*`
-     sınıfları kaldırıldı, ritim tamamen burada.
-
-     ÖLÇÜ SEBEBİ, ZEVK DEĞİL: sticky'nin çalışabilmesi için bloğun
-     `viewport - üst offset` içine SIĞMASI gerekiyor. 1.5rem (eskiden 2rem —
-     açılış karesi sağ şeride taşınınca (page.tsx bant 3 yorumu) blok
-     işaret + başlık + 2 paragraf + 4 satırlık indeks + CTA'ya indi ama
-     dar genişliklerde (1366px) paragraflar bir satır daha kırdığı için
-     hâlâ sıkı bir bütçeydi; portfolyo bandının kendi sticky bütçesi için
-     kullandığı AYNI 1.5rem'e çekildi, §12'deki `.home-portfolio-head > *
-     + *`taki gerekçenin aynısı) — tek ve uniform bir ritim, ayrı bir
-     "index/CTA'ya daha çok boşluk" istisnası artık yok. */
-  .home-case-split__anchor > * + * {
-    margin-block-start: 1.5rem;
-  }
-
-  /* Sticky YALNIZCA yeterli genişlik VE yükseklik varken. Yükseklik kapısı
-     bloğun GERÇEK yüksekliğinden türüyor.
-
-     Eylül 2026: açılış karesi sağ şeride taşınınca blok tarayıcıda ölçüldü:
-     1440/1512/1600/1920 genişliklerde 678–684px, EN DAR 861–1366px
-     aralığında (paragraflar bir satır daha kırıyor) 702px — eski
-     `min-height: 950px` kapısı artık gereğinden kesin katıydı, 1440×900
-     gibi yaygın bir laptopta sticky'yi HİÇ tetiklemiyordu. Yeni eşik: en
-     kötü ölçüm (702px) + üst offset (`--nav-h + 1rem` = 88px) = 790px,
-     yuvarlanarak 800px —
-     portfolyo bandının (§12) kendi sticky kapısıyla AYNI sayı, ikinci bir
-     "sihirli" eşik icat edilmedi. Altında blok sessizce normal akışa düşer
-     (ör. 1366×768) ve bant eksiksiz okunur; `case-focus` orada da çalışmaya
-     devam eder, kısa ekran hareketsiz kalmaz. */
-  @media (min-width: 861px) and (min-height: 800px) {
-    .home-case-split__anchor {
-      position: sticky;
-      inset-block-start: calc(var(--nav-h) + 1rem);
-    }
-  }
-
-  /* Yetenek indeksi. Sıra ve sayılar `CASE_INDEX`'te (page.tsx) — sağdaki
-     dört karenin sözel özeti, `aria-hidden` (aynı bilgi figcaption'larda
-     görünür durumda). Taban hâlde (JS/CSS motoru olmasa da) durağan ve TAM
-     opak: `≥861px` + kısa olmayan ekranlarda okunması gereken tek liste bu. */
-  .home-case-index {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .home-case-index li {
-    display: flex;
-    gap: 0.75rem;
-    align-items: baseline;
-    color: var(--color-fg-on-ink);
-  }
-
-  .home-case-index__num {
-    flex: none;
-    min-inline-size: 2ch;
-    color: var(--color-accent);
-  }
-
-  /* Sağ şerit normal akışta — "sabit blok yanında akan" mekanizmasının
-     kendisi bu: şerit sayfa scroll'una bağlı, ekstra bir motor yok. */
-  .home-case-split__stream > figure + figure {
-    margin-block-start: var(--spacing-section);
-  }
-
-  /* Başlık artık split'in DIŞINDA değil, dar sol sütunun içinde — punto
-     inline style'la değil burada, `.home-rail-lede__title`'daki aynı
-     gerekçe: taban hâlde (tek sütun) --text-display-2xl, sütuna girdiğinde
-     (aşağıdaki @media) bir kademe küçülüyor, aksi halde 20ch genişliğinde
-     satırlar erken kırılırdı. */
-  .home-case-split__title {
-    max-inline-size: 20ch;
-    font-size: var(--text-display-2xl);
-    line-height: var(--text-display-2xl--line-height);
-    letter-spacing: var(--text-display-2xl--letter-spacing);
-    font-weight: var(--text-display-2xl--font-weight);
-  }
-
-  @media (min-width: 861px) {
-    .home-case-split__title {
-      font-size: var(--text-display-xl);
-      line-height: var(--text-display-xl--line-height);
-      letter-spacing: var(--text-display-xl--letter-spacing);
-      font-weight: var(--text-display-xl--font-weight);
-      /* 20ch cumleyi UC satira kiriyordu (145px) ve bu, sticky
-         butcesinin alti da bir kademe kucuk olmasi demekti. 24ch iki
-         satir veriyor ve kirilma noktasi virgulun kendisi:
-         "SADECE ANLATMIYORUZ," / "YAPIYORUZ." — cumlenin kendi
-         duraginda kiriliyor, rastgele bir yerde degil. */
-      max-inline-size: 24ch;
-    }
-  }
-
-  /* ---------------------------------------------------------------
      /hizmetler YATAY RAY
      Gerekçe: docs/design-system.md §15.
 
@@ -2232,7 +2216,7 @@
     gap: var(--spacing-section-tight);
     align-items: start;
     margin-inline: auto;
-    max-inline-size: var(--container-site);
+    max-inline-size: var(--container-page);
   }
 
   /* Medyası olmayan panel (bugün hiçbiri değil, serviceMedia.ts'e bağlı)
@@ -2265,113 +2249,1241 @@
   }
 
   /* ==========================================================================
-     PORTFOLYO (/portfolyo) — bkz. docs/design-system.md §13.
-     Çerçeve, künye ve Wellness'in `--boost`'u anasayfa bant 4'ün TABAN
-     kuralları (`.home-portfolio-frame`, `.home-portfolio-caption`,
-     `.home-portfolio-media--boost`) — olduğu gibi yeniden kullanılıyor.
-     Rayın gated kuralları `.home-portfolio-track > figure` altında bağlı,
-     `.portfolio-grid`e sızmıyor.
-
-     İSTİSNA — `.home-portfolio-item--wide` YENİDEN KULLANILMIYOR: gated
-     blokta (anasayfa yatay rayı) o sınıf GLOBAL olarak `display: none`
-     alıyor (Wellness rayda gizli, Eylül 2026 kararı). Burada kullanılsaydı
-     /portfolyo'da da Wellness masaüstünde kaybolurdu (ilk denemede oldu).
-     Kendi `.portfolio-item--wide`i var.
+     ÇALIŞTIĞIM FİRMALAR (anasayfa bant 3) — gertix.studio "OUR CLIENTS".
+     Ortalı başlık, iki uçta artı işaretli kesik ayraç, ortalı sarmalanan
+     logo ızgarası. Logolar gri tonlu (gertix: grayscale(100%)), hover'da
+     1.2 büyüyor — burada ayrıca rengine dönüyor. Yazı markası (logosuz
+     firma) aynı hücrede mono büyük harf; hover'da aksan rengine dönüyor.
      ========================================================================== */
-
-  /* Öne çıkan iş (Emlak CRM Pro). Tüm satır TEK link. Oran bant 3'ün
-     `.home-case-split`iyle aynı (0.8fr / 1.2fr): solda metin, sağda
-     ekran görüntüsü — aynı işin iki sayfada aynı dengede durması için. */
-  .portfolio-feature {
-    display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-    gap: var(--spacing-section-tight);
+  .clients {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    border-block-start: 1px solid var(--hairline);
-    padding-block-start: var(--spacing-section-tight);
+    max-inline-size: 65rem;
+    margin-inline: auto;
   }
 
-  .portfolio-feature__text > * + * {
-    margin-block-start: 1.5rem;
+  .clients__title {
+    text-align: center;
+    margin-block-end: 3rem;
   }
 
-  .portfolio-feature__title {
-    max-inline-size: 24ch;
+  .clients__separator {
+    display: flex;
+    align-items: center;
+    inline-size: 100%;
+    color: var(--fg-muted);
+  }
+
+  .clients__separator svg {
+    flex: 0 0 auto;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+  }
+
+  .clients__separator hr {
+    flex: 1 1 0%;
+    border: 0;
+    border-block-start: 1px dashed currentColor;
+    opacity: 0.6;
+  }
+
+  .clients__grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-block: 1.5rem;
+  }
+
+  .clients__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 8rem;
+    block-size: 8rem;
+    padding: 1.25rem 0.75rem;
+    text-align: center;
+  }
+
+  .clients__item > a {
+    display: contents;
+  }
+
+  .clients__item img {
+    inline-size: 5rem;
+    block-size: 5rem;
+    object-fit: contain;
+    filter: grayscale(100%);
+    transition:
+      transform 0.3s var(--ease-out-quart),
+      filter 0.3s var(--ease-out-quart),
+      opacity 0.3s var(--ease-out-quart);
+  }
+
+  .clients__wordmark {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-stretch: 88%;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    color: var(--color-ink-700);
+    text-wrap: balance;
+    transition:
+      transform 0.3s var(--ease-out-quart),
+      color 0.3s var(--ease-out-quart);
+  }
+
+  .clients__item:hover img {
+    transform: scale(1.2);
+    filter: grayscale(0%);
+  }
+
+  .clients__item:hover .clients__wordmark {
+    transform: scale(1.12);
+    color: var(--accent-text);
+  }
+
+  /* Telefonda 8rem kareler satıra ikişer düşüyor ve liste ekranlarca
+     uzuyordu — üç eşit sütun, daha alçak hücre. */
+  @media (max-width: 640px) {
+    .clients__title {
+      margin-block-end: 2rem;
+    }
+
+    .clients__grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      inline-size: 100%;
+    }
+
+    .clients__item {
+      inline-size: auto;
+      block-size: 5.25rem;
+      padding: 0.75rem 0.25rem;
+    }
+
+    .clients__item img {
+      inline-size: 4rem;
+      block-size: 3.5rem;
+    }
+
+    .clients__wordmark {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* ==========================================================================
+     PORTFOLYO GALERİSİ (anasayfa bant 4) — gertix.studio "Beitragsgalerie".
+     Başlık satırı konteynerde, şerit tam genişlikte; ilk kare konteynerin
+     sol kenarına hizalı başlıyor (padding), son kare sağ kenarda bitiyor.
+     ========================================================================== */
+  /* gertix'in iki başlığı ("OUR CLIENTS", "BEITRAGSGALERIE") — ince
+     (300), geniş, büyük harf; ekran görüntüsündeki ITC Avant Garde'ın
+     karşılığı Archivo'nun genişlik ekseniyle. */
+  .gx-heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 1.1rem + 1.1vw, 2rem);
+    font-weight: 300;
+    font-stretch: 112%;
+    line-height: 1.24;
+    letter-spacing: 0.02em;
+  }
+
+  .drag-gallery {
+    --gallery-edge: var(--spacing-gutter);
+    --gallery-line: color-mix(in srgb, currentColor 30%, transparent);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .drag-gallery__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-inline: var(--gallery-edge);
+    padding-block: 2.5rem 1.25rem;
+  }
+
+  .drag-gallery__head {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  /* Başlıklı galeride (anasayfa) konum çizgisi yok — gertix'in satırı
+     yalnızca başlık; ←/→ sağda. */
+  .drag-gallery__head ~ .drag-gallery__progress {
+    display: none;
+  }
+
+  /* Konum çizgisi — galeride nerede olunduğu (DragGallery, scaleX). */
+  .drag-gallery__progress {
+    position: relative;
+    flex: 1 1 auto;
+    block-size: 1px;
+    margin-inline-end: 1rem;
+    background-color: var(--hairline);
+    overflow: hidden;
+  }
+
+  .drag-gallery__progress > span {
+    position: absolute;
+    inset: 0;
+    background-color: var(--accent-text);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .drag-gallery__btn {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+    color: var(--fg-strong);
+    font-family: var(--font-mono);
+    transition:
+      border-color var(--duration-base) var(--ease-out-quart),
+      color var(--duration-base) var(--ease-out-quart),
+      opacity var(--duration-base) var(--ease-out-quart);
+  }
+
+  .drag-gallery__btn:hover:not(:disabled) {
+    border-color: var(--accent-text);
+    color: var(--accent-text);
+  }
+
+  .drag-gallery__btn:disabled {
+    opacity: 0.35;
+  }
+
+  .drag-gallery__viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding-inline: var(--gallery-edge);
+    scroll-padding-inline: var(--gallery-edge);
+    border-block: 1px dashed var(--gallery-line);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .drag-gallery__viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .drag-gallery__viewport:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .drag-gallery__track {
+    display: flex;
+    inline-size: max-content;
+  }
+
+  /* Son karenin sağ çizgisi (gertix: :last-child border-right). */
+  .drag-gallery__track > :last-child {
+    border-inline-end: 1px dashed var(--gallery-line);
+  }
+
+  /* ---- Galeri karesi (GalleryCard) -------------------------------------
+     Gövde dikey bir flex sütun: künye (sabit) + görsel (esnek) + açıklama
+     (0 → 12rem). Hover'da görsel içeri çekiliyor, panel yukarı açılıyor —
+     ikisi de 0.7s, gertix'in süresi. */
+  .gallery-card {
+    /* Ekim 2026: bir kademe küçüldü (21vw/24rem → 17vw/19rem, oran aynı)
+       — başlık + şerit ekranda ortalanmış hâlde tek bakışta sığsın. */
+    --card-w: clamp(13rem, 17vw, 19rem);
+    flex: 0 0 auto;
+    inline-size: var(--card-w);
+    aspect-ratio: 400 / 640;
+    border-inline-start: 1px dashed var(--gallery-line, var(--hairline));
+  }
+
+  .gallery-card__body {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    overflow: hidden;
+    color: inherit;
+  }
+
+  /* Künye iki satır (marka / kategori): kart 17vw'ye küçülünce tek satırda
+     marka adı kesiliyordu. Her kartta aynı yükseklik — görseller hizalı. */
+  .gallery-card__head {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.625rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+  }
+
+  .gallery-card__brand {
+    color: var(--fg-strong);
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .gallery-card__meta {
+    flex-shrink: 0;
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+
+  .gallery-card__thumb {
+    position: relative;
+    display: block;
+    flex: 1 1 0%;
+    min-block-size: 0;
+    overflow: hidden;
+    clip-path: inset(0.5rem round var(--radius-sm));
+    transition: clip-path 0.7s var(--ease-out-quart);
+    background-color: var(--field-bg, transparent);
+  }
+
+  .gallery-card__thumb img {
+    object-fit: cover;
+    transition: transform 0.7s var(--ease-out-quart);
+  }
+
+  .gallery-card__excerpt {
+    flex: 0 0 0px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 0.75rem;
+    overflow: hidden;
+    padding-inline: 1rem;
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+    color: var(--fg-muted);
+    transition:
+      flex-basis 0.7s var(--ease-out-quart),
+      padding 0.7s var(--ease-out-quart);
+  }
+
+  .gallery-card__text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
+
+  .gallery-card__more {
+    align-self: flex-end;
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-strong);
+  }
+
+  .gallery-card__more::after {
+    content: " →";
+  }
+
+  /* Hover — yalnızca gerçek fare + geniş ekran (gertix: min-width 768px).
+     Dokunmatikte panel kalıcı olarak açık (aşağıdaki ≤767 kuralı). */
+  @media (hover: hover) and (min-width: 768px) {
+    .gallery-card:hover .gallery-card__thumb,
+    .gallery-card:focus-within .gallery-card__thumb {
+      clip-path: inset(1rem 0.5rem 0.5rem 0.5rem round var(--radius-sm));
+    }
+
+    .gallery-card:hover .gallery-card__excerpt,
+    .gallery-card:focus-within .gallery-card__excerpt {
+      flex-basis: 12rem;
+      padding-block: 0.5rem;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .gallery-card {
+      --card-w: min(70vw, 18rem);
+    }
+
+    .gallery-card__thumb {
+      clip-path: inset(0.75rem 0.5rem 0.5rem 0.5rem round var(--radius-sm));
+    }
+
+    .gallery-card__excerpt {
+      flex-basis: 9rem;
+      padding-block: 0.5rem;
+    }
+
+    .gallery-card__text {
+      -webkit-line-clamp: 3;
+    }
+  }
+
+  /* ==========================================================================
+     PORTFOLYO KATEGORİ KARTLARI (/portfolyo) — gertix.studio/portfolio
+     referansı (Ekim 2026). Bkz. PortfolioStack.tsx ve docs/design-system.md
+     §13. TABAN düzen: kartlar alt alta akan bloklar (mobil, reduced-motion,
+     animation-timeline desteksiz). Üst üste binme gated blokta (`.pf-stack`).
+
+     Kart tonları açıktan koyuya kademeli (gertix'in #E8EBEB → #9EABAD →
+     #72797A dizisinin sitenin paletindeki karşılığı); her biri kendi yüzey
+     değişkenlerini bağlıyor, içerideki her şey (`.gallery-card` dahil)
+     onları okuyor. `data-header-tone` (PortfolioStack) ilk ikide açık.
+     ========================================================================== */
+  /* Alt pay = alttaki bandın dikiş şeridi (`.seam::before`, --seam-h):
+     şerit yukarı taşıp son kartın altını örtüyor, butonu sarı banda
+     yapıştırıyordu. Pay son kartın tonunda (ink-950). */
+  .pf-stack {
+    position: relative;
+    padding-block-end: var(--seam-h);
+    background-color: var(--color-ink-950);
+    --pf-edge: var(--spacing-gutter);
+  }
+
+  .pf-card:last-child {
+    padding-block-end: calc(var(--spacing-section-tight) + 1.5rem);
+  }
+
+  .pf-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "num" "title" "labels" "thumb" "excerpt" "cta" "media";
+    row-gap: 1.25rem;
+    padding: var(--spacing-section-tight) var(--pf-edge);
+    border-block-start: 1px dashed var(--pf-line);
+    overflow: clip;
+    /* Her kart kendi katman bağlamı: kapağın z-index'i (2) kartın DIŞINA
+       taşmasın — ilk kartın animasyonu yok, bağlam kendiliğinden oluşmuyor
+       ve kapağı sonraki kartların üstüne çıkıyordu. */
+    isolation: isolate;
+    background-color: var(--pf-bg);
+    color: var(--fg-strong);
+    --pf-line: color-mix(in srgb, currentColor 32%, transparent);
+    --btn-bg: var(--color-ink-900);
+    --btn-fg: var(--color-fg-on-ink);
+  }
+
+  .pf-card[data-theme="0"] {
+    --pf-bg: var(--color-paper-0);
+  }
+
+  .pf-card[data-theme="1"] {
+    --pf-bg: var(--color-paper-200);
+  }
+
+  .pf-card[data-theme="0"],
+  .pf-card[data-theme="1"] {
+    --hairline: color-mix(in srgb, #1c1c1c 16%, transparent);
+    --focus: var(--color-accent-ink);
+    --accent-text: var(--color-accent-ink);
+    --fg-strong: var(--color-fg-on-paper);
+    --fg-muted: var(--color-fg-on-paper-muted);
+    --field-bg: color-mix(in srgb, #1c1c1c 6%, transparent);
+  }
+
+  /* Orta gri (logonun .st2'si, #676767) — koyu tona geçilen ilk kart
+     (gertix'in üçüncü kartı gibi açık metin). Logonun AÇIK hâlinin gri
+     harfleri (#A4A5A8) bu zeminde kaybolurdu; header burada beyaz logoya
+     geçiyor. Amber bu zeminde ~2.6:1 — vurgu ve odak beyaz. */
+  .pf-card[data-theme="2"] {
+    --pf-bg: var(--color-fg-on-paper-muted);
+    --hairline: color-mix(in srgb, #ffffff 22%, transparent);
+    --focus: var(--color-fg-on-ink);
+    --accent-text: var(--color-fg-on-ink);
+    --fg-strong: var(--color-fg-on-ink);
+    --fg-muted: var(--color-paper-200);
+    --field-bg: color-mix(in srgb, #000000 12%, transparent);
+  }
+
+  .pf-card[data-theme="3"],
+  .pf-card[data-theme="4"] {
+    --hairline: color-mix(in srgb, #ffffff 14%, transparent);
+    --focus: var(--color-accent);
+    --accent-text: var(--color-accent);
+    --fg-strong: var(--color-fg-on-ink);
+    --fg-muted: var(--color-fg-on-ink-muted);
+    --field-bg: var(--color-ink-800);
+    --btn-bg: var(--color-accent);
+    --btn-fg: var(--color-ink-900);
+  }
+
+  .pf-card[data-theme="3"] {
+    --pf-bg: var(--color-ink-800);
+  }
+
+  .pf-card[data-theme="4"] {
+    --pf-bg: var(--color-ink-950);
+  }
+
+  .pf-card__num {
+    grid-area: num;
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    line-height: 1.24;
+    color: var(--accent-text);
+  }
+
+  .pf-card__title {
+    grid-area: title;
     font-size: var(--text-display-xl);
     line-height: var(--text-display-xl--line-height);
     letter-spacing: var(--text-display-xl--letter-spacing);
     font-weight: var(--text-display-xl--font-weight);
+    color: var(--fg-strong);
+  }
+
+  .pf-card__title > :is(a, button) {
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    color: inherit;
     transition: color var(--duration-base) var(--ease-out-quart);
   }
 
-  /* Link olduğunu söyleyen tek geri bildirim: başlık aksana döner, buton
-     kendi hover tonunu alır. Kareye hover efekti yok (§4: gölge/ölçek yok). */
-  .portfolio-feature:hover .portfolio-feature__title {
+  .pf-card__title > :is(a, button):hover {
     color: var(--accent-text);
   }
 
-  .portfolio-feature:hover .btn-accent {
-    background-color: var(--color-accent-hi);
-  }
-
-  /* Kategori filtresi — `.service-index`in kardeşi (hairline'lı mono satır),
-     ama bağlantı değil `aria-pressed`li buton. Seçili olan tam tonda ve
-     aksan alt çizgili; sayaç her zaman aksan tonunda. */
-  .portfolio-filter {
+  .pf-card__labels {
+    grid-area: labels;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem 1.75rem;
-    border-block-end: 1px solid var(--hairline);
-    padding-block-end: 1.25rem;
-    margin-block-end: var(--spacing-section-tight);
+    gap: 0.375rem;
   }
 
-  .portfolio-filter button {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    padding-block: 0.35rem;
-    color: var(--fg-muted);
-    text-decoration-line: underline;
-    text-decoration-color: transparent;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.5rem;
+  /* gertix'in etiketleri pill; §4 pill'i atıyor — aynı jest keskin köşeyle. */
+  .pf-card__labels li {
+    padding: 0.1875rem 0.625rem;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.34;
+    letter-spacing: 0.04em;
+    color: var(--fg-strong);
     transition:
-      color var(--duration-base) var(--ease-out-quart),
-      text-decoration-color var(--duration-base) var(--ease-out-quart);
+      background-color 0.15s,
+      color 0.15s;
   }
 
-  .portfolio-filter button:hover {
+  .pf-card__labels li:hover {
+    background-color: var(--fg-strong);
+    color: var(--pf-bg);
+  }
+
+  .pf-card__thumb-slot {
+    grid-area: thumb;
+    display: none;
+    inline-size: min(100%, 26rem);
+    aspect-ratio: 4 / 3;
+  }
+
+  .pf-card[data-phase="open"] .pf-card__thumb-slot {
+    display: block;
+  }
+
+  .pf-card__excerpt {
+    grid-area: excerpt;
+    align-self: end;
+    max-inline-size: 36rem;
+    color: var(--fg-muted);
+  }
+
+  .pf-card[data-phase="open"] .pf-card__excerpt {
+    display: none;
+  }
+
+  .pf-card__cta {
+    grid-area: cta;
+  }
+
+  /* Buton — gertix cb-button: dolu başlık bloğu + ayrı ok karesi; hover'da
+     ok sağa çıkıp yenisi soldan giriyor. */
+  .pf-btn {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0.25rem;
+    color: var(--btn-fg);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .pf-btn__title {
+    display: flex;
+    align-items: center;
+    padding: 1.15rem 1.75rem;
+    background-color: var(--btn-bg);
+    border-radius: var(--radius-sm);
+  }
+
+  .pf-btn__arrow {
+    position: relative;
+    inline-size: 3.5rem;
+    overflow: hidden;
+    background-color: var(--btn-bg);
+    border-radius: var(--radius-sm);
+  }
+
+  .pf-btn__arrow::before,
+  .pf-btn__arrow::after {
+    content: "→";
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    translate: -50% -50%;
+    transition: transform 0.3s var(--ease-out-quart);
+  }
+
+  .pf-btn__arrow::after {
+    transform: translateX(-3.5rem);
+  }
+
+  .pf-btn:hover .pf-btn__arrow::before,
+  .pf-btn:focus-visible .pf-btn__arrow::before {
+    transform: translateX(3.5rem);
+  }
+
+  .pf-btn:hover .pf-btn__arrow::after,
+  .pf-btn:focus-visible .pf-btn__arrow::after {
+    transform: translateX(0);
+  }
+
+  .pf-btn__arrow--close::before,
+  .pf-btn__arrow--close::after {
+    content: "×";
+    font-size: 1.1rem;
+  }
+
+  .pf-card__media-slot {
+    grid-area: media;
+    display: flex;
+    aspect-ratio: 4 / 3;
+    min-block-size: 0;
+    padding: 0.5rem;
+    border: 1px dashed var(--pf-line);
+    transition: opacity var(--duration-slow) var(--ease-out-quart);
+  }
+
+  .pf-card__media-inner {
+    flex: 1 1 auto;
+  }
+
+  /* 16:9 kapak: yuva çerçevenin dikey ortasında yatay — kapak ölçüyü
+     buradan aldığı için görsel kendi oranında duruyor. */
+  .pf-card[data-cover-wide] .pf-card__media-slot {
+    align-items: center;
+  }
+
+  .pf-card[data-cover-wide] .pf-card__media-inner {
+    flex: 0 0 auto;
+    inline-size: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  .pf-card[data-phase="open"] .pf-card__media-slot {
+    opacity: 0;
+  }
+
+  /* Kapak — JS ölçene dek medya yuvasının içinde (grid alanı = kapsayan
+     blok); ölçüldükten sonra (`data-placed`) kartın dolgu kutusuna göre
+     ölçülen yuvaya oturuyor. Geçiş yalnızca kart "canlı"yken. */
+  .pf-card__cover {
+    grid-area: media;
+    position: absolute;
+    inset: 0.5rem;
+    z-index: 2;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background-color: var(--field-bg);
+  }
+
+  .pf-card[data-placed] .pf-card__cover {
+    grid-area: auto;
+    inset: auto;
+    inset-block-start: var(--cy);
+    inset-inline-start: var(--cx);
+    inline-size: var(--cw);
+    block-size: var(--ch);
+  }
+
+  .pf-card[data-live] .pf-card__cover {
+    transition:
+      inset-block-start 0.9s var(--ease-out-expo),
+      inset-inline-start 0.9s var(--ease-out-expo),
+      inline-size 0.9s var(--ease-out-expo),
+      block-size 0.9s var(--ease-out-expo);
+  }
+
+  .pf-card__cover-hit {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .pf-card__cover-hit img {
+    object-fit: cover;
+    transition: transform 0.7s var(--ease-out-quart);
+  }
+
+  .pf-card__cover-hit:hover img {
+    transform: scale(1.03);
+  }
+
+  /* Detay galerisi — medya alanında, kapağın altında (z-index). */
+  .pf-card__gallery {
+    grid-area: media;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+  }
+
+  .pf-card__gallery[data-phase="closing"] {
+    pointer-events: none;
+  }
+
+  /* Detayın kendi "Kapat"ı — galerinin sağ üstünde, sol alttaki butonla
+     aynı işi yapıyor ama göz hizasında. */
+  .pf-card__close {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-block-end: 0.875rem;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--pf-line);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--fg-strong);
+    transition:
+      border-color var(--duration-base) var(--ease-out-quart),
+      background-color var(--duration-base) var(--ease-out-quart),
+      color var(--duration-base) var(--ease-out-quart);
   }
 
-  .portfolio-filter button[aria-pressed="true"] {
-    color: var(--fg-strong);
-    text-decoration-color: var(--accent-text);
+  .pf-card__close:hover {
+    background-color: var(--fg-strong);
+    color: var(--pf-bg);
   }
 
-  .portfolio-filter__count {
-    color: var(--accent-text);
+  .pf-card__close span {
+    font-size: 1rem;
+    line-height: 1;
   }
 
-  /* Tam liste — anasayfa bant 4'ün taban gridinin aynısı: 3 sütun, geniş
-     işler `span 2` (bkz. portfolio.ts). Filtrelenince `hidden` işler
-     düzenden çıkar, kalanlar auto-placement'la sola akar — kategoriye göre
-     görünür `wide` sayısı değiştiği için sabit bir hücre matematiği YOK,
-     her filtre kendi geometrisini auto-flow'a bırakıyor. */
-  .portfolio-grid {
+  .pf-card__gallery[data-phase="open"] .pf-card__close {
+    animation: pf-fade 0.4s var(--ease-out-quart) 0.25s both;
+  }
+
+  .pf-card__gallery[data-phase="closing"] .pf-card__close {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .pf-gallery {
+    --gallery-edge: 0px;
+    --gallery-line: var(--pf-line);
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+
+  .pf-gallery .drag-gallery__controls {
+    order: 2;
+    padding-block: 1rem 0;
+  }
+
+  .pf-gallery .drag-gallery__viewport {
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+
+  /* Uçuş sırasında (PortfolioStack `data-entering`) pencere kırpmıyor —
+     kareler EKRANIN sağ alt köşesinden gelsin, galerinin kenarından değil.
+     İniş bitince yatay scroll geri geliyor. */
+  .pf-card__gallery[data-entering] .drag-gallery__viewport {
+    overflow: visible;
+  }
+
+  .pf-gallery .drag-gallery__track {
+    block-size: 100%;
+  }
+
+  .pf-gallery .gallery-card {
+    inline-size: auto;
+    block-size: 100%;
+    aspect-ratio: 400 / 560;
+  }
+
+  .pf-gallery .gallery-card--wide {
+    aspect-ratio: 16 / 13;
+  }
+
+  .pf-card__gallery[data-phase="open"] .gallery-card {
+    animation: pf-work-in 0.95s var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 120ms + 200ms);
+  }
+
+  .pf-card__gallery[data-phase="closing"] .gallery-card {
+    animation: pf-work-out 0.45s var(--ease-in-out-soft) both;
+    animation-delay: calc(var(--i, 0) * 25ms);
+  }
+
+  .pf-card__gallery[data-phase="open"] .drag-gallery__controls {
+    animation: pf-fade 0.5s var(--ease-out-quart) 0.5s both;
+  }
+
+  .pf-card__gallery[data-phase="closing"] .drag-gallery__controls {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  /* ≥861px: üç sütun — numara | bilgi | medya (gertix'in 1fr/1fr'ı, numara
+     sütunu ayrı). Medya alanı kartın tüm yüksekliği. */
+  @media (min-width: 861px) {
+    .pf-card {
+      grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 1.25fr);
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "num title media"
+        "num labels media"
+        "num thumb media"
+        "num excerpt media"
+        "num cta media";
+      column-gap: 2.5rem;
+      row-gap: 1.5rem;
+      min-block-size: min(100svh, 56rem);
+      /* Alt pay büyüdü: son kartın butonu alttaki sarı kapanış bandına
+         yapışıyordu (kullanıcı geri bildirimi). */
+      padding-block: calc(var(--nav-h) + 2rem) clamp(3.5rem, 9svh, 6rem);
+    }
+
+    .pf-card__media-slot {
+      aspect-ratio: auto;
+    }
+
+    .pf-card__thumb-slot {
+      inline-size: min(100%, 24rem);
+    }
+  }
+
+  /* ≤860px açıkken: medya yuvası düşüyor, galeri onun yerinde kendi
+     yüksekliğinde. */
+  @media (max-width: 860px) {
+    .pf-card[data-phase="open"] .pf-card__media-slot {
+      display: none;
+    }
+
+    .pf-card__gallery {
+      block-size: min(72svh, 34rem);
+    }
+
+    /* Tek sütunda sol alttaki "Kapat" zaten galerinin hemen üstünde —
+       ikincisi tekrar olurdu. */
+    .pf-card__close {
+      display: none;
+    }
+
+    .pf-card__thumb-slot {
+      inline-size: min(70%, 18rem);
+    }
+  }
+
+  /* ==========================================================================
+     SİTE FOOTER'I (components/footer/SiteFooter.tsx) — Ekim 2026, Hayler.
+     Masaüstünde bir ekran boyu (Hayler: full-height-desktop); slogan sol
+     üstte, saat sağda, çizgi, iki sütun, en altta kredi satırı. Renk
+     `surface-accent` (amber) — burada muted ton yok, ince çizgiler
+     `--hairline` (mürekkep %24).
+     ========================================================================== */
+  .site-footer {
+    --footer-line: color-mix(in srgb, var(--color-ink-900) 22%, transparent);
+  }
+
+  /* Parallax katmanı kırpılıyor; dikiş şeridi (`.seam::before`) ise
+     footer'ın DIŞINA taşıyor — kırpma bu yüzden footer'da değil burada. */
+  .site-footer__clip {
+    overflow: clip;
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-section) var(--spacing-gutter) 2rem;
+  }
+
+  .site-footer__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem 3rem;
+  }
+
+  .site-footer__slogan {
+    max-inline-size: 16ch;
+    font-size: var(--text-display-hero);
+    line-height: 1;
+    letter-spacing: var(--text-display-hero--letter-spacing);
+    font-weight: var(--text-display-hero--font-weight);
+  }
+
+  .roll-word {
+    display: inline-block;
+    white-space: nowrap;
+    margin-inline-end: 0.22em;
+  }
+
+  /* Harf kutusu tek satır yüksekliğinde kırpıyor; içerideki iki kopya
+     (üst üste) scroll'la bir satır yukarı kayıyor. Satır yüksekliği
+     1.15em: Türkçe İ noktası ve Ş/Ç çengeli kutuya sığsın. */
+  .roll-char {
+    display: inline-block;
+    block-size: 1.15em;
+    overflow: clip;
+    vertical-align: top;
+  }
+
+  .roll-char__inner {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .roll-char__inner > span {
+    display: block;
+    block-size: 1.15em;
+    line-height: 1.15em;
+  }
+
+  .footer-clock {
+    text-align: end;
+  }
+
+  .footer-clock__label {
+    font-size: var(--text-body-sm);
+  }
+
+  .footer-clock__time {
+    font-family: var(--font-display);
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    font-weight: var(--text-display-lg--font-weight);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .footer-clock__colon {
+    margin-inline: 0.12em;
+    animation: footer-colon 2s steps(1) infinite;
+  }
+
+  /* Kendini çizen çizgi (Hayler `animated-line`): gated blokta view() ile
+     soldan sağa açılıyor; taban hâl tam çizgi. */
+  .site-footer__line {
+    margin-block: clamp(2.5rem, 6vw, 4.5rem);
+    border: 0;
+    block-size: 1px;
+    background-color: var(--color-ink-900);
+    opacity: 0.35;
+    transform-origin: left center;
+  }
+
+  .site-footer__cols {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--portfolio-gap);
-    row-gap: calc(var(--portfolio-gap) * 2);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.5rem;
   }
 
-  .portfolio-item--wide {
-    grid-column: span 2;
+  .site-footer__col > hr {
+    border: 0;
+    border-block-start: 1px solid var(--footer-line);
   }
 
-  .portfolio-item--wide .home-portfolio-frame {
-    aspect-ratio: 2 / 1;
+  .site-footer__label {
+    padding-block: 1.1rem;
+    font-family: var(--font-display);
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    font-weight: 500;
+  }
+
+  .site-footer__col > .btn {
+    margin-block-start: 1.5rem;
+  }
+
+  /* Site haritası — Hayler `footer-nav-lists`: üç satır, sütunlara akar. */
+  .footer-nav {
+    display: grid;
+    grid-template-rows: repeat(3, auto);
+    grid-auto-flow: column;
+    gap: 0.35rem 1.5rem;
+    margin-block-start: 1.25rem;
+  }
+
+  /* Ok kayan link: hover'da metin sağa kayar, soldan ok belirir. */
+  .footer-nav__link {
+    position: relative;
+    display: inline-block;
+    padding-inline-end: 1.4rem;
+    transition: padding 0.25s var(--ease-out-quart);
+  }
+
+  .footer-nav__link::before {
+    content: "→";
+    position: absolute;
+    inset-inline-start: 0;
+    opacity: 0;
+    transform: scale(0.4) rotate(-45deg);
+    transition:
+      opacity 0.25s var(--ease-out-quart),
+      transform 0.25s var(--ease-out-quart);
+  }
+
+  .footer-nav__link:hover,
+  .footer-nav__link:focus-visible {
+    padding-inline: 1.4rem 0;
+  }
+
+  .footer-nav__link:hover::before,
+  .footer-nav__link:focus-visible::before {
+    opacity: 1;
+    transform: none;
+  }
+
+  .site-footer__credits {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1.5rem;
+    margin-block-start: clamp(3.5rem, 9vw, 7rem);
+  }
+
+  .site-footer__copy {
+    font-size: var(--text-body-sm);
+    text-align: center;
+  }
+
+  /* Başa Dön — daire ikon + yuvarlanan etiket (nav kutusundaki jest). */
+  .footer-top {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  .footer-top__icon {
+    display: grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    border: 1px solid var(--color-ink-900);
+    border-radius: 50%;
+    transition:
+      background-color 0.25s var(--ease-out-quart),
+      color 0.25s var(--ease-out-quart),
+      transform 0.25s var(--ease-out-quart);
+  }
+
+  .footer-top__icon svg {
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+  }
+
+  .footer-top__text {
+    display: block;
+    overflow: hidden;
+    block-size: 1.5em;
+  }
+
+  .footer-top__text > span {
+    position: relative;
+    display: block;
+    line-height: 1.5em;
+    transition: transform 0.25s var(--ease-out-quart);
+  }
+
+  .footer-top__text > span::after {
+    content: attr(data-label);
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 100%;
+  }
+
+  .footer-top:hover .footer-top__icon,
+  .footer-top:focus-visible .footer-top__icon {
+    background-color: var(--color-ink-900);
+    color: var(--color-accent);
+    transform: translateY(-3px);
+  }
+
+  .footer-top:hover .footer-top__text > span,
+  .footer-top:focus-visible .footer-top__text > span {
+    transform: translateY(-100%);
+  }
+
+  /* Bizi Takip Edin — Hayler `socials-wrap`: hover/odakta yazı yukarı
+     çıkar, ikonlar sağdan sola sırayla yükselir. Dokunmatikte (hover yok)
+     ikonlar baştan açık. */
+  .footer-socials {
+    position: relative;
+    justify-self: end;
+    block-size: 2.75rem;
+  }
+
+  .footer-socials__text {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    block-size: 2.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    transition:
+      transform 0.25s cubic-bezier(0.215, 0.61, 0.355, 1),
+      opacity 0.25s;
+  }
+
+  .footer-socials__text svg {
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+  }
+
+  .footer-socials__list {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .footer-socials__list a {
+    display: grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    border-radius: 50%;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+
+  .footer-socials__list a:hover,
+  .footer-socials__list a:focus-visible {
+    background-color: var(--color-ink-900);
+    color: var(--color-accent);
+  }
+
+  @media (hover: hover) {
+    .footer-socials__list li {
+      opacity: 0;
+      transform: translateY(1.4rem);
+      transition:
+        opacity 0.22s cubic-bezier(0.215, 0.61, 0.355, 1),
+        transform 0.22s cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+
+    .footer-socials:hover .footer-socials__text,
+    .footer-socials:focus-within .footer-socials__text {
+      transform: translateY(-2.75rem);
+      opacity: 0;
+    }
+
+    .footer-socials:hover li,
+    .footer-socials:focus-within li {
+      opacity: 1;
+      transform: none;
+    }
+
+    .footer-socials:hover li:nth-last-child(1),
+    .footer-socials:focus-within li:nth-last-child(1) {
+      transition-delay: 0s;
+    }
+    .footer-socials:hover li:nth-last-child(2),
+    .footer-socials:focus-within li:nth-last-child(2) {
+      transition-delay: 0.05s;
+    }
+    .footer-socials:hover li:nth-last-child(3),
+    .footer-socials:focus-within li:nth-last-child(3) {
+      transition-delay: 0.1s;
+    }
+    .footer-socials:hover li:nth-last-child(4),
+    .footer-socials:focus-within li:nth-last-child(4) {
+      transition-delay: 0.15s;
+    }
+  }
+
+  @media (hover: none) {
+    .footer-socials__text {
+      display: none;
+    }
+  }
+
+  @media (min-width: 861px) {
+    .site-footer__inner {
+      min-block-size: 100svh;
+      padding-block-start: calc(var(--nav-h) + var(--spacing-section-tight));
+    }
+
+    /* Kredi satırı ekranın dibinde (Hayler). */
+    .site-footer__credits {
+      margin-block-start: auto;
+      padding-block-start: clamp(3.5rem, 9vw, 7rem);
+    }
+  }
+
+  @media (max-width: 860px) {
+    .site-footer__cols {
+      grid-template-columns: 1fr;
+    }
+
+    .footer-clock {
+      text-align: start;
+    }
+
+    .site-footer__credits {
+      grid-template-columns: 1fr;
+      justify-items: start;
+    }
+
+    .site-footer__copy {
+      order: 3;
+      text-align: start;
+    }
+
+    .footer-socials {
+      justify-self: start;
+      block-size: auto;
+      margin-inline-start: -0.6rem;
+    }
+
+    /* Tek sütunda hover'la açılan gizli ikon dizisi yerine ikonlar açık. */
+    .footer-socials__text {
+      display: none;
+    }
+
+    .footer-socials__list li {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
+    .footer-nav {
+      grid-template-rows: repeat(4, auto);
+    }
   }
 
   /* ==========================================================================
@@ -2381,6 +3493,181 @@
      `.home-case-caption` (anasayfa bant 3). `.case-*` ikizleri yazılmadı —
      burada yalnızca sayfaya ait düzen.
      ========================================================================== */
+
+  /* Başlık satırı: konum izi solda, canlı uygulama bağlantısı sağda
+     (Ekim 2026 — emlakcrmpro.com artık başlıkta da görünür). */
+  .case-head-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+  }
+
+  .case-live {
+    gap: 0.625rem;
+  }
+
+  /* "Canlı" noktası — yavaş bir nabız; reduced-motion global bloğu
+     animasyonu zaten anlık yapıyor. */
+  .case-live__dot {
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 50%;
+    background-color: var(--color-success);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 60%, transparent);
+    animation: case-live-pulse 2.4s var(--ease-out-quart) infinite;
+  }
+
+  /* Başlık görseli: cihaz mockup'ı (kendi zemini olan bir fotoğraf) —
+     paspartasız, kendi oranında. */
+  .case-lead__frame {
+    position: relative;
+    aspect-ratio: 1672 / 941;
+    overflow: clip;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-ink-800);
+  }
+
+  .case-lead__frame img {
+    object-fit: cover;
+  }
+
+  /* ---- Tema anahtarı (ShotTheme) ------------------------------------
+     Bölüm boyunca yapışkan; nav kutusunun dili (yarı saydam gri + blur,
+     seçili seçenek ters renkli chip). */
+  .shot-theme__bar {
+    position: sticky;
+    inset-block-start: calc(var(--nav-h) + 0.75rem);
+    z-index: 5;
+    display: flex;
+    justify-content: flex-end;
+    margin-block-start: 2rem;
+    pointer-events: none;
+  }
+
+  .shot-theme__switch {
+    display: inline-flex;
+    gap: 0.125rem;
+    padding: 0.375rem;
+    border-radius: var(--radius-md);
+    background-color: rgb(128 128 128 / 0.32);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    pointer-events: auto;
+  }
+
+  .shot-theme__option {
+    padding: 0.45rem 0.8rem;
+    border-radius: var(--radius-sm);
+    color: var(--fg-strong);
+    transition:
+      background-color var(--duration-base) var(--ease-out-quart),
+      color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .shot-theme__option[aria-pressed="true"] {
+    background-color: var(--fg-strong);
+    color: var(--color-ink-950);
+  }
+
+  /* Açık + koyu kare üst üste; koyu olan soldan sağa bir perdeyle açılıyor
+     (clip-path), geri dönüşte aynı yoldan kapanıyor. Kadraj üstten hizalı —
+     uygulamanın üst barı hep görünür. */
+  .case-shot .home-case-frame {
+    aspect-ratio: 1910 / 990;
+  }
+
+  .case-shot__stack {
+    position: absolute;
+    inset: 0;
+  }
+
+  .case-shot__img {
+    object-fit: cover;
+    object-position: top center;
+  }
+
+  .case-shot__img--dark {
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 0.8s var(--ease-out-expo);
+  }
+
+  .shot-theme[data-shot-theme="dark"] .case-shot__img--dark {
+    clip-path: inset(0 0 0 0);
+  }
+
+  /* Ekim 2026 — "Yaklaşım" bandı açık gri (kullanıcı isteği). */
+  .case-story--gray {
+    background-color: var(--color-paper-200);
+  }
+
+  /* Ekran görüntüleri bir kademe daha küçük (kullanıcı isteği): başlık
+     görseli en çok 64rem, modül kareleri en çok 40rem — sağ sütunu
+     doldurmuyor, solda yaslı duruyor. */
+  .case-lead {
+    max-inline-size: 64rem;
+  }
+
+  .case-module .case-shot {
+    max-inline-size: 40rem;
+  }
+
+  /* "Sahada kullanılıyor" bandı — refs/emlakcrmpro-1.png: kapanış
+     bölümünün dibinde tam genişlik açık şerit, ortalı not + etiket ve
+     logolar. Kenar çizgileri hairline; logo kendi renginde (kırmızı/siyah)
+     açık zeminde okunuyor. */
+  .case-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    margin-block-start: var(--spacing-section-tight);
+    margin-inline: calc(-1 * var(--spacing-gutter));
+    padding: 2.5rem var(--spacing-gutter);
+    border-block: 1px solid var(--hairline);
+    background-color: color-mix(in srgb, var(--color-paper-0) 88%, var(--color-accent));
+    text-align: center;
+  }
+
+  .case-field__note {
+    max-inline-size: 30rem;
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+    color: var(--fg-muted);
+  }
+
+  .case-field__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem 1.5rem;
+  }
+
+  .case-field__label {
+    font-weight: 600;
+    color: var(--fg-strong);
+  }
+
+  .case-field__logos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .case-field__logos img {
+    block-size: 2.4rem;
+    inline-size: auto;
+  }
+
+  .case-field__name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--fg-strong);
+  }
 
   .case-crumb {
     display: flex;
@@ -2585,9 +3872,9 @@
   }
 }
 
-/* ODAK GECISI — Emlak CRM Pro bandının imza hareketi. Bkz.
-   `.home-case-split__stream .home-case-frame > img` ve docs/design-system.md
-   §12. Eylül 2026: eskiden dört karenin YALNIZCA üçü (destek şeridi) bu
+/* ODAK GECISI — Emlak CRM Pro karelerinin imza hareketi (Ekim 2026'dan
+   beri yalnızca vaka sayfasının modül kareleri; anasayfa bant 3 kaldırıldı).
+   Bkz. `.case-module .case-shot__stack` ve docs/design-system.md §12. Eylül 2026: eskiden dört karenin YALNIZCA üçü (destek şeridi) bu
    sürekli geçişi kullanıyordu; açılış karesi ayrı, tek seferlik bir
    `case-aperture` açılışı alıyordu (sabit sol blok İÇİNDEYDİ, pin'lenip
    duruyordu). Açılış karesi şeride taşınınca (page.tsx bant 3 yorumu)
@@ -2630,22 +3917,6 @@
     clip-path: inset(0 0 0 0);
     transform: scale(0.985);
     opacity: 0.45;
-  }
-}
-
-/* Yetenek indeksinin satır satır yanışı — bkz. gated bloktaki
-   `.home-case-index li` kuralı, docs/design-system.md §12. Yalnızca
-   OPAKLIK animasyonlu: `.home-case-index__num`ün sabit amber rengi ve
-   etiketin sabit `fg-on-ink` rengi (taban kuralda) aynen kalıyor, li'nin
-   opaklığı ikisini birden dimliyor/parlatıyor — ikinci bir renk geçişi
-   gerekmiyor. */
-@keyframes case-index-row {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
   }
 }
 
@@ -2692,87 +3963,16 @@
       animation-range: cover var(--w-from) cover var(--w-to);
     }
 
-    /* ---- Emlak CRM Pro: odak geçişi + yetenek indeksi -----------------
-       Animasyon ÇERÇEVEYE (.home-case-frame) değil İÇİNDEKİ img'e
-       uygulanıyor: paspartanın (gri kenarlık) her zaman tam ve durağan
-       durması gerekiyor — ServiceImage'in "çerçeve her zaman görünür,
-       yalnızca içerik açılır" disipliniyle aynı ayrım. Frame'e uygulansaydı
-       transform kenarlığı da ölçeklerdi.
-
-       Dört kare de aynı jesti paylaşıyor (Eylül 2026'dan önce açılış karesi
-       ayrı bir tek-seferlik `case-aperture` alıyordu, bkz. yukarıdaki
-       keyframe yorumu). Menzil `entry` DEĞİL `cover 0% → 100%`: her kare
-       kendi viewport GEÇİŞİNİN tamamını ölçüyor, `nth-of-type` kademesi
-       gerekmiyor — kareler zaten `--spacing-section` arayla ayrı anlarda
-       geçiyor (SplitWords'teki OVERLAP mantığıyla aynı, art arda değil
-       üst üste binerek okunuyor). Eğri `linear` (site geneli scrub
-       disiplini) — yumuşaklık keyframe'in kendi platosundan geliyor. */
-    .home-case-split__stream .home-case-frame > img {
-      animation: case-focus linear both;
-      animation-timeline: view();
-      animation-range: cover 0% cover 100%;
-    }
-
     /* Vaka sayfasının modül kareleri aynı odak geçişini paylaşıyor
        (docs/design-system.md §13). ANONİM `view()` — named timeline yok,
        §12'nin "aynı ada eleman başına tek animasyon" kısıtı burada doğmuyor.
        Başlık bandındaki açılış karesi (`.case-lead`) BİLEREK DIŞARIDA:
        sayfa açıldığında zaten ekranda, menzilin ortasında yarı kapalı bir
        diyaframla karşılamasın. */
-    .case-module .home-case-frame > img {
+    .case-module .case-shot__stack {
       animation: case-focus linear both;
       animation-timeline: view();
       animation-range: cover 0% cover 100%;
-    }
-
-    /* Sol bloğun yetenek indeksi ↔ sağ şeridin dört karesi: saf CSS
-       scroll-spy, JS yok. Her figür kendi `--case-shot-N` view-timeline'ını
-       ADLANDIRIYOR (`view-timeline`, bir animasyon DEĞİL — img'in kendi
-       anonim `view()`'iyle çakışmaz, bkz. yukarıdaki case-focus); ilgili
-       indeks satırı o adı `animation-timeline` ile OKUYOR. `timeline-scope`
-       adları `.home-case-split` köküne açık ediyor, aksi halde figürler
-       indeksin atası olmadığı için isimler görünmezdi (§12'nin bilinen
-       kısıtı: aynı adlı named timeline'a bağlı animasyon ELEMAN başına
-       birdir — burada her isme yalnızca BİR figür kaynak, BİR satır tüketici
-       bağlanıyor, çakışma yok). */
-    .home-case-split {
-      timeline-scope: --case-shot-1, --case-shot-2, --case-shot-3,
-        --case-shot-4;
-    }
-
-    .home-case-split__stream figure:nth-of-type(1) {
-      view-timeline: --case-shot-1 block;
-    }
-    .home-case-split__stream figure:nth-of-type(2) {
-      view-timeline: --case-shot-2 block;
-    }
-    .home-case-split__stream figure:nth-of-type(3) {
-      view-timeline: --case-shot-3 block;
-    }
-    .home-case-split__stream figure:nth-of-type(4) {
-      view-timeline: --case-shot-4 block;
-    }
-
-    /* Satır kendi karesinin okuma bölgesinden (menzilin ortası) geçerken
-       soluktan tam opaklığa çıkıyor — numara `currentColor` ile `--num`u da
-       birlikte taşıyor, ikinci bir animasyon gerekmiyor. Menzil
-       `case-focus`'un platosuyla (%38–%72) örtüşüyor: satır, kendi karesi
-       tam odaktayken yanıyor. */
-    .home-case-index li {
-      animation: case-index-row linear both;
-      animation-range: cover 20% cover 80%;
-    }
-    .home-case-index li:nth-of-type(1) {
-      animation-timeline: --case-shot-1;
-    }
-    .home-case-index li:nth-of-type(2) {
-      animation-timeline: --case-shot-2;
-    }
-    .home-case-index li:nth-of-type(3) {
-      animation-timeline: --case-shot-3;
-    }
-    .home-case-index li:nth-of-type(4) {
-      animation-timeline: --case-shot-4;
     }
 
     /* ---- /hizmetler yatay ray ------------------------------------
@@ -2853,10 +4053,7 @@
            geçerse çarpanı büyütün. */
         --rail-title-fs: clamp(1.75rem, 2.6vw, 2.5rem);
         --rail-head-w: calc(var(--rail-title-fs) * 8.2);
-        --rail-edge: max(
-          var(--spacing-gutter),
-          (100vw - var(--container-wide)) / 2
-        );
+        --rail-edge: var(--spacing-gutter);
         --rail-hide-x: calc(
           100vw - 2 * var(--rail-edge) - var(--rail-head-w)
         );
@@ -2967,7 +4164,7 @@
           minmax(0, 1fr)
           minmax(0, 1.05fr);
         gap: clamp(2rem, 3vw, 4rem);
-        max-inline-size: var(--container-wide);
+        max-inline-size: none;
         align-items: start;
       }
 
@@ -3206,256 +4403,6 @@
       }
     }
 
-    /* ---- Portfolyo bandı — yatay pinli ray ------------------------
-       `.home-rail-*`in KOPYASI DEĞİL kardeşi, aynı üç koşul altında
-       (destek + no-preference + min-width) kurulduğu için burada, ikinci
-       bir @supports/@media sarmalayıcısı açılmıyor. Farkları:
-
-       - Paneller tavandan tabana ŞERİT değil, viewport'un dikey ortasında
-         duran dar bir RAF — "bir raftan geçiş" jesti.
-       - Başlık ray'in DIŞINDA ve dikey kalıyor, iki fazlı bir "geliş"i
-         yok — bant zaten sabit bir başlıkla açılıyor.
-       - Track'in kendisi İKİ FAZLI: önce `--portfolio-hold-share` kadar
-         DURAĞAN kalıyor (ilk sıra tam kadrajda, eşit üst hizada bir an
-         duruyor — kullanıcının "ilk sıra kesilmeden tam görünsün"
-         isteğinin karşılığı), sonra sağdan sola akıyor. `.home-rail`daki
-         "geliş" başlığın gelişiydi; burada "duruş" karelerin kendisinin
-         bir an sabit kalması. */
-    @media (min-width: 861px) {
-      .home-portfolio-rail {
-        block-size: calc(
-          100svh +
-            var(--home-portfolio-units) * var(--portfolio-travel) /
-            (1 - var(--portfolio-hold-share))
-        );
-        view-timeline: --home-portfolio block;
-      }
-
-      /* Şerit ekranın dikey ORTASINDA duruyor — nav'ın altında kalan
-         alanın ortası. Viewport'tan kısa bir şerit olduğu için "tam
-         kadraj, kesilmeden" burada geometrinin kendisinden geliyor,
-         ayrı bir kırpma kuralı gerekmiyor. */
-      .home-portfolio-viewport {
-        position: sticky;
-        inset-block-start: calc(
-          var(--nav-h) +
-            (100svh - var(--nav-h) - var(--portfolio-strip-h)) / 2
-        );
-        block-size: var(--portfolio-strip-h);
-        overflow: clip;
-        display: block;
-      }
-
-      /* Taban gridi geçersiz kılıyor: track artık tek sıralı bir ŞERİT.
-         `align-items: start` EŞİT ÜST HİZA'nın kaynağı — taban gridin
-         `:nth-child(3n+2)` ofseti burada hiç yok, ilk sıra (yani tüm
-         şerit) aynı hizadan başlıyor. Sol dolgu (`--spacing-gutter`)
-         ilk karenin sayfa kenar boşluğuyla hizalanmasını sağlıyor —
-         .home-rail-slide'daki aynı düzeltme. */
-      .home-portfolio-track {
-        display: flex;
-        grid-template-columns: none;
-        margin-inline: 0;
-        max-inline-size: none;
-        padding-inline-start: var(--spacing-gutter);
-        align-items: start;
-        gap: var(--portfolio-gap);
-        animation: home-portfolio-slide linear both;
-        animation-timeline: --home-portfolio;
-        animation-range: contain calc(var(--portfolio-hold-share) * 100%)
-          contain 100%;
-      }
-
-      .home-portfolio-track > figure {
-        inline-size: var(--portfolio-tile-w);
-        flex: 0 0 var(--portfolio-tile-w);
-      }
-
-      /* Geniş iş (Wellness Antalya) yatay rayda GİZLİ (Eylül 2026,
-         kullanıcı kararı). Görselin kendisi — beyaz kâğıtlar, açık gri
-         zemin — kenardan kenara doygun afişlerin yanında eşit yoğunluğa
-         CSS ile getirilemiyor: daha fazla yakınlaştırma kenardaki
-         kartvizitleri keser, daha fazla renk düzeltmesi müşteri işini
-         değiştirir. Veriden SİLİNMEDİ: taban ızgara (mobil + reduced-
-         motion) 8 işle kalıyor, orada 2 sütunlu / 3×3 düzen tam oturuyor
-         ve kare sorunsuz. Ray birimi page.tsx'te geniş işi saymıyor. */
-      .home-portfolio-item--wide {
-        display: none;
-      }
-
-      /* Kademeli giriş (taban gridin [data-enter-stagger]'ı) burada
-         KAPALI: her tile'ın kendi anonim `view()`'i pin'li ve yatay
-         kayan bir kabın içinde anlamsız — bandın tek hareket sahibi
-         track'in kendi kaymasıdır. Named `--home-portfolio` timeline'a
-         bağlı animasyon TEK BAŞINA track'te duruyor (§12'nin "aynı adlı
-         named view-timeline'a bağlı animasyon elemanı başına birdir"
-         kuralı) — bu satır ayrı bir elemanı (tile'ları) sıfırlıyor,
-         çakışma yok. */
-      .home-portfolio-track > * {
-        animation: none;
-      }
-
-      /* ---- İki efekt (Eylül 2026, kullanıcı isteği: "daha çekici ve
-         düzenli, efekt kullanarak") --------------------------------
-
-         1) VARIŞ PERDESİ — kareler pin'lenmeden hemen önce, sahne yukarı
-         doğru sürüklenirken alttan açılıyor. `figure`ın KENDİ anonim
-         `view()`'i kullanılıyor, `.home-portfolio-track > *`ın sıfırladığı
-         `data-enter-stagger` deseninin AYNISI değil: o `cover`  fazına
-         kadar uzanıyordu (tile pin'lendikten sonra asla tamamlanmayan bir
-         geçiş, bu yüzden kapatıldı) — bu kural yalnızca `entry` fazını
-         kullanıyor, tıpkı bant 3'ün eski `case-aperture`'ı gibi: TEK
-         SEFERLİK, pin'den ÖNCE biten bir açılış (`both` ile pin boyunca
-         açık kalıyor). `--enter-i` (page.tsx'te zaten satır içi yazılı,
-         data-enter-stagger'la PAYLAŞILAN aynı değişken) kademe veriyor —
-         tile'lar aynı anda ekrana girse de (tek satır, aynı y) menzil
-         ofseti her birini farklı bir ANDA açıyor, dalga gibi okunuyor.
-
-         2) PENCERE PARALLAX'I — img, track'in yatay kaymasının TERSİ
-         yönde hafifçe süzülüyor (klasik derinlik parallax'ı). Bu, figure
-         DEĞİL img'in üstünde ve NAMED `--home-portfolio` timeline'ına
-         bağlı (own view() DEĞİL: img'in kendi view()'i de pin'de
-         donardı, oysa parallax'ın TÜM kayma boyunca sürmesi gerekiyor).
-         Track zaten bu isme bağlı `home-portfolio-slide`'ı taşıyor;
-         burada farklı bir ELEMAN (img) kendi TEK animasyonuyla aynı ismi
-         okuyor — §12'nin kısıtı yalnızca AYNI elemanda iki animasyonu
-         yasaklıyor, bu ihlal etmiyor. Ölçek `--pan-scale` (page.tsx'te satır içi, normal
-         karelerde 1.08, Wellness'te 1.22 — `.home-portfolio-media--boost`
-         zaten büyütüyor, parallax'ın kendisi onun üstüne biniyor)
-         img'i çerçeveden taşıracak kadar büyütüyor ki panda kenar
-         boşluğu görünmesin. */
-      .home-portfolio-track > figure .home-portfolio-frame {
-        animation: portfolio-curtain linear both;
-        animation-timeline: view();
-        animation-range: entry calc(4% + var(--enter-i, 0) * 4%)
-          entry calc(58% + var(--enter-i, 0) * 4%);
-      }
-
-      .home-portfolio-track > figure .home-portfolio-frame > img {
-        animation: portfolio-pan linear both;
-        animation-timeline: --home-portfolio;
-        animation-range: contain calc(var(--portfolio-hold-share) * 100%)
-          contain 100%;
-      }
-
-      /* ---- Sabit başlık: başlık + ray TEK SAHNEDE -------------------
-         Sorun: başlık rayın KARDEŞİ ve normal akıştaydı, ray daha akmaya
-         başlamadan yukarı kaçıyordu — bandın ne gösterdiğini söyleyen
-         cümle, gösterme başlar başlamaz kayboluyordu.
-
-         NEDEN İKİ AYRI STICKY KARDEŞ DEĞİL: başlık `nav + 1rem`e,
-         pencere de `nav + başlıkYüksekliği + boşluk`a yapışmalıydı —
-         başlığın yüksekliği genişlikle değişen bir ölçü, ölçmeden
-         yazılamaz, JS gerekirdi. Bunun yerine İKİSİNİ DE KAPSAYAN TEK
-         sticky kutu: sahne `100svh - nav` yüksekliğinde pinleniyor,
-         içindeki flex sütun başlık ve şeridi birlikte dikey ortalıyor.
-         Ölçüm yok, ek motor yok — bant 3'ün `.home-case-split__anchor`ı
-         ile aynı disiplin.
-
-         RAYIN KENDİSİNE DOKUNULMADI: `.home-portfolio-rail`in
-         `block-size` hesabı, `view-timeline`ı, `--portfolio-hold-share`lı
-         iki fazlı `animation-range`i ve `home-portfolio-slide`
-         keyframe'i aynen duruyor. Pencerenin GENİŞLİĞİ de değişmiyor,
-         yani slide'ın `100vw - gutter` matematiği ve "ilk kadraj eşit üst
-         hizada tam görünür durur, sonra sağdan sola akar" davranışı
-         korunuyor. Değişen tek şey pencerenin KİM tarafından
-         pinlendiği: artık kendisi değil, sahne.
-
-         YÜKSEKLİK KAPISI TARAYICIDA ÖLÇÜLDÜ, KOMŞU BANTTAN
-         KOPYALANMADI — `.home-case-split__anchor`ın kapısının başına
-         gelen hata tam buydu.
-
-         Eylül 2026: başlık+lede DİKEY yığından TEK SATIRA geçti (kullanıcı
-         geri bildirimi — kareler küçük kalıyordu, bkz. `.home-portfolio-head`
-         yorumu aşağıda); satır yüksekliği ölçüldü 212–219px (1440–1920
-         genişliklerde; eskiydi 298px'lik dikey yığın). Kapı yine de 800px'te
-         bırakıldı (1366×768 gibi kısa ekranlar zaten bu kapının hedefiydi,
-         düşürmek marjinal bir kazanç); asıl kazanım kareye giden pay: aynı
-         800px kapısında şerit artık ~70px daha fazla dikey bütçe alıyor
-         (viewportH 366px → 438px, bkz. `--portfolio-tile-w`). */
-      @media (min-height: 800px) {
-        /* Kare genişliği büyüdü: 19vw/21rem tavanından 24vw/28rem'e
-           (ölçüldü, 1440px'te tile-w 317px → 346px, +%9 — 24vw tavana
-           dokunmadan clamp orta değerinden geliyor). Kazanç doğrudan
-           başlığın tek satıra inmesinden (yukarıdaki not) — ikinci bir
-           küçültme gerekmedi, üçü de (kare, --portfolio-strip-h,
-           home-portfolio-slide'ın yolu) aynı değişkenden okuduğu için
-           birlikte büyüyor. */
-        .home-portfolio-rail {
-          --portfolio-tile-w: clamp(14rem, 24vw, 28rem);
-          /* `--portfolio-strip-h` BURADA TEKRAR YAZILMAK ZORUNDA, ve bu
-             bir kopya değil: bir custom property'nin içindeki `var()`
-             ÖZELLİĞİN BEYAN EDİLDİĞİ elemanda çözülür. `:root`taki
-             `--portfolio-strip-h` orada `:root`un `--portfolio-tile-w`si
-             (22vw) ile hesaplanmış bir uzunluğa dönüşüyor ve aşağıya o
-             hâliyle kalıtılıyor — yukarıdaki daraltma ona hiç
-             ulaşmıyordu. Aynı formül burada yeniden beyan edilince kendi
-             elemanının tile-w'siyle çözülüyor. */
-          --portfolio-strip-h: calc(var(--portfolio-tile-w) + 5.75rem);
-        }
-
-        .home-portfolio-stage {
-          position: sticky;
-          inset-block-start: var(--nav-h);
-          block-size: calc(100svh - var(--nav-h));
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          gap: 2rem;
-        }
-
-        /* Başlık artık DİKEY YIĞIN değil TEK SATIR: solda işaret+başlık
-           bloğu, sağda lede — alt kenardan hizalı (`flex-end`), tıpkı
-           bant 3'ün künyeleri gibi metnin "tabanı" hizalanıyor. Eskiden
-           üçü (işaret, başlık, lede) `> * + *` ile alt alta dizilip 298px
-           yer kaplıyordu; kullanıcı geri bildirimi kareleri küçük buldu —
-           gerçek sebep buydu: dar bir şeride sıkışan başlık, kareye
-           ayrılabilecek dikey bütçenin çoğunu yiyordu. Tek satırda blok
-           ~146px'e iniyor, kazanılan ~150px doğrudan `--portfolio-tile-w`ya
-           gidiyor (yukarıda).
-
-           `inline-size: 100%` GEREKLİ: `margin-inline: auto` (page.tsx'teki
-           `mx-auto`) bir flex öğesinde çapraz eksende stretch'i iptal eder
-           ve blok fit-content'e büzülürdü. `flex-wrap: wrap` yalnızca
-           GÜVENCE: 861–1000px gibi dar bir aralıkta lede sığmazsa alta
-           döner, kırılmaz. */
-        .home-portfolio-head {
-          inline-size: 100%;
-          display: flex;
-          flex-wrap: wrap;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 1.5rem 2.5rem;
-        }
-
-        /* Lede satırın SAĞ ucunda duruyor, kendi genişliğine büzülüyor
-           (`flex: 0 1 auto`) — `justify-content: space-between` zaten
-           başlık bloğundan ayırıyor, `flex: 1` olsaydı gerekmediği kadar
-           gerilirdi. */
-        .home-portfolio-head__lede {
-          flex: 0 1 26rem;
-          margin-block-start: 0;
-        }
-
-        /* Punto bir kademe iniyor — başlık artık sınırlı bir dikey bütçe
-           paylaşıyor. `.home-case-split__title`'daki aynı gerekçe. */
-        .home-portfolio-title {
-          font-size: var(--text-display-xl);
-          line-height: var(--text-display-xl--line-height);
-          letter-spacing: var(--text-display-xl--letter-spacing);
-          font-weight: var(--text-display-xl--font-weight);
-        }
-
-        /* Pencere artık kendi başına pinlenmiyor — sahne pinleniyor.
-           Aralık da flex `gap`e geçti. */
-        .home-portfolio-viewport {
-          position: static;
-          inset-block-start: auto;
-          margin-block-start: 0;
-          flex: 0 0 auto;
-        }
-      }
-    }
   }
 }
 
@@ -3666,60 +4613,171 @@
   }
 }
 
-/* Portfolyo rayının yolu: `home-rail-slide`'ın aynı hesabı (track
-   genişliği eksi görünür pencere) ama kendi birimleriyle — sabit panel
-   genişliği yerine `--home-portfolio-units` (geniş iş dahil toplam birim
-   sayısı) × kare genişliği + aralar, artı sol kenar boşluğu, eksi ekranın
-   sağ payı. `from` yok: timeline'ın ilk `--portfolio-hold-share`'i zaten
-   `animation-range`de (contain 0%'a denk gelen `to` karesinin ÖNCESİ)
-   `fill-mode: both` sayesinde `from` (transform yok) karesinde donuk
-   kalıyor — ek bir bekleme kilidi gerekmiyor. */
-@keyframes home-portfolio-slide {
-  to {
-    transform: translate3d(
-      calc(
-        -1 *
-          (
-            var(--home-portfolio-units) * var(--portfolio-tile-w) +
-              (var(--home-portfolio-units) - 1) * var(--portfolio-gap) +
-              var(--spacing-gutter) - (100vw - var(--spacing-gutter))
-          )
-      ),
-      0,
-      0
-    );
+@keyframes case-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.5rem transparent;
   }
 }
 
-/* Varış perdesi — bkz. `.home-portfolio-track > figure .home-portfolio-frame`
-   yorumu. `.home-case-frame`'in kalın gri paspartası gibi AYRI bir katman
-   yok burada (portfolyo tile'ı yalnızca 1px hairline), bu yüzden bant 3'ün
-   "çerçeve durağan, yalnızca img açılır" ayrımı gerekmiyor — clip-path
-   doğrudan `.home-portfolio-frame`'e uygulanıyor, KENARLIK DAHİL tüm tile
-   alttan yukarı açılıyor: "kare kendi kutusundan doğuyor" okuması, tek
-   katmanlı ve daha basit. */
-@keyframes portfolio-curtain {
-  from {
-    clip-path: inset(0 0 100% 0);
-  }
-  to {
-    clip-path: inset(0 0 0% 0);
+/* Footer — saat iki nokta üst üstesinin yanıp sönmesi. */
+@keyframes footer-colon {
+  50% {
+    opacity: 0.2;
   }
 }
 
-/* Pencere parallax'ı — bkz. img'e uygulanan kural yukarıda. Yön kasıtlı:
-   img rayın kaymasına göre TERS başlayıp aynı yöne biter (+ %X → − %X),
-   yani görsel kendi çerçevesi içinde track'in hareketine bir miktar
-   direniyormuş gibi okunuyor — klasik arka/ön plan parallax'ının tek
-   katmanlık, saf CSS karşılığı. `--pan-scale` (page.tsx'te satır içi)
-   img'i çerçeveden taşıracak kadar büyütüyor ki bu yatay kaymada kenar
-   boşluğu hiç görünmesin. */
-@keyframes portfolio-pan {
+/* Footer içeriği girerken yukarıdan süzülüyor (Hayler parallax-footer). */
+@keyframes footer-parallax {
   from {
-    transform: scale(var(--pan-scale, 1.08)) translateX(3.5%);
+    transform: translateY(-18%);
   }
   to {
-    transform: scale(var(--pan-scale, 1.08)) translateX(-3.5%);
+    transform: none;
+  }
+}
+
+/* Slogan harfi bir satır yukarı yuvarlanıyor (Hayler has-slide). */
+@keyframes footer-roll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes footer-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Zaman çizgileri hareket ETMEYEN atadan okunuyor (footer'ın kendisi,
+       harf kutusu) — kayan elemanın kendi view()'i kendi hareketini
+       ölçerdi. Aynı ad (`--roll`) her harfte en yakın kutuya çözülüyor. */
+    .site-footer {
+      view-timeline: --footer block;
+    }
+
+    .site-footer__inner {
+      animation: footer-parallax linear both;
+      animation-timeline: --footer;
+      animation-range: entry 0% entry 100%;
+    }
+
+    .roll-char {
+      view-timeline: --roll block;
+    }
+
+    .roll-char__inner {
+      animation: footer-roll var(--ease-out-quart) both;
+      animation-timeline: --roll;
+      animation-range: cover calc(8% + var(--c, 0) * 1.2%)
+        cover calc(30% + var(--c, 0) * 1.2%);
+    }
+
+    .site-footer__line {
+      animation: footer-line linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 35%;
+    }
+  }
+}
+
+/* /portfolyo kartları — bkz. `.pf-card` ve gated bloktaki `.pf-stack`. */
+@keyframes pf-card-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Detay: kategorinin işleri ekranın sağ alt köşesinden sırayla girer
+   (gecikme `--i`'den), kapanınca aynı köşeye çekilir. */
+@keyframes pf-work-in {
+  from {
+    transform: translate(55vw, 70vh) rotate(5deg) scale(0.72);
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes pf-work-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translate(30vw, 45vh) rotate(3deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes pf-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Üst üste binme — yalnızca destek + no-preference + geniş VE yeterince
+   uzun ekranda (kartın içeriği 640px'in altında sığmıyor). Bölüm
+   `--pf-units × 100svh`; sahne sticky ve `overflow: clip` (scroll kabı
+   DEĞİL — named timeline'ın aboneliği bozulmasın). Her kart önce bir duruş
+   kadar yerinde kalıyor, sonra bir sonraki kart alttan çıkıyor; menziller
+   satır içi `--rise-from/--rise-to` (stackGeometry). İlk kart sabit. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) and (min-width: 861px) and (min-height: 640px) {
+    /* Yükseklik geometriden (PortfolioStack `stackGeometry`): 100svh +
+       duruşlar + geçişler, birim başına 100svh. */
+    .pf-stack {
+      block-size: calc(var(--pf-units) * 100svh + var(--seam-h));
+      view-timeline: --pf-stack block;
+    }
+
+    .pf-stack__sticky {
+      position: sticky;
+      inset-block-start: 0;
+      block-size: 100svh;
+      overflow: clip;
+    }
+
+    .pf-stack__grid {
+      position: relative;
+      block-size: 100%;
+    }
+
+    .pf-card {
+      position: absolute;
+      inset: 0;
+      min-block-size: 0;
+    }
+
+    .pf-card + .pf-card {
+      animation: pf-card-rise linear both;
+      animation-timeline: --pf-stack;
+      animation-range: contain calc(var(--rise-from) * 1%)
+        contain calc(var(--rise-to) * 1%);
+    }
   }
 }
 
@@ -3732,14 +4790,29 @@
     --hero-travel: 780vh;
     --hero-phase-icon: 2rem;
     --hero-phase-rule: 2.5rem;
-    --nav-h: 3.75rem;
+    /* Mobil: 60px → 76px. İçerik logonun hemen altına değip okunmayı
+       bozuyordu; header'ın altındaki sis da mobilde daha uzun (aşağıda). */
+    --nav-h: 4.75rem;
   }
 
   /* Nav bu eşiğin altında drawer'a düşer. Eşik, useHeroScroll'daki
      isMobile() ile bilinçli olarak aynı. */
-  .nav-links,
+  .nav-pill,
   .site-header .btn {
     display: none;
+  }
+
+  /* Logo + hamburger kalıyor; ortadaki sütun boşaldığı için ızgara iki
+     uca yaslanıyor. */
+  .site-header-logo {
+    height: 2.4rem;
+  }
+
+  /* Mobilde gradyanın dolu kısmı uzun: içerik header'ın altına girerken
+     logonun arkasında düz zemin kalıyor, sis ancak ondan sonra başlıyor. */
+  .site-header-gradient {
+    height: calc(var(--nav-h) + 2.25rem);
+    mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
   }
 
   .nav-toggle {
@@ -3881,41 +4954,9 @@
     font-weight: var(--text-display-2xl--font-weight);
   }
 
-  /* Anasayfa. Portfolyo iki sütuna düşer, geniş iş yine `span 2` yani tam
-     satır. Hizmet satırında ikon üstte, metin altta — 360px'te yan yana iki
-     sütun başlığı kırpıyordu. Yatay ray burada hiç kurulmuyor (gated blok
-     `min-width: 861px`'in arkasında) — bant 2'nin mobilde bilinçli olarak
-     carousel'e geçmemesiyle aynı gerekçe: gerçek yatay deneyim başka yerde
-     veriliyor, aynı jest telefonda ikinci kez kurulmuyor. Taban gridin
-     `3n+2` editoryal ofseti zaten kaldırıldı (yukarıda) — burada sıfırlanacak
-     bir şey kalmadı. */
-  .home-portfolio-track {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-  }
-
   .home-service-row {
     grid-template-columns: 1fr;
     gap: 1rem;
-  }
-
-  /* Emlak CRM Pro tek sütuna düşer ve sol blok SABİTLENMEZ: dar ekranda
-     sticky bir blok viewport'un büyük bir bölümünü kalıcı işgal ederdi.
-     `.home-case-split__anchor`in sticky'si zaten `min-width: 861px` +
-     `min-height: 800px` kapısının arkasında (yukarıda) — burada ayrıca
-     `static`e döndürecek bir şey kalmadı, sessizce taban hâlde kalıyor. */
-  .home-case-split {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-section-tight);
-  }
-
-  /* Yetenek indeksi gizleniyor: sol blok sabitlenmediği (yukarıdaki not)
-     için "kare okunurken satır yanıyor" okuması burada anlamsız — indeks
-     sabit kalmayan bir metnin altında, ekranda hiç kalıcı durmuyor. Aynı
-     bilgi zaten her karenin `figcaption`'ında görünür durumda; ikinci bir
-     listeye gerek yok. */
-  .home-case-index {
-    display: none;
   }
 
   .home-statement {
@@ -3924,38 +4965,28 @@
 
   /* Dikiş şeridi inceliyor: 4rem, telefon yüksekliğinin belirgin bir
      dilimi ve önceki bandın alt dolgusunu yiyordu. */
-  .seam {
+  .seam,
+  .pf-stack {
     --seam-h: 2rem;
   }
 
-  /* ---- /hizmetler: native snap carousel -------------------------
-     Masaüstündeki pinned ray burada YOK. Yatay fikir korunuyor ama
-     mekanizma cihaza ait: gerçek yatay scroll, gerçek momentum,
-     hijack yok. Gerekçe: docs/design-system.md §15.
-
-     `prefers-reduced-motion` bunu KAPATMIYOR ve kapatmamalı — bu bir
-     animasyon değil, bir düzen. Kullanıcının parmağı neyi ne kadar
-     hareket ettireceğine kendisi karar veriyor; snap yalnızca
-     bıraktığı yeri hizalıyor. */
+  /* ---- /hizmetler: DİKEY liste (Ekim 2026) -------------------------
+     Eskiden burada yatay snap carousel vardı; kullanıcı isteğiyle mobilde
+     hizmetler alt alta, normal dikey scroll'la okunuyor. Paneller arasında
+     hairline; nokta göstergesi gereksiz (gizli). */
   .rail-track {
-    flex-direction: row;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    /* Kenar boşluğu track'te, panelde değil: panelin kendi dolgusu
-       snap hizasını kaydırırdı. */
-    scroll-padding-inline: var(--spacing-gutter);
-    -webkit-overflow-scrolling: touch;
-    /* Scrollbar gizlenmiyor — yatay kaydırılabilir olduğunun tek
-       görsel ipucu o ve altındaki nokta göstergesi. */
+    flex-direction: column;
+    overflow: visible;
   }
 
   .rail-panel {
-    inline-size: 86vw;
-    flex: 0 0 86vw;
-    scroll-snap-align: start;
+    inline-size: auto;
+    flex: 0 0 auto;
     padding-block: var(--spacing-section-tight);
-    /* %86 genişlik bilinçli: bir sonraki panelin kenarı ekranda kalır,
-       yani "sağda devamı var" bilgisi düzenin kendisinden okunur. */
+  }
+
+  .rail-panel + .rail-panel {
+    border-block-start: 1px solid var(--hairline);
   }
 
   .rail-panel__grid {
@@ -3970,38 +5001,14 @@
   }
 
   .rail-dots {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-    margin-block-start: 1.5rem;
-  }
-
-  .rail-dots span {
-    inline-size: 0.375rem;
-    block-size: 0.375rem;
-    background-color: var(--hairline);
+    display: none;
   }
 
   /* Pasparta inceliyor: telefon genişliğinde 12px kenarlık görüntünün
      kendisinden yer çalıyor, üstelik dar ekranda bant zaten kenar boşluğuyla
-     (--spacing-gutter) çevrili — ayrışma için o kadarına gerek kalmıyor.
-     `.home-case-split` zaten ≤860px'te tek sütuna düşüyor (yukarıda), destek
-     kareleri açılış karesiyle aynı genişlikte oluyor — bu yüzden ikisi de
-     aynı değeri alsın diye tek, koşulsuz bir seçici yeterli. */
+     (--spacing-gutter) çevrili — ayrışma için o kadarına gerek kalmıyor. */
   .home-case-frame {
     --case-mat: 0.375rem;
-  }
-
-  /* /portfolyo: öne çıkan iş tek sütun (metin üstte), grid anasayfa bant
-     4'ün mobil tabanı gibi iki sütun — geniş iş tam satır. */
-  .portfolio-feature {
-    grid-template-columns: 1fr;
-  }
-
-  .portfolio-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-    row-gap: 1.75rem;
   }
 
   /* Vaka sayfası: paragraflar alt alta; künye/sonuç etiketi değerin
@@ -4039,7 +5046,7 @@
     grid-template-rows: auto;
     /* Logo sütunu SABİT genişlik: `auto` olsaydı her tile logosunun kendi
        genişliğini alır ve üç etiket farklı noktalarda başlardı. */
-    grid-template-columns: 4.5rem 1fr;
+    grid-template-columns: 6.5rem 1fr;
     justify-items: start;
     align-items: center;
     aspect-ratio: auto;
@@ -4048,7 +5055,7 @@
   }
 
   .home-partner-tile img {
-    max-block-size: 3rem;
+    max-block-size: 3.25rem;
     justify-self: center;
   }
 
@@ -4190,12 +5197,11 @@
          Hotspot çemberin merkezi (16 16), ok imleçlerinin ucu değil. */
       .hero-stage,
       .home-rail,
-      .home-portfolio-rail,
       .rail {
         cursor: url("/cursors/scroll-down.svg") 16 16, auto;
       }
 
-      html[data-scroll-dir="up"] :is(.hero-stage, .home-rail, .home-portfolio-rail, .rail) {
+      html[data-scroll-dir="up"] :is(.hero-stage, .home-rail, .rail) {
         cursor: url("/cursors/scroll-up.svg") 16 16, auto;
       }
 
@@ -4203,12 +5209,32 @@
       .hero-stage button,
       .home-rail a,
       .home-rail button,
-      .home-portfolio-rail a,
-      .home-portfolio-rail button,
       .rail a,
       .rail button {
         cursor: url("/cursors/pointer.svg") 3 2, pointer;
       }
+    }
+  }
+
+  /* HAYLER TOPU (Ekim 2026) — CursorBall.tsx mount olunca `html`e
+     `data-cursor-ball="on"` yazar; native ok ve pointer o andan itibaren
+     gizlenir, yerini izleyen amber kare alır. Bayrak yoksa (hidrasyon
+     öncesi, JS kapalı) yukarıdaki SVG imleçler geçerli.
+
+     Scroll varyantına (`.hero-stage` vb., `url(scroll-*.svg)`) DOKUNULMUYOR:
+     `html` kuralı yalnızca kökü hedefliyor, o kapların kendi `cursor`
+     beyanı kalıtımı eziyor ve top orada kendiliğinden gizleniyor (top,
+     altındaki elemanın hesaplanmış imleci `none` değilse görünmez). İçlerindeki
+     link/butonlar ise (0,1,2) özgüllükle `.hero-stage a`'yı (0,1,1) eziyor —
+     orada da topun link hâli görünür. */
+  @media (hover: hover) and (pointer: fine) {
+    html[data-cursor-ball="on"],
+    html[data-cursor-ball="on"] :is(a, button, [role="button"], summary, label[for], select) {
+      cursor: none;
+    }
+
+    html[data-cursor-ball="on"] :disabled {
+      cursor: not-allowed;
     }
   }
 
@@ -4226,7 +5252,6 @@
     select,
     .hero-stage,
     .home-rail,
-    .home-portfolio-rail,
     .rail {
       cursor: auto;
     }

@@ -186,44 +186,45 @@ kurulumu var:
   **tek kaynağı**. Masaüstü menü ve mobil drawer aynı diziyi okur; link
   listesi iki yerde kopyalanmaz. `isActive()` prefix eşleşmesiyle alt
   rotaları da üst linkte aktif işaretler.
-- **`useScrolledPastSentinel.ts`** — şeffaf → solid geçiş tetiği.
+- **`useHeaderTone.ts`** — header'ın altındaki bölümden ton + gradyan türetir (Ekim 2026; eski `useScrolledPastSentinel` kaldırıldı).
 - **`SkipLink.tsx`** — klavye kullanıcısının fixed header'ı atlayıp
   `#icerik`'e geçmesi için ilk durak.
 
-## Şeffaf → solid geçiş mekanizması
+## Header tonu — Hayler referansı (Ekim 2026)
 
-`SiteHeader` anasayfada (`pathname === "/"`) hero'nun ilk ekranı boyunca
-şeffaf başlar, `--nav-solid-after` (`100svh`, ≈ hero intro fazının bitişi)
-kadar scroll edildiğinde koyu/blur'lu (`backdrop-filter: blur(10px)`)
-zemine geçer.
+Header artık HİÇ solid zemine geçmiyor (eski sentinel + `data-solid`
+kaldırıldı). `useHeaderTone` header'ın orta çizgisinin altındaki elemana
+`elementsFromPoint` ile sorar:
 
-- Bu geçiş **`IntersectionObserver`** ile tetiklenir, `window` scroll
-  listener ile **değil**. Sebep: hero'nun kendi scroll motoru
-  (`useHeroScroll`) zaten window'a passive bir scroll listener ve kalıcı
-  bir `rAF` döngüsü bağlıyor; ikinci bir scroll listener eklemek yerine
-  `.nav-sentinel` (anasayfada `SiteHeader` tarafından render edilen,
-  `--nav-solid-after` yüksekliğinde akış-dışı bir kutu) gözlemleniyor.
-  Sentinel viewport'un üstünden tamamen çıktığında (`isIntersecting ===
-  false`) nav solid'e döner; geri scroll'da kendiliğinden şeffaflaşır.
-  **Tek belgelenmiş istisna:** `app/components/ScrollDirection.tsx`
-  (Eylül 2026, özel scroll imleci için — bkz. `docs/design-system.md` §7)
-  gerçekten üçüncü bir `window` scroll listener'ı ekliyor. Bunun burada
-  uyarılan maliyeti taşımamasının sebebi işin kendisi: `IntersectionObserver`
-  kullanılamıyor (yön için art arda iki `scrollY` okuması gerekiyor, kesişim
-  değil), ama dinleyici PASİF, rAF'la karede en çok bir kez çalışıyor ve
-  DOM'a yalnızca yön DEĞİŞTİĞİNDE (`dataset.scrollDir`) yazıyor — hero'nun
-  `tick()`'i gibi her karede iş yapan bir döngü değil. Yeni bir istisna
-  eklemeden önce bu üçünü karşılaştırın: hero'nunki sürekli veri okuyup DOM
-  yazıyor (zorunlu, per-frame scrub), nav'ınki hiç okumuyor (event tabanlı,
-  gözlemci), ScrollDirection'ınki nadiren yazıyor (event tabanlı, eşiğe
-  bağlı bayrak).
-- **Hero'nun kendi scroll state'ine (`useHeroScroll.ts`) hiç dokunmaz** —
-  eşik geçişinde yalnızca tek bir boolean state (`solid`) güncellenir, her
-  frame'de iş yapılmaz.
-- `/design-system` gibi **sentinel'i olmayan sayfalarda** (`enabled=false`,
-  yani `isHome === false`) nav baştan solid görünür — `useScrolledPastSentinel`
-  bu durumu `solid: !enabled || pastSentinel` ile türetir, gözlemci hiç
-  kurulmaz.
+- `.hero-stage` içi → `.hero-bg-wash`ın inline opaklığı (hero'nun motoru
+  yazar, burada yalnızca OKUNUR — hero koduna dokunulmadı). Hero kendi
+  rAF'ında yazdığı için okuma bir kare geride kalabilir: hero altındayken
+  150 ms'de bir yeniden bakılır, sonuç 5 kez üst üste aynıysa durur.
+- En yakın `[data-header-tone]` (ör. /portfolyo kartları), yoksa yüzey sınıfı
+  (`.surface-ink` koyu; `.surface-paper` / `.on-paper` / `.surface-accent`
+  açık).
+
+Sonuç: `data-tone` (beyaz ↔ koyu logo `/Logo_Beyaz.svg` / `/Logo.svg`
+çapraz geçişi, link/chip renkleri) ve `data-gradient` + `--header-grad`
+(bölümün zemin renginden şeffafa inen katman). Koyu hero'da gradyan kapalı,
+eski scrim çalışır. Linkler ortada yarı saydam/blur'lu kutuda, aktif sayfa
+ters renkli chip, hover'da chip alttan yuvarlanır.
+
+**Scroll dinleyicisi istisnaları artık üç:** ScrollDirection, useHeaderTone
+(pasif, rAF'lı, karede tek hit-test, state yalnızca değişimde) ve CursorBall
+(scroll'da yalnızca altındaki eleman değiştiyse yeniden sınıflandırma).
+
+## İmleç topu — `CursorBall.tsx` (Ekim 2026)
+
+Hayler'in "ball"u: native ok/pointer gizlenir, işaretçiyi izleyen 14px amber
+kare görünür (link üstünde yarı saydam daire + merkez noktası, galeride
+"SÜRÜKLE"). Bayrak `html[data-cursor-ball="on"]` yalnızca mount sonrası
+yazılır — öncesinde SVG imleçler geçerli. **Topun görünüp görünmeyeceğine
+CSS karar verir:** altındaki elemanın hesaplanmış `cursor`ı `none` değilse
+top gizlenir. Bu yüzden scroll imleci (hero/raylardaki çember içinde ok),
+`text`, `not-allowed` olduğu gibi kalır. Native imleci gizleyip topu da
+gizleyen bir durum YARATMAYIN (imleçsiz alan olur — logo bu yüzden link
+hâlinde).
 
 ## Katman ve konumlandırma
 
@@ -238,11 +239,8 @@ zemine geçer.
 
 ## Logo davranışı
 
-`.site-header-logo` her zaman görünür. Önceden şeffaf nav'da gizleniyordu
-(hero üst-ortada kendi büyük logosunu çiziyordu, iki logo aynı anda ekranda
-durmasın diye); hero'nun logo katmanı kaldırılıp faz 1 tipografik bir
-statement'a dönüşünce logonun tek yeri nav oldu. Şeffaf durumda okunurluğu
-`.site-header::before` scrim'i veriyor.
+`.site-header-logo` her zaman görünür; iki `<img>` üst üste, tona göre
+opaklıkla geçer. Hero'nun kendi logo katmanı yok.
 
 ## Mobil drawer davranışı (`MobileDrawer.tsx`)
 
@@ -324,37 +322,73 @@ Kısaca:
 - Koreografinin tamamı gated bloğun `min-width: 861px` dalında —
   `≤860px` ve `reduced-motion` fallback'leri değişmedi.
 
+# Footer — `components/footer/SiteFooter.tsx` (Ekim 2026)
+
+Tüm sayfalarda (layout.tsx). Slogan ("SIRADAKİ İŞ SİZİNKİ OLSUN.") ve amber
+renk eski anasayfa kapanış bandından; geri kalan Hayler'den: İstanbul saati,
+kendini çizen çizgi, "Birlikte Çalışalım" (yalnızca Teklif Al — adres/
+iletişim BİLEREK yok) + "Site Haritası", Başa Dön · telif · sosyal ikonlar
+(hover'da yükselir; ≤860px'te açık). Anasayfa ve /portfolyo'nun sayfa-yerel
+amber kapanışları kaldırıldı; vaka sayfasının kapanışı ink-deep oldu (iki
+amber blok üst üste binmesin). Footer'ın `.seam` şeridi önceki bölümün
+dibini 4rem (mobil 2rem) örter — footer'dan önceki son bölüme bu kadar alt
+pay verin. Header amber üstünde `data-accent`: logo tek renk mürekkep, buton
+mürekkep. Sosyal adresler `content/socialLinks.ts`.
+
+Header Ekim 2026'da Hayler ölçüsüne çıktı: `--nav-h` 100px (mobil 76px),
+logo / menü / buton 50px çizgisinde ortalı. /hizmetler mobilde yatay
+carousel değil dikey liste.
+
+# Sayfa genişliği — Hayler (Ekim 2026)
+
+İçerik konteyneri YOK: her bölüm `max-w-(--container-page)` (= %100) +
+`px-(--spacing-gutter)` (≈ Hayler'in 20/30/40/50px yan payı). Tüm sayfalar
+aynı başlangıç/bitiş çizgisinde. `--container-site/-wide` yalnızca Hero'nun
+reduced-motion dalında kaldı (Hero'ya dokunulmadı). Yeni bölümde
+`--container-page` kullanın; tam genişlik hesapları (`--gallery-edge`,
+`--pf-edge`, `--rail-edge`) doğrudan gutter.
+
 # Portfolyo sayfaları — `/portfolyo`, `/portfolyo/emlak-crm-pro`
 
-Gerekçe `docs/design-system.md` §13. Kısaca:
+Ekim 2026 yeniden kurgusu (gertix.studio referansları):
 
-- **Yeni motor yok.** Mevcut kalıp (`.service-grid`/`.service-head`) ve
-  substrat (`data-enter`, `data-enter-stagger`, `case-focus` anonim
-  `view()` ile). Named view-timeline eklemeyin.
-- **Metin `app/content/emlakCrmPro.ts`'te** (bant 3 metni dahil — anasayfa
-  da oradan okuyor). Brief'te olmayan metin uydurulmaz: modül `body`'leri
-  ve `CASE_STACK` bilinçli olarak boş; boş künye bölümü render edilmez.
-- **`.home-portfolio-item--wide` bu sayfalarda kullanılmaz** — gated blok
-  onu global `display: none`'a çekiyor (anasayfa rayı). `/portfolyo`'nun
-  kendi `.portfolio-item--wide`i var.
-- **Filtre client state'te, URL'de değil** (sayfa statik kalsın); tüm işler
-  SSR'da basılı, filtre yalnızca `hidden`ı çeviriyor.
-- **emlakcrmpro.com yalnızca vaka sayfasının sonunda** (`CASE_EXTERNAL`,
-  brief §5.2). Başka sayfa import etmemeli.
-- `/grafik-tasarim` → `/portfolyo` 301 `next.config.ts`'te.
-- **24 iş, 5 kategori** (Eylül 2026 genişlemesi — bkz.
-  `docs/design-system.md` §13 "Eylül 2026 genişlemesi"). `PortfolioItem`'da
-  `wide` (2/1 kadraj) ile `boost` (yalnızca Wellness'in doygunluk/scale
-  telafisi) AYRI alanlar — birini diğeriyle karıştırmayın, JSX'te ikisi de
-  `item.wide`'a bağlanırsa yeni geniş işler istenmeden boost alır.
-- **Yeni bir ekran görüntüsü eklerken PNG değil JPEG kullanın.** Alfa
-  kanallı PNG'lerde sharp/libvips'in WebP kodlayıcısı bazı genişliklerde
-  gerçekten asılabiliyor (`Accept: image/webp` gönderen her tarayıcıda —
-  test artefaktı değil, WEB TASARIM işleri eklenirken canlı olarak
-  yaşandı, detay `docs/design-system.md` §13). sRGB JPEG'e çevirmek
-  sorunu ortadan kaldırdı. Şüpheniz varsa `next dev`'de `curl -H "Accept:
-  image/webp" .../_next/image?url=...&w=<genişlik>` ile birkaç genişliği
-  elle deneyin.
+- **Anasayfa bant 3** artık "Çalıştığım Firmalar" (`content/clients.ts`):
+  logo varsa `logo`, yoksa isim yazı markası. Liste şimdilik portfolyo
+  markalarıyla dolu — kullanıcının listesi gelince değişir. Eski "Öne Çıkan
+  İş" (Emlak CRM Pro) bandı ve CSS'i kaldırıldı.
+- **Anasayfa bant 4** pinli ray değil, `DragGallery` + `GalleryCard`:
+  native yatay scroll + fare sürükleme (momentum yok), tekerlek/trackpad
+  (dikey tekerlek yalnızca galeri ekranın orta bandındayken yakalanır ve uçta
+  sayfaya bırakılır), ←/→ ve klavye. Adım HEDEFTEN hesaplanır — hızlı art
+  arda tık kare atlamaz. `wide` işler galeride yok.
+- **/portfolyo**: filtre + ızgara + "Yazılım · Vaka Çalışması" satırı
+  kaldırıldı. `PortfolioStack`: kategori başına kart
+  (`content/portfolioCategories.ts`, metinler `services.ts`'ten), kartlar
+  named view-timeline (`--pf-stack`) ile üst üste biner (gated: destek +
+  no-preference + ≥861px + ≥640px yükseklik; aksi hâlde akış). Detay: kapak
+  `media` ↔ `thumb` yuvaları arasında top/left/width/height geçişiyle gider
+  (scale değil — oranlar farklı), işler `pf-work-in` ile sağ alttan sırayla
+  girer. Kartın `isolation: isolate`'i ŞART (kapağın z-index'i yoksa sonraki
+  kartların üstüne çıkıyor). Faz zamanlayıcısı state güncelleyicisinin
+  içine YAZILMAZ (React çift çağırır, hızlı aç/kapa bozulur).
+  Son kart "YAZILIM & UYGULAMA" doğrudan vaka sayfasına gider.
+- **/portfolyo/emlak-crm-pro**: her kare açık + koyu çift
+  (`crm-<ad>.png` / `crm-<ad>-koyu.png`), `ShotTheme` anahtarı. Dosyası
+  olmayan kare DERLEME anında elenir (`crm-dashboard-*` gelince kendiliğinden
+  görünür). emlakcrmpro.com artık başlıkta da var (kullanıcı kararı).
+- **Kart duruşu + kilit (Ekim 2026, ikinci geçiş):** `stackGeometry` her
+  karta önce bir duruş (`HOLD` = 0.45 × 100svh) veriyor, sonra bir sonraki
+  kart yükseliyor. Detay açılınca (yalnızca sticky modda) sayfa
+  `html { overflow: hidden }` ile kilitlenir ve kart duruşunun ortasına
+  YUMUŞAK kaydırılır; kapanışta kilit kapak geri dönüşü bittikten SONRA
+  (`RELEASE_MS`) açılır — sonraki kartın yükselişi kapanıştan önce
+  başlamasın. Bölümün alt payı `--seam-h` (alttaki bandın dikiş şeridi son
+  kartın altını örtüyordu).
+- **Galeri tekerleği:** `DragGallery center` (anasayfa) dikey tekerleği
+  ancak galeri ortalandıktan sonra yatay kaymaya çevirir; yakınsa ilk
+  tekerlek sayfayı yumuşakça ortalar.
+- PNG kareler (alfalı) WebP optimizer'ında 384–3840 tüm genişliklerde
+  denendi, asılma yok. Yeni bir PNG eklerseniz aynı `curl` testini tekrarlayın.
 
 # İletişim formu — sitenin tek sunucu tarafı
 

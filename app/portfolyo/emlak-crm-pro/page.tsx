@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import Image from "next/image";
@@ -8,6 +10,8 @@ import {
   CASE_APPROACH,
   CASE_CLOSING,
   CASE_EXTERNAL,
+  CASE_FIELD_NOTE,
+  CASE_FIELD_USERS,
   CASE_LEAD_SHOT,
   CASE_MODULES,
   CASE_PARAGRAPHS,
@@ -15,8 +19,11 @@ import {
   CASE_RESULTS,
   CASE_STACK,
   CASE_TITLE,
+  type CaseModule,
   type CaseShot,
 } from "@/app/content/emlakCrmPro";
+
+import ShotTheme from "./ShotTheme";
 
 export const metadata: Metadata = {
   title: "Emlak CRM Pro — Vaka Çalışması — Tan Yasan Reklam ve Tasarım Ajansı",
@@ -41,8 +48,12 @@ export const metadata: Metadata = {
  * Ekran görüntüleri anasayfa bant 3'ün `.home-case-frame` gri paspartasıyla
  * ve `case-focus` odak geçişiyle (globals.css gated blok) duruyor.
  *
- * DIŞ BAĞLANTI (emlakcrmpro.com) brief §5.2 gereği YALNIZCA burada, en
- * sonda ve küçük.
+ * EKRAN GÖRÜNTÜLERİ (Ekim 2026): her kare açık + koyu tema çifti; "Çözüm"
+ * bölümünün tepesindeki sticky anahtar (ShotTheme) tüm kareleri birlikte
+ * çeviriyor. Dosyası olmayan kare derleme anında eleniyor (`existing`).
+ *
+ * DIŞ BAĞLANTI (emlakcrmpro.com): başlıkta görünür bir bağlantı + sonda
+ * küçük bağlantı (Ekim 2026 kullanıcı kararı, brief §5.2'yi gevşetiyor).
  */
 
 /** Anlatı bölümleri. Sayaç /hakkimda'nın `NN / NN` kalıbı; modüllerin
@@ -54,17 +65,49 @@ const STORY = [
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/** Statik sayfa: dosya varlığı DERLEME anında okunuyor. Kullanıcı yeni bir
+ * kare çiftini klasöre bıraktığında (ör. crm-dashboard-1.png) bir sonraki
+ * derlemede kendiliğinden görünür; eksik koyu kare açık kareye düşer. */
+const publicFile = (src: string) =>
+  fs.existsSync(path.join(process.cwd(), "public", src));
+
+const existing = (shots: readonly CaseShot[]) =>
+  shots
+    .filter((shot) => publicFile(shot.light))
+    .map((shot) => (publicFile(shot.dark) ? shot : { ...shot, dark: shot.light }));
+
+const MODULES: readonly CaseModule[] = CASE_MODULES.map((module) => ({
+  ...module,
+  shots: existing(module.shots),
+})).filter((module) => !module.optional || module.shots.length > 0);
+
+/** Açık ve koyu kare üst üste; hangisinin görüneceğini `.shot-theme`
+ * sarmalayıcısının `data-shot-theme`i belirliyor (globals.css). Koyu kare
+ * ekran okuyucuya ikinci kez okutulmuyor. */
 function Shot({ shot, sizes }: { shot: CaseShot; sizes: string }) {
   return (
-    <figure>
+    <figure className="case-shot">
       <div className="home-case-frame">
-        <Image
-          src={shot.src}
-          alt={shot.alt}
-          fill
-          sizes={sizes}
-          style={{ objectFit: "cover" }}
-        />
+        {/* Odak geçişi (case-focus) bu katmanı sürüyor; perde (clip-path)
+            yalnızca içteki koyu karede — iki animasyon aynı özelliği
+            paylaşmasın diye ayrı elemanlarda. */}
+        <div className="case-shot__stack">
+          <Image
+            src={shot.light}
+            alt={shot.alt}
+            fill
+            sizes={sizes}
+            className="case-shot__img case-shot__img--light"
+          />
+          <Image
+            src={shot.dark}
+            alt=""
+            aria-hidden="true"
+            fill
+            sizes={sizes}
+            className="case-shot__img case-shot__img--dark"
+          />
+        </div>
       </div>
       <figcaption className="home-case-caption eyebrow text-muted">
         {shot.caption}
@@ -77,14 +120,25 @@ export default function EmlakCrmProPage() {
   return (
     <>
       {/* 1 — Başlık. Metin anasayfa bant 3'ün (brief §5.2) aynısı; altında
-          yönetim paneli karesi --container-wide genişliğinde. */}
+          açılış görseli sayfa genişliğinde (--container-page). */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section) pt-[calc(var(--nav-h)+var(--spacing-section))]">
-        <div className="mx-auto max-w-(--container-wide)">
-          <nav aria-label="Konum" className="case-crumb eyebrow text-muted">
-            <Link href="/portfolyo">Portfolyo</Link>
-            <span aria-hidden="true">/</span>
-            <span className="text-accent-auto">Emlak CRM Pro</span>
-          </nav>
+        <div className="mx-auto max-w-(--container-page)">
+          <div className="case-head-row">
+            <nav aria-label="Konum" className="case-crumb eyebrow text-muted">
+              <Link href="/portfolyo">Portfolyo</Link>
+              <span aria-hidden="true">/</span>
+              <span className="text-accent-auto">Emlak CRM Pro</span>
+            </nav>
+            <a
+              href={CASE_EXTERNAL.href}
+              className="case-live btn btn-ghost eyebrow"
+              target="_blank"
+              rel="noopener"
+            >
+              <span className="case-live__dot" aria-hidden="true" />
+              Canlı: {CASE_EXTERNAL.label} ↗
+            </a>
+          </div>
 
           <h1
             className="font-display text-strong max-w-[24ch] mt-6"
@@ -110,46 +164,58 @@ export default function EmlakCrmProPage() {
             ))}
           </div>
 
-          <div className="case-lead mt-(--spacing-section-tight)">
-            <Shot shot={CASE_LEAD_SHOT} sizes="(max-width: 860px) 100vw, 90vw" />
-          </div>
+          <figure className="case-lead mt-(--spacing-section-tight)">
+            <div className="case-lead__frame">
+              <Image
+                src={CASE_LEAD_SHOT.src}
+                alt={CASE_LEAD_SHOT.alt}
+                fill
+                preload
+                sizes="(max-width: 860px) 100vw, 90vw"
+              />
+            </div>
+            <figcaption className="home-case-caption eyebrow text-muted">
+              {CASE_LEAD_SHOT.caption}
+            </figcaption>
+          </figure>
         </div>
       </section>
 
-      {/* 2 — Problem + Yaklaşım. Tek açık yüzey, hairline ayraçlı
-          (/hakkimda'nın `.about-section` kalıbı). */}
-      <section className="surface-paper seam px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-site)">
-          {STORY.map((block, index) => (
-            <article
-              key={block.id}
-              id={block.id}
-              className="about-section service-grid"
-            >
-              <div className="service-head">
-                <p className="eyebrow text-accent-auto">
-                  {pad(index + 1)} / {pad(STORY.length)}
+      {/* 2 — Problem + Yaklaşım. Ekim 2026: her blok kendi bandı;
+          "Yaklaşım" açık gri (kullanıcı isteği) — iki açık yüzey arasındaki
+          ton kademesi, ayraç çizgisinin yerine geçiyor. */}
+      {STORY.map((block, index) => (
+        <section
+          key={block.id}
+          id={block.id}
+          className={`surface-paper px-(--spacing-gutter) py-(--spacing-section)${
+            index === 0 ? " seam" : " case-story--gray"
+          }`}
+        >
+          <div className="service-grid mx-auto max-w-(--container-page)">
+            <div className="service-head">
+              <p className="eyebrow text-accent-auto">
+                {pad(index + 1)} / {pad(STORY.length)}
+              </p>
+              <h2 className="service-title font-display text-strong">
+                {block.title}
+              </h2>
+            </div>
+            <div>
+              {block.paragraphs.map((paragraph, paragraphIndex) => (
+                <p
+                  key={paragraph}
+                  className={`max-w-(--container-prose) ${
+                    paragraphIndex === 0 ? "text-lead" : "text-muted mt-6"
+                  }`}
+                >
+                  {paragraph}
                 </p>
-                <h2 className="service-title font-display text-strong">
-                  {block.title}
-                </h2>
-              </div>
-              <div>
-                {block.paragraphs.map((paragraph, paragraphIndex) => (
-                  <p
-                    key={paragraph}
-                    className={`max-w-(--container-prose) ${
-                      paragraphIndex === 0 ? "text-lead" : "text-muted mt-6"
-                    }`}
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              ))}
+            </div>
+          </div>
+        </section>
+      ))}
 
       {/* 3 — Çözüm, modül modül. En derin ton: ekran görüntüleri açık temalı,
           gri paspartayla koyu zeminde ayrışıyor (anasayfa bant 3, §12). Sol
@@ -157,7 +223,7 @@ export default function EmlakCrmProPage() {
           anlatı + akan kanıt" okumasının sayfa boyu hali, ama named
           view-timeline'sız: her kare kendi anonim `view()`'iyle odaklanıyor. */}
       <section className="surface-ink surface-ink-deep seam px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-wide)">
+        <div className="mx-auto max-w-(--container-page)">
           <p className="eyebrow text-accent-auto">Çözüm</p>
           <h2
             className="font-display text-strong max-w-[20ch] mt-6"
@@ -172,8 +238,9 @@ export default function EmlakCrmProPage() {
             MODÜL MODÜL
           </h2>
 
+          <ShotTheme>
           <div className="case-modules">
-            {CASE_MODULES.map((module, index) => (
+            {MODULES.map((module, index) => (
               <article
                 key={module.id}
                 id={module.id}
@@ -183,7 +250,7 @@ export default function EmlakCrmProPage() {
               >
                 <div className="service-head">
                   <p className="eyebrow text-accent-auto">
-                    {pad(index + 1)} / {pad(CASE_MODULES.length)}
+                    {pad(index + 1)} / {pad(MODULES.length)}
                   </p>
                   <h3 className="case-module__title font-display text-strong">
                     {module.title}
@@ -202,7 +269,7 @@ export default function EmlakCrmProPage() {
                     ))}
                     {module.shots.map((shot) => (
                       <Shot
-                        key={shot.src}
+                        key={shot.light}
                         shot={shot}
                         sizes="(max-width: 860px) 100vw, 60vw"
                       />
@@ -212,6 +279,7 @@ export default function EmlakCrmProPage() {
               </article>
             ))}
           </div>
+          </ShotTheme>
         </div>
       </section>
 
@@ -219,7 +287,7 @@ export default function EmlakCrmProPage() {
           (socialLinks.ts'teki kural). 5 — Sonuç. İkisi aynı açık bantta:
           ikisi de kısa, mono künye dilinde. */}
       <section className="surface-paper seam px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           {CASE_STACK.length > 0 ? (
             <div className="case-facts">
               <h2 className="eyebrow text-accent-auto">Teknoloji</h2>
@@ -255,8 +323,8 @@ export default function EmlakCrmProPage() {
 
       {/* 6 — Kapanış. Brief §6'nın cümlesi → İletişim. Dış bağlantı
           (brief §5.2) burada, küçük ve ikincil; "← Tüm işler" geri yolu. */}
-      <section className="surface-accent seam px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-wide)">
+      <section className="surface-ink surface-ink-deep seam px-(--spacing-gutter) pt-(--spacing-section) pb-16 max-[860px]:pb-8">
+        <div className="mx-auto max-w-(--container-page)">
           <div className="flex flex-wrap items-end justify-between gap-8">
             <p
               className="font-display max-w-[18ch]"
@@ -270,7 +338,7 @@ export default function EmlakCrmProPage() {
             >
               {CASE_CLOSING}
             </p>
-            <Link href={NAV_CTA.href} className="btn btn-ink eyebrow">
+            <Link href={NAV_CTA.href} className="btn btn-accent eyebrow">
               {NAV_CTA.label}
             </Link>
           </div>
@@ -287,6 +355,35 @@ export default function EmlakCrmProPage() {
             >
               {CASE_EXTERNAL.label} ↗
             </a>
+          </div>
+        </div>
+
+        {/* "Sahada kullanılıyor" bandı — refs/emlakcrmpro-1.png: ortalı kısa
+            not, altında etiket + ofis logoları; açık zeminde (logo kırmızı/
+            siyah, koyu zeminde okunmazdı), bölümün dibinde tam genişlik. */}
+        <div className="case-field surface-paper" data-enter>
+          <p className="case-field__note">{CASE_FIELD_NOTE}</p>
+          <div className="case-field__row">
+            <p className="case-field__label">Sahada kullanılıyor.</p>
+            <ul className="case-field__logos">
+              {CASE_FIELD_USERS.map((user) => (
+                <li key={user.name}>
+                  {user.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.logo.src}
+                      alt={user.name}
+                      width={user.logo.width}
+                      height={user.logo.height}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="case-field__name">{user.name}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>

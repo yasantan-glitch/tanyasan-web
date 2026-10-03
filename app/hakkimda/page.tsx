@@ -66,7 +66,7 @@ export default function HakkimdaPage() {
       {/* Başlık bandı. Nav bu sayfada baştan solid ve position: fixed, yani
           akışta yer kaplamıyor — üst boşluğa nav yüksekliği elle eklenir. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section-tight) pt-[calc(var(--nav-h)+var(--spacing-section))]">
-        <div className="about-hero mx-auto max-w-(--container-site)">
+        <div className="about-hero mx-auto max-w-(--container-page)">
           <div>
             <p className="eyebrow text-accent-auto mb-6">Hakkımda</p>
             <h1
@@ -108,7 +108,7 @@ export default function HakkimdaPage() {
           Sol sütun /hizmetler'in .service-grid/.service-head düzenini yeniden
           kullanıyor: uzun metin okunurken hangi bölümde olunduğu kaybolmuyor. */}
       <section className="surface-paper px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto max-w-(--container-site)">
+        <div className="mx-auto max-w-(--container-page)">
           {CHAPTERS.map((chapter, index) => (
             <article key={chapter.id} id={chapter.id} className="about-section service-grid">
               <div className="service-head">
@@ -148,7 +148,7 @@ export default function HakkimdaPage() {
       {/* Kapanış. /hizmetler'in kapanış bandıyla aynı kalıp — cümle metnin
           kendi tezinden geliyor, yeni bir iddia eklenmiyor. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-site) flex-wrap items-end justify-between gap-8">
+        <div className="mx-auto flex max-w-(--container-page) flex-wrap items-end justify-between gap-8">
           <p
             className="font-display text-strong max-w-[18ch]"
             style={{
