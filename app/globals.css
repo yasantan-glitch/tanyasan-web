@@ -3564,6 +3564,87 @@
 
     .footer-nav {
       grid-template-rows: repeat(4, auto);
+      margin-block-start: clamp(0.4rem, 1.2svh, 1rem);
+      row-gap: clamp(0.1rem, 0.5svh, 0.35rem);
+      font-size: var(--text-body-sm);
+    }
+
+    /* Mobilde footer tek ekrana sığar: slogan dahil her şey bir
+       viewport yüksekliğinde (svh/dvh'li clamp'ler). */
+    .site-footer__inner {
+      min-block-size: 100svh;
+      min-block-size: 100dvh;
+      justify-content: space-between;
+      padding-block: calc(var(--nav-h) + clamp(0rem, 1svh, 1rem)) clamp(0.75rem, 2svh, 1.5rem);
+    }
+
+    .site-footer__top {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: clamp(0.5rem, 1.5svh, 1.25rem);
+    }
+
+    .site-footer__slogan {
+      font-size: clamp(1.75rem, 9.5vw, min(3.5rem, 7.5svh));
+    }
+
+    .footer-clock__label {
+      font-size: var(--text-body-sm);
+    }
+
+    .footer-clock__time {
+      font-size: clamp(1.25rem, 4svh, 1.75rem);
+    }
+
+    .site-footer__line {
+      margin-block: clamp(0.6rem, 2svh, 1.5rem);
+    }
+
+    .site-footer__cols {
+      gap: clamp(0.75rem, 2svh, 1.5rem);
+    }
+
+    .site-footer__label {
+      padding-block: clamp(0.4rem, 1.2svh, 0.9rem);
+      font-size: clamp(1.1rem, 3svh, 1.5rem);
+    }
+
+    .site-footer__col > .btn {
+      margin-block-start: clamp(0.4rem, 1.2svh, 1rem);
+    }
+
+    .site-footer__credits {
+      gap: clamp(0.25rem, 1svh, 0.75rem);
+      margin-block-start: clamp(0.75rem, 2svh, 1.5rem);
+    }
+
+    .footer-socials__list a {
+      inline-size: 2.5rem;
+      block-size: 2.5rem;
+    }
+  }
+
+  /* Kısa ekranlar (375×667, 360×640): kalan boşluk için ek sıkıştırma. */
+  @media (max-width: 860px) and (max-height: 700px) {
+    .site-footer__inner {
+      padding-block-start: calc(var(--nav-h) - 0.5rem);
+    }
+
+    .site-footer__slogan {
+      font-size: clamp(1.5rem, 8.5vw, 2.25rem);
+    }
+
+    .site-footer__label {
+      padding-block: 0.3rem;
+    }
+
+    .footer-socials__list a {
+      inline-size: 2.25rem;
+      block-size: 2.25rem;
+    }
+
+    .site-footer__credits {
+      gap: 0;
     }
   }
 
