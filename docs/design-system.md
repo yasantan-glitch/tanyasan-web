@@ -1692,11 +1692,10 @@ Sonuç → Kapanış.**
 
 | Bölüm | Yüzey | Düzen |
 |---|---|---|
-| Başlık (bant 3 metni + yönetim paneli karesi) | ink-deep | iki paragraf yan yana, kare `--container-wide` |
-| Problem / Yaklaşım | paper | `.service-grid` + `.about-section`, `NN / 02` |
-| Çözüm — modül modül | ink-deep | `.service-grid`: solda yapışkan modül adı, sağda kareler |
-| Teknoloji + Sonuç | paper | `.case-facts` (etiket solda, değer sağda) |
-| Kapanış | accent | brief §6 cümlesi + `NAV_CTA`; altında "← Tüm işler" ve dış bağlantı |
+| Başlık (bant 3 metni + açılış görseli) | ink-deep | masaüstünde iki sütun: solda başlık + iki paragraf alt alta, sağda görsel (`.case-hero`); ≤860px tek sütun |
+| Problem / Yaklaşım | paper / gri | masaüstünde iki yarı yan yana (`.case-story`), her yarıda sayaç + başlık + metin alt alta; ≤860px alt alta, eski `.service-grid` düzeni |
+| Çözüm — modül modül | ink-deep | `.service-grid`: solda yapışkan modül adı, sağda kareler (kayarak giriş + tam ekran büyütme) |
+| Sonuç (+ Teknoloji) | paper-raised (BEYAZ) | `.case-facts`; altında "← Tüm işler" + dış bağlantı; en dipte "Sahada kullanılıyor" bandı, footer'ın hemen üstünde |
 
 - **Modüller ve kareler.** Brief'in beş modülü `CASE_MODULES`'ta. Beş karenin
   hepsi kullanılıyor: Portföy & Harita üç kare (anasayfanın üç destek
@@ -1706,19 +1705,38 @@ Sonuç → Kapanış.**
   karesi YOK — görselsiz satır olarak basılıyorlar (`.case-module--bare`,
   art arda iki görselsiz modül arası daralıyor). Kare gelince yalnızca
   içerik dosyası değişir.
-- **Hareket.** Modül kareleri bant 3'ün `case-focus` jestini **anonim**
-  `view()` ile kullanıyor (çerçeve değil img, paspartu durağan — §12).
-  Başlıktaki açılış karesi bilerek hareketsiz: sayfa açıldığında zaten
-  ekranda, `cover` menzilinin ortasında yarı kapalı bir diyaframla
-  karşılardı. Başlıklar `data-enter="mask"`, sonuç satırı
-  `data-enter-stagger`.
+- **Hareket (Ekim 2026 revizyonu).** Modül kareleri artık `case-focus`
+  değil **`case-slide`**: kare viewport'a girerken yandan (≤860px'te alttan)
+  kayıp yerine oturuyor, scroll geri alınınca ters yönde çıkıyor. Anonim
+  `view()`, `animation-range: entry 0% entry 70%`; figüre (çerçeve + künye)
+  uygulanıyor, bu yüzden Çözüm bölümü `overflow-x: clip` (`.case-solution`,
+  kaydırma kabı kurmuyor, sticky başlıklar etkilenmiyor). İkisi aynı karede
+  yarışmasın diye `case-focus` keyframe'i ve kuralı kaldırıldı. Yalnızca
+  `prefers-reduced-motion: no-preference` + `animation-timeline` desteğinde;
+  aksi hâlde kare baştan yerinde. Başlıktaki açılış karesi hareketsiz.
+  Başlıklar `data-enter="mask"`, sonuç satırı `data-enter-stagger`.
+- **Tam ekran büyütme (`ShotZoom.tsx`, client).** Her modül karesinin
+  üstünde şeffaf bir düğme (`.case-shot__zoom`; div'i düğmeye sarmak geçersiz
+  HTML olurdu); tıklanınca yerel `<dialog>` `showModal()` ile açılıyor →
+  odak tuzağı, inert arka plan ve Esc tarayıcıdan. Elle yazılanlar: `html`
+  scroll kilidi (MobileDrawer'ın deseni), dialog'un boş alanına tıklayınca
+  kapatma, kapanınca odağı açan düğmeye açıkça geri verme (Safari düğme
+  tıklamasında odak vermiyor). Kapat düğmesi görünür. Görsel yalnızca açıkken
+  basılıyor ve açıldığı andaki tema anahtarına bakıyor. Dik telefonda görsel
+  `220vw` genişliğinde basılıp yatay kaydırılıyor (1910px'lik ekran sığdırınca
+  okunmuyor). Önceki/sonraki okları yok.
 - **Sonuç** üç eşit sütun + dikey hairline. Flex-wrap ilk hâlde üçüncü
   parçayı ayracıyla birlikte alt satırın başına düşürüyordu (1440px'te
   ölçüldü); grid'de parça kendi hücresinde kırılıyor. ≤860px'te alt alta,
   ayraç yataya dönüyor.
-- **Dış bağlantı** (`CASE_EXTERNAL`, emlakcrmpro.com): brief §5.2 gereği
-  yalnızca burada, sayfanın en sonunda, mono ve küçük. Başka sayfa import
-  etmemeli.
+- **Kapanış bandı kaldırıldı (Ekim 2026).** Slogan + "Teklif Al" global
+  footer'da zaten var; `CASE_CLOSING` içerikten silindi. "← Tüm işler" ve
+  emlakcrmpro.com bağlantısı Sonuç bölümüne taşındı (başlıktaki canlı
+  bağlantı yerinde). "Sahada kullanılıyor" bandı (`refs/emlakcrmpro-1.png`)
+  Sonuç bölümünün en dibinde, BEYAZ zeminde; footer'ın dikiş şeridi son
+  `--seam-h`'ı örttüğü için bandın alt dolgusu o kadar artırıldı.
+- **Dış bağlantı** (`CASE_EXTERNAL`, emlakcrmpro.com): başlıkta ve Sonuç
+  bölümünde, mono ve küçük. Başka sayfa import etmemeli.
 
 ### Bilinçli boşluklar
 

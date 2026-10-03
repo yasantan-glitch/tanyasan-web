@@ -85,10 +85,7 @@ export const CASE_RESULTS: readonly string[] = [
   "BİNLERCE PORTFÖY",
 ];
 
-/** Brief §6 "Kapanış" cümlesi. */
-export const CASE_CLOSING = "SİZİN İŞİNİZ İÇİN DE BENZER BİR SİSTEM KURABİLİRİZ.";
-
-/** Kapanışın altındaki not + "Sahada kullanılıyor" bandı (Ekim 2026,
+/** Sonuç bölümünün dibindeki not + "Sahada kullanılıyor" bandı (Ekim 2026,
  * kullanıcının metni ve refs/emlakcrmpro-1.png düzeni). Logo dosyası olan
  * ofis görselle, olmayan adla basılır. Realty World dosyası "POYRAZ
  * GAYRİMENKUL" yazısını zaten içeriyor — Poyraz için ayrı satır yok. */

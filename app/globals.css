@@ -3765,20 +3765,20 @@
   }
 
   /* Ekran görüntüleri bir kademe daha küçük (kullanıcı isteği): başlık
-     görseli en çok 64rem, modül kareleri en çok 40rem — sağ sütunu
-     doldurmuyor, solda yaslı duruyor. */
+     görseli artık başlığın sağ sütununda (Ekim 2026), modül kareleri en
+     çok 40rem — sağ sütunu doldurmuyor, solda yaslı duruyor. */
   .case-lead {
-    max-inline-size: 64rem;
+    min-inline-size: 0;
   }
 
   .case-module .case-shot {
     max-inline-size: 40rem;
   }
 
-  /* "Sahada kullanılıyor" bandı — refs/emlakcrmpro-1.png: kapanış
-     bölümünün dibinde tam genişlik açık şerit, ortalı not + etiket ve
-     logolar. Kenar çizgileri hairline; logo kendi renginde (kırmızı/siyah)
-     açık zeminde okunuyor. */
+  /* "Sahada kullanılıyor" bandı — refs/emlakcrmpro-1.png: Sonuç bölümünün
+     dibinde (footer'ın hemen üstünde) tam genişlik şerit, ortalı not +
+     etiket ve logolar. Ekim 2026: zemin krem değil BEYAZ (bölümün kendi
+     zemini); üst kenar hairline. */
   .case-field {
     display: flex;
     flex-direction: column;
@@ -3786,9 +3786,10 @@
     gap: 1.25rem;
     margin-block-start: var(--spacing-section-tight);
     margin-inline: calc(-1 * var(--spacing-gutter));
-    padding: 2.5rem var(--spacing-gutter);
-    border-block: 1px solid var(--hairline);
-    background-color: color-mix(in srgb, var(--color-paper-0) 88%, var(--color-accent));
+    /* Alt pay: footer'ın dikiş şeridi (`.seam::before`) bu bandın son
+       --seam-h'ını örtüyor; bölümün kendi `.seam`i aynı değeri taşıyor. */
+    padding: 2.5rem var(--spacing-gutter) calc(2.5rem + var(--seam-h));
+    border-block-start: 1px solid var(--hairline);
     text-align: center;
   }
 
@@ -3845,13 +3846,158 @@
     color: var(--accent-text);
   }
 
-  /* Bant 3'ün iki paragrafı yan yana: lead solda, ikincisi sağda. Başlık
-     bandı --container-wide genişliğinde, iki prose sütunu o genişliği
-     dolduruyor. */
+  /* Başlık bandı (Ekim 2026): sol sütunda başlık + iki paragraf alt alta,
+     sağ sütunda açılış görseli. ≤860px'te tek sütun (başlık → metin →
+     görsel). */
+  .case-hero {
+    display: grid;
+    gap: var(--spacing-section-tight);
+  }
+
+  .case-hero__text {
+    min-inline-size: 0;
+  }
+
   .case-intro {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, var(--container-prose)));
-    gap: var(--spacing-section-tight);
+    grid-template-columns: minmax(0, var(--container-prose));
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 861px) {
+    .case-hero {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+      align-items: center;
+    }
+  }
+
+  /* Problem + Yaklaşım (Ekim 2026): masaüstünde iki yarı yan yana, her biri
+     kendi zemininde (beyaz / gri), içinde sayaç + başlık + metin alt alta.
+     ≤860px'te yarılar eskisi gibi alt alta ve .service-grid tek sütun. */
+  .case-story__half {
+    padding-inline: var(--spacing-gutter);
+  }
+
+  @media (min-width: 861px) {
+    .case-story {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .case-story__half .service-grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2rem;
+    }
+
+    .case-story__half .service-head {
+      position: static;
+    }
+  }
+
+  /* Çözüm bölümü: kayarak giren kareler yatayda taşma yaratmasın. `clip`
+     kaydırma kabı kurmuyor, sticky başlıklar etkilenmiyor. */
+  .case-solution {
+    overflow-x: clip;
+  }
+
+  /* Karelere büyütme düğmesi: şeffaf, çerçeveyi tamamen kaplıyor. */
+  .case-shot__zoomwrap {
+    position: relative;
+  }
+
+  .case-shot__zoom {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: zoom-in;
+  }
+
+  .case-shot__zoom:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  /* Tam ekran görünüm (ShotZoom). Yerel <dialog>: odak tuzağı, Esc ve
+     inert arka plan tarayıcıdan. Dialog tüm viewport'u kaplıyor — görselin
+     dışındaki her tıklama dialog'un kendisine düşüyor (arka plana tıkla →
+     kapat). */
+  .lightbox {
+    --focus: var(--color-accent);
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    max-inline-size: none;
+    max-block-size: none;
+    inline-size: 100vw;
+    block-size: 100dvh;
+    overflow: hidden;
+    background-color: rgb(10 10 10 / 0.94);
+    color: var(--color-fg-on-ink);
+  }
+
+  .lightbox[open] {
+    display: block;
+  }
+
+  .lightbox__close {
+    position: absolute;
+    inset-block-start: 1rem;
+    inset-inline-end: var(--spacing-gutter);
+    z-index: 1;
+    padding: 0.75rem 1.1rem;
+    border-radius: var(--radius-md);
+    background-color: rgb(128 128 128 / 0.32);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .lightbox__close:hover {
+    background-color: rgb(128 128 128 / 0.5);
+  }
+
+  .lightbox__close:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .lightbox__stage {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+    padding: 4.5rem var(--spacing-gutter) var(--spacing-gutter);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .lightbox__img {
+    inline-size: auto;
+    block-size: auto;
+    max-inline-size: 100%;
+    max-block-size: 100%;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Dik telefonda 1910px genişliğinde bir ekran okunmaz: görsel geniş
+     basılıyor, yatayda kaydırılıyor (sol kenara yaslı — ortalı grid'de
+     taşan sol taraf erişilemez kalırdı). */
+  @media (max-width: 860px) and (orientation: portrait) {
+    .lightbox__stage {
+      place-items: center start;
+    }
+
+    .lightbox__img {
+      inline-size: 220vw;
+      max-inline-size: none;
+      max-block-size: none;
+    }
   }
 
   .case-modules {
@@ -4034,51 +4180,22 @@
   }
 }
 
-/* ODAK GECISI — Emlak CRM Pro karelerinin imza hareketi (Ekim 2026'dan
-   beri yalnızca vaka sayfasının modül kareleri; anasayfa bant 3 kaldırıldı).
-   Bkz. `.case-module .case-shot__stack` ve docs/design-system.md §12. Eylül 2026: eskiden dört karenin YALNIZCA üçü (destek şeridi) bu
-   sürekli geçişi kullanıyordu; açılış karesi ayrı, tek seferlik bir
-   `case-aperture` açılışı alıyordu (sabit sol blok İÇİNDEYDİ, pin'lenip
-   duruyordu). Açılış karesi şeride taşınınca (page.tsx bant 3 yorumu)
-   `case-aperture` kaldırıldı — dördü de aynı jesti paylaşıyor.
-
-   Kare ekranın ortasına yükselirken diyafram açılır ve öne gelir, orta
-   bantta tam açık ve tam opak DURUR (plato), üstten çıkarken geri çekilip
-   söner. Yani odak şeritte aşağı doğru geziniyor — dört ekran, tek sistem,
-   sırayla öne çıkan yetenekler. Dinlenme opaklığı (0%/100%) 0.55/0.62'den
-   0.4/0.45'e çekildi: açılış karesi de artık bu geçişi kullandığı için
-   şeridin İLK karesi ekrana girerken önceki değerle fazla "zaten açık"
-   görünüyordu, odak anı yeterince belirgin değildi.
-
-   Neden bandın kimliği bu: komşu iki bant (hizmet rayı ve portfolyo rayı)
-   YATAYDA pan ediyor, bu bant DERİNLİKTE scrub ediyor. Aynı aile değil, ayrı
-   eksen.
-
-   Renk YOK, glow YOK (ölçüldü: dört karenin kendi aksanları birbirinden ve
-   site paletinden ayrı; bir tint o çeşitlilikle çarpışırdı). Taşıyıcı
-   yalnızca geometri ve opaklık. Animasyon yine ÇERÇEVEYE değil içindeki
-   img'e uygulanır: gri pasparta her zaman tam ve durağan kalır, içerik
-   çekilir. */
-@keyframes case-focus {
-  0% {
-    clip-path: inset(46% 0 46% 0);
-    transform: scale(1.06);
-    opacity: 0.4;
+/* KAYARAK GİRİŞ — vaka sayfası modül karelerinin hareketi (Ekim 2026;
+   önceki `case-focus` odak geçişinin yerine geçti, ikisi aynı karede
+   yarışmasın diye kaldırıldı). Kare viewport'a girerken yandan (mobilde
+   alttan) kayıp yerine oturuyor; scroll geri alınınca ters yönde çıkıyor.
+   Anonim `view()` — named timeline yok. Animasyon FİGÜRE (çerçeve + künye)
+   uygulanır; taşma `.case-solution { overflow-x: clip }` ile kesiliyor.
+   Yalnızca prefers-reduced-motion: no-preference + animation-timeline
+   desteğinde çalışır; aksi hâlde kare baştan yerinde durur. */
+@keyframes case-slide {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--slide-x, 5rem), var(--slide-y, 0), 0);
   }
-  38% {
-    clip-path: inset(0 0 0 0);
-    transform: scale(1);
+  to {
     opacity: 1;
-  }
-  72% {
-    clip-path: inset(0 0 0 0);
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    clip-path: inset(0 0 0 0);
-    transform: scale(0.985);
-    opacity: 0.45;
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -4125,16 +4242,13 @@
       animation-range: cover var(--w-from) cover var(--w-to);
     }
 
-    /* Vaka sayfasının modül kareleri aynı odak geçişini paylaşıyor
-       (docs/design-system.md §13). ANONİM `view()` — named timeline yok,
-       §12'nin "aynı ada eleman başına tek animasyon" kısıtı burada doğmuyor.
-       Başlık bandındaki açılış karesi (`.case-lead`) BİLEREK DIŞARIDA:
-       sayfa açıldığında zaten ekranda, menzilin ortasında yarı kapalı bir
-       diyaframla karşılamasın. */
-    .case-module .case-shot__stack {
-      animation: case-focus linear both;
+    /* Vaka sayfasının modül kareleri kayarak giriyor (`case-slide`,
+       docs/design-system.md §13). Başlıktaki açılış karesi (`.case-lead`)
+       BİLEREK DIŞARIDA: sayfa açıldığında zaten ekranda. */
+    .case-module .case-shot {
+      animation: case-slide var(--ease-out-quart) both;
       animation-timeline: view();
-      animation-range: cover 0% cover 100%;
+      animation-range: entry 0% entry 70%;
     }
 
     /* ---- /hizmetler yatay ray ------------------------------------
@@ -5175,7 +5289,6 @@
 
   /* Vaka sayfası: paragraflar alt alta; künye/sonuç etiketi değerin
      üstünde; sonuç parçaları alt alta, dikey ayraç yataya dönüyor. */
-  .case-intro,
   .case-facts {
     grid-template-columns: 1fr;
     gap: 1.25rem;
@@ -5184,6 +5297,19 @@
   .case-facts__list--result {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+
+  /* Problem/Yaklaşım alt alta: dikiş yalnızca üstteki yarıda (eskisi gibi);
+     masaüstünde iki yarı yan yana olduğu için ikisinde de var. */
+  .case-story--gray::before {
+    display: none;
+  }
+
+  /* Kayarak giriş mobilde aşağıdan yukarı (yatay kayma dar ekranda taşma
+     ve kopukluk yaratırdı). */
+  .case-module .case-shot {
+    --slide-x: 0rem;
+    --slide-y: 2.5rem;
   }
 
   .case-facts__list--result li,
