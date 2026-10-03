@@ -1588,6 +1588,87 @@
     max-inline-size: 44rem;
   }
 
+  /* Masaüstünde form sütunun yanında boş yer kalıyor: telefon bloğu orada,
+     "Mesajı Gönder" düğmesiyle aynı alt çizgide (alt satır = düğme satırı,
+     KVKK notu onun altında). ≤860px'te tek sütun, blok formun altına iner. */
+  @media (min-width: 861px) {
+    .contact-form {
+      max-inline-size: none;
+      grid-template-columns: minmax(0, 44rem) minmax(14rem, 1fr);
+      column-gap: var(--spacing-section-tight);
+    }
+
+    .contact-form > * {
+      grid-column: 1;
+    }
+
+    .contact-form > .form-submit {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: subgrid;
+      align-items: end;
+      row-gap: 1.25rem;
+    }
+
+    .form-submit > .btn {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+    }
+
+    .form-submit > .form-note {
+      grid-column: 1;
+      grid-row: 2;
+      max-inline-size: 32rem;
+    }
+
+    .form-submit > .contact-call {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      align-self: end;
+      justify-items: end;
+      text-align: end;
+    }
+  }
+
+  .contact-call {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: start;
+  }
+
+  .contact-call__text {
+    color: var(--fg-muted);
+    max-inline-size: 22rem;
+  }
+
+  .contact-call__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--fg-strong);
+    font-family: var(--font-display);
+    font-size: var(--text-lead, 1.25rem);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .contact-call__link svg {
+    inline-size: 1.25em;
+    block-size: 1.25em;
+    color: var(--accent-text);
+  }
+
+  .contact-call__link:hover {
+    color: var(--accent-text);
+  }
+
+  @media (max-width: 860px) {
+    .form-submit > .contact-call {
+      flex-basis: 100%;
+      padding-block-start: 1rem;
+    }
+  }
+
   .field {
     display: grid;
     gap: 0.55rem;

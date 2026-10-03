@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Phone } from "lucide-react";
 
 import { CONTACT } from "@/app/content/contact";
 import { SOCIAL_LINKS } from "@/app/content/socialLinks";
@@ -123,29 +124,20 @@ export default function IletisimPage() {
           </div>
 
           <div>
-            <ContactForm />
+            <ContactForm
+              aside={
+                <div className="contact-call">
+                  <p className="contact-call__text">
+                    Yazmak yerine konuşmayı tercih ederseniz.
+                  </p>
+                  <a href={CONTACT.phone.href} className="contact-call__link">
+                    <Phone strokeWidth={1.5} aria-hidden="true" />
+                    {CONTACT.phone.display}
+                  </a>
+                </div>
+              }
+            />
           </div>
-        </div>
-      </section>
-
-      {/* Kapanış. /hizmetler ve /hakkimda ile aynı kalıp; CTA burada NAV_CTA
-          OLAMAZ (zaten o sayfadayız) — yerine telefon. */}
-      <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-page) flex-wrap items-end justify-between gap-8">
-          <p
-            className="font-display text-strong max-w-[18ch]"
-            style={{
-              fontSize: "var(--text-display-xl)",
-              lineHeight: "var(--text-display-xl--line-height)",
-              letterSpacing: "var(--text-display-xl--letter-spacing)",
-              fontWeight: "var(--text-display-xl--font-weight)",
-            }}
-          >
-            YAZMAK YERİNE KONUŞMAYI TERCİH EDERSENİZ.
-          </p>
-          <a href={CONTACT.phone.href} className="btn btn-accent eyebrow">
-            {CONTACT.phone.display}
-          </a>
         </div>
       </section>
     </>

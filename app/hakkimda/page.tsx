@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
-import { NAV_CTA } from "@/app/components/nav/navLinks";
 
 export const metadata: Metadata = {
   title: "Hakkımda — Tan Yasan Reklam ve Tasarım Ajansı",
@@ -142,27 +141,6 @@ export default function HakkimdaPage() {
               </div>
             </article>
           ))}
-        </div>
-      </section>
-
-      {/* Kapanış. /hizmetler'in kapanış bandıyla aynı kalıp — cümle metnin
-          kendi tezinden geliyor, yeni bir iddia eklenmiyor. */}
-      <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-page) flex-wrap items-end justify-between gap-8">
-          <p
-            className="font-display text-strong max-w-[18ch]"
-            style={{
-              fontSize: "var(--text-display-xl)",
-              lineHeight: "var(--text-display-xl--line-height)",
-              letterSpacing: "var(--text-display-xl--letter-spacing)",
-              fontWeight: "var(--text-display-xl--font-weight)",
-            }}
-          >
-            İŞİNİZİN GÖRÜNEN YÜZÜNÜ DE ARKASINI DA KONUŞALIM.
-          </p>
-          <Link href={NAV_CTA.href} className="btn btn-accent eyebrow">
-            {NAV_CTA.label}
-          </Link>
         </div>
       </section>
     </>

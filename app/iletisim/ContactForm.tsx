@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, type ReactNode } from "react";
 
 import { SERVICES } from "@/app/content/services";
 
@@ -18,7 +18,7 @@ import { CONTACT_INITIAL_STATE, type ContactField } from "./contactState";
  * (uncontrolled) ve hata hâlinde `defaultValue` sunucudan dönen
  * `state.values`'tan geliyor — JS'siz turda yazılanlar kaybolmasın diye.
  */
-export default function ContactForm() {
+export default function ContactForm({ aside }: { aside?: ReactNode }) {
   const [state, formAction, pending] = useActionState(
     sendContactMessage,
     CONTACT_INITIAL_STATE,
@@ -183,6 +183,7 @@ export default function ContactForm() {
           yapmak için işlenmesine izin vermiş olursunuz. Bilgiler üçüncü
           kişilerle paylaşılmaz.
         </p>
+        {aside}
       </div>
     </form>
   );

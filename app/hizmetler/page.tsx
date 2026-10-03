@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ServiceImage } from "@/app/components/services/ServiceImage";
 import ServiceRail from "@/app/components/services/ServiceRail";
 import { railTiming } from "@/app/components/services/railTiming";
-import { NAV_CTA } from "@/app/components/nav/navLinks";
 import { SERVICES } from "@/app/content/services";
 import { SERVICE_MEDIA } from "@/app/content/serviceMedia";
 
@@ -213,27 +212,6 @@ export default function HizmetlerPage() {
           </div>
         </div>
       </ServiceRail>
-
-      {/* Kapanış. Son hizmet bölümü koyu (index 5) — bu bant ondan
-          ink-deep ile ayrılıyor. */}
-      <section className="surface-ink surface-ink-deep px-(--spacing-gutter) py-(--spacing-section)">
-        <div className="mx-auto flex max-w-(--container-page) flex-wrap items-end justify-between gap-8">
-          <p
-            className="font-display text-strong max-w-[18ch]"
-            style={{
-              fontSize: "var(--text-display-xl)",
-              lineHeight: "var(--text-display-xl--line-height)",
-              letterSpacing: "var(--text-display-xl--letter-spacing)",
-              fontWeight: "var(--text-display-xl--font-weight)",
-            }}
-          >
-            HANGİSİNE İHTİYACINIZ OLDUĞUNU BİRLİKTE BULALIM.
-          </p>
-          <Link href={NAV_CTA.href} className="btn btn-accent eyebrow">
-            {NAV_CTA.label}
-          </Link>
-        </div>
-      </section>
     </>
   );
 }
