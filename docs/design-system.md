@@ -206,7 +206,7 @@ kullanılmıyor.
 
 Hero 8 fazlı bir anlatı: faz 1 tipografik statement, fazlar 2-7 altı hizmet
 ailesi, faz 8 kapanış (beyaz zemin + dikey ray/nokta + kapanış sloganı + CTA +
-nokta bulutu küresi).
+dönen parçacık küresi).
 Faz sırası, ağırlığı ve içeriği `heroPhases.ts`'te tek
 kaynakta durur; `[start, end]` aralıkları ağırlıklardan **türetilir**
 (`PHASE_RANGES`) — `useHeroScroll`'un `read()` döngüsünde faz sınırı sabiti
@@ -303,9 +303,7 @@ gövde içinde inen bir tekerlek noktası. Nokta tek düz iniş yapmaz, **nefes
 alır**: görünmezken belirip `scale 1.25`'e büyür ve amber'a döner
 (`--color-accent`, koyu zeminde AAA), inerken `scale 1`'e iner, dipte küçülüp
 solar (`@keyframes hero-scroll-wheel`, 2.4s, `--ease-in-out-soft`, sonsuz).
-İlk ve son kare görünmez olduğu için döngü başa sararken sıçrama yok. Kürenin
-diliminde de aynı idiom var (`hero-orb-wave`: renk tepe noktasında aksana
-döner), yani sahnede ikinci bir hareket dili açılmadı.
+İlk ve son kare görünmez olduğu için döngü başa sararken sıçrama yok.
 
 Döngü **CSS'te**, JS söndürmesi sarmalayıcıda: `.hero-scroll-wheel`
 keyframe'i taşır, `useHeroScroll` yalnızca `.hero-scroll-hint`'in
@@ -365,7 +363,7 @@ faz aralığında sürülüyor (pre-roll'ü kullanmıyor).
 **Faz 8 (kapanış).** Fazın **hiç medyası yok** — ne klip ne fotoğraf.
 Kapanış tamamen kod tabanlı bir sahne: beyaza dönen zemin, sayfanın 2/3
 hattında bir dikey ray, rayı çizerek inen bir nokta, raydan sökülen slogan ve
-CTA, sağda nefes alan bir nokta bulutu küresi. Motorda resolve'a ait video
+CTA, sağda dönen ve bir yanından dağılan bir parçacık küresi. Motorda resolve'a ait video
 katmanı, `RESOLVE_VIDEO_FADE` ve blob-preload dalı yok; fazlar 2-7'nin video
 mimarisi dokunulmadan duruyor. Önceki monitör fotoğrafı ve onun 3D yerleşme
 koreografisi (`.hero-outro-monitor`, `rotateX/rotateY`, `mix-blend-mode:
@@ -386,8 +384,8 @@ beyazdan şeffafa (`0deg`): okunması gereken metin rayın iki yanında birden
 
 ### Faz 8'in koreografisi
 
-Sahnenin tamamı scroll'a bağlı — CSS transition yok. Tek istisna kürenin nefes
-döngüsü (aşağıda). Pencereler faz-yerel `q`:
+Sahnenin tamamı scroll'a bağlı — CSS transition yok. Tek istisna kürenin
+dönüşü (kendi rAF'ı, aşağıda). Pencereler faz-yerel `q`:
 
 | q | olay |
 |---|---|
@@ -480,69 +478,57 @@ Slogan ve CTA **açık zemine göre** stilleniyor (`.on-paper`, bkz. §2) ve ren
 geçişi gerekmiyor: wash `q=0.12`'de tamamlanıyor, slogan `0.20`'de, CTA
 `0.58`'de belirmeye başlıyor — ikisi de koyu zeminde hiç görünmüyor.
 
-**Küre.** Sağda, butonların üstünde duran bir nokta küresi. **680 nokta.**
-Koordinatlar ve nefes dilimleri `outroOrb.ts`'te **deterministik** üretiliyor.
-`Math.random` yok (faz 1'in kelime saçılmasıyla aynı `hash01`, ortak
-`heroMath.ts`'te) ve modül seviyesinde bir kez hesaplanıyor. Burada
-determinizm ayrıca **zorunlu**: değerler SSR HTML'ine attribute olarak
-yazılıyor, sunucu ile istemci aynı diziyi üretmezse hydration patlar.
+**Küre.** Sağda, butonların üstünde duran, dönen bir **parçacık küresi**
+(Canvas 2D). Kod: `outroOrb.ts` (geometri + çizim), `Hero.tsx`
+`HeroOutroOrb` (yaşam döngüsü).
 
-**Karar değişti (Eylül 2026): düzensiz bulut → gerçekçi küre.** Önceki
-sürüm 280 noktalı ve bilinçli olarak düzensiz bir buluttu: karesel hash'le
-0.45–1.7× boyut jitter'ı, dış hattı 7 birime kadar şişiren bir lob alanı ve
-her noktanın kendi yönüne gittiği per-nokta animasyon. Kullanıcı geri
-bildirimi: seyrek ve düzensiz okunuyordu; istenen, noktaları küre yüzeyine
-oturan, düzgün dağılmış ve daha sık bir küreydi. SVG korundu (Canvas
-seçeneği değerlendirildi, kullanıcı SVG'de kaldı).
+**Karar değişti (Ekim 2026): statik SVG → dönen Canvas küresi.** Referans
+Auros'un "Particle Sphere Visual"ı: binlerce küçük noktadan oluşan, dönen
+3B bir küre; kenarlarında aksan rengini yakalıyor ve bir yanı dağılıyor.
+Önceki sürüm 680 noktalı statik bir SVG'ydi, "dönme" hissi 10 dilimin sırayla
+şişmesinden (`hero-orb-wave`) geliyordu. Eylül'de "Canvas'a geçilmesin, SVG'de
+kalınsın" denmişti; bu referans gerçek dönüş + binlerce parçacık + dağılma
+istediği için o karar geri alındı: SVG'de bu, binlerce DOM elemanının her
+karede yeniden yazılması demekti.
 
-- **Dağılım** yine Fibonacci (altın açı) kafesi. Noktaları yüzeye eşit
-  aralıklı serer; 680 noktada komşu aralığı ~12 viewBox birimi. Sabit bir
-  eğim (`ORB_TILT`) kutuplardaki sarmalın simetrik bir "kapak" gibi
-  okunmasını kırıyor. Küre yarıçapı 82'den 88'e çıktı: lob şişkinliği
-  kalktığı için taşma payına daha az gerek var.
-- **Boyut yalnızca derinlikten geliyor:** `0.7 → 2.3` birim (üs 1.4),
-  üstüne yalnızca ±%6 hash payı. Jitter büyük kalsaydı yüzey kırılırdı.
-- **Işık.** Opaklık = taban 0.10 + derinlik × 0.50 + Lambert × 0.40. Işık
-  sol üst önden geliyor. Arka yarıküre küçük ve soluk, aydınlık taraf
-  dolgun: perspektif matrisi gerekmeden hacimli okunuyor.
-- **Boyama sırası:** dilim içinde yarıçapa, dilimler arasında ortalama
-  derinliğe göre. Arkadaki bir dilim DOM'da öndekinin üstüne binmiyor.
+- **4200 kare parçacık.** Auros'taki noktalar da yuvarlak değil küçük kare;
+  "veri" hissi oradan. Dağılım hash'li düzgün rastgele (deterministik,
+  `hash01`). Fibonacci kafesi denendi ve geri alındı: kusursuz eşit aralık
+  sarmal bir "örgü" gibi okunuyordu. 2400 parçacık da denendi, küre seyrek
+  kaldı.
+- **Dönüş:** dikey eksen etrafında 48 sn'de bir tur, eksen izleyiciye 0.38
+  rad eğik, ±0.05 rad hafif yalpa (31 sn). Derinlik parçacığın boyutunu
+  (0.6 → 1.6px) ve opaklığını belirliyor; arka yarıküre küçük ve soluk.
+- **Dağılma alanı EKRANA sabit** (sağ alt). Küre onun içinden dönerek
+  geçiyor: o yana gelen parçacık yüzeyden kopup dışa savruluyor, arkaya
+  dönünce yerine oturuyor. Yani dağılma donuk bir yara değil, sürekli akan
+  bir hareket. Her parçacığın kopma eşiği ve savrulma mesafesi kendine özel
+  (seed): kenarda düzensiz bir saçak.
+- **Renk:** gövde `--color-fg-on-paper` (mürekkep), kenar ışığı ve
+  savrulanların bir kısmı `--color-accent` (amber). Auros'un lavanta-pembe
+  rolünü bizde logo amberi alıyor. Amber beyaz zeminde aynı opaklıkta
+  kayboluyordu, ona taban opaklık (0.55+) verildi. Savrulanların hepsi amber
+  olunca dağılma ayrı renkte bir leke gibi okunuyordu, payı kısıldı. Renkler
+  çalışma anında token'lardan okunuyor; canvas'a ayrıca hex yazılmıyor.
+- **Maliyet:** parçacıklar 16 kovaya (2 renk × 8 opaklık) toplanıyor; kare
+  başına 16 `fillStyle` değişimi, parçacık başına değil. Çizim **30 fps
+  tavanlı**: 48 sn'lik turda karede ~0.25°, fark seçilmiyor; 60 fps'te
+  hero'nun `tick()`'iyle kare bütçesini aşıyordu (ölçüldü). Opaklık 0'ken
+  (faz 8'den önce) kare atlanıyor, ekran dışındayken (IntersectionObserver)
+  döngü tamamen duruyor.
+- **Neden ayrı rAF:** dönüş scroll'dan bağımsız ve sonsuz; hero'nun
+  `tick()`'i yalnızca scroll'da çalışıyor, oraya bağlansa kullanıcı durunca
+  küre donardı.
+- **Kutu:** canvas kürenin kendisinden büyük (küre kenarın %66'sı), kalan pay
+  savrulma alanı. Masaüstünde `min(26vw, 340px)`; kürenin merkezi eski
+  yerinde kalsın diye alt kenar o kadar aşağı çekildi.
 
-### Kürenin nefesi: dilim seviyesinde dalga
+Üç ayrı eleman korunuyor: sarmalayıcı yerleşim, içteki div scroll'a bağlı
+görünürlük + giriş ölçeği, canvas dönüş.
 
-Per-nokta animasyon **kaldırıldı**; eski dokümanın "geri çekilme yolu"
-(noktaları gruplayıp animasyonu `<g>` seviyesine taşımak) uygulandı. Noktalar
-**görünen dikey eksen etrafındaki boylamlarına** göre 10 dilime ayrılıyor
-(`ORB_GROUP_COUNT`). Her dilim (`<g>`) tek bir paylaşılan `@keyframes
-hero-orb-wave`'i sürüyor:
-
-- Ölçek **viewBox merkezinden** (`transform-box: view-box`, orijin %50):
-  dilim radyal yönde `scale(1.035)`'e kadar dışa çıkıyor, silüet küresel
-  kalıyor. Daha büyük genlik, dilim sınırlarında noktalar arasında görünür
-  bir yarık açıyordu.
-- Gecikmeler dilim sırasına göre kaydırılmış ve **negatif**
-  (`-g / 10 × 7.2s`). Yani ilk karede dalga zaten yolda; şişkinlik ve amber
-  ton kürenin etrafında dolaşıyor ve yavaş bir dönüş gibi okunuyor.
-- Tepe döngünün yalnızca **orta %40'ında** (keyframe 30% / 50% / 70%). Düz
-  0→50→100 eğrisinde aynı anda kürenin yarısı amber görünüyordu (ekran
-  görüntüsüyle ölçüldü); bu hâliyle dar bir bant.
-- Renk dilimde `color` animasyonuyla dönüyor (`--color-fg-on-paper-muted ↔
-  --color-accent`), daireler `fill: currentColor`.
-
-**Maliyet:** 280 animasyonlu eleman yerine 10. Noktalar durağan, per-nokta
-inline `style` (custom property) yazılmadığı için SSR yükü de nokta başına
-küçüldü. `will-change` hâlâ verilmiyor: dilimler yüzlerce nokta taşıyor,
-ayrı katman kazançtan çok bellek maliyeti. Döngü neden CSS'te: scroll'dan
-bağımsız ve sonsuz; rAF'ta olsaydı video playhead'ini süren `tick()` ile aynı
-kare bütçesine binerdi. Süre tek kaynakta (`ORB_WAVE_DURATION`), SVG köküne
-`--odur` olarak yazılıyor.
-
-Üç ayrı eleman zorunlu — sarmalayıcı yerleşimi, içteki div scroll'a bağlı
-görünürlüğü, dilimler nefesi: görünürlük ve nefes aynı elemanda olsaydı her
-frame yazılan transform animasyonun karesini ezerdi.
-
-**Mobilde** küre küçülüp (30vw) sloganla CTA arasındaki banda, sol kenara
-(raya yakın) yerleşiyor — "slogan → küre → CTA" dikey okuması (Eylül 2026,
+**Mobilde** küre sloganla CTA arasındaki banda yerleşiyor (Ekim 2026:
+kutu `min(80vw, 300px)`, merkez %44 — dağılma sağa doğru olduğu için %50'de
+saçak sağdaki rayın üstüne taşıyordu) — "slogan → küre → CTA" dikey okuması (Eylül 2026,
 canlı test düzeltmesi: eskiden sağ üstte, sloganın ÜSTÜNDE duruyordu, okuma
 sırası ters ve küre kayık okunuyordu; bkz. aşağıdaki "Mobil kapanış düzeni"
 alt bölümü). Masaüstündeki "butonların üstünde" konumu dar ekranda alt bandı
@@ -602,9 +588,10 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   kapanış mesajı ve CTA, kendi **açık** yüzeyinde
   (`.surface-paper .surface-paper-raised`) — hareketli dalın beyaz kapanışıyla
   paritesi oluyor. Ray, nokta ve küre bu dalda **hiç render edilmiyor**:
-  üçü de yalnızca hareketten ibaret, durağan hâlde anlam taşımıyorlar. Kürenin
-  nefesi ayrıca CSS'te de `prefers-reduced-motion` altında kapatılıyor —
-  hareketli dal bir şekilde mount olursa diye ikinci güvence.
+  üçü de yalnızca hareketten ibaret, durağan hâlde anlam taşımıyorlar. Küre
+  bileşeni ayrıca kendi içinde `prefers-reduced-motion`'ı okuyup tek bir
+  durağan kare çiziyor — hareketli dal bir şekilde mount olursa diye ikinci
+  güvence.
   İçerik `heroPhases.ts`'ten map'leniyor, iki dalda kopyalanmıyor; yani 8 fazın
   taşıdığı bilginin tamamı hareketsiz olarak da veriliyor. Video hâlâ hiç
   yüklenmiyor (faz 8'de artık hiçbir dalda video yok).

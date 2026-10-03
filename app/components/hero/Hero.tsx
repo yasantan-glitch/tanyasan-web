@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   HERO_PHASES,
   HERO_STATEMENT_LINES,
@@ -11,7 +11,7 @@ import {
   isServicePhase,
   type HeroServicePhase,
 } from "./heroPhases";
-import { ORB_GROUPS, ORB_VIEWBOX, ORB_WAVE_DURATION } from "./outroOrb";
+import { buildOrbParticles, drawOrb, type OrbPalette } from "./outroOrb";
 import { useHeroScroll } from "./useHeroScroll";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -140,48 +140,101 @@ function HeroCtas() {
 }
 
 /**
- * Faz 8'in küresi: sık bir nokta kafesinden gerçekçi bir küre. Geometri ve
- * dilimleme deterministik (bkz. outroOrb.ts); hareketin kendisi CSS'te, tek
- * bir paylaşılan @keyframes'te (hero-orb-wave) ve DİLİM seviyesinde — her
- * <g> kendi gecikmesiyle şişiyor, şişkinlik kürenin etrafında dolaşıyor.
+ * Faz 8'in küresi: dönen, bir yanından dağılan 3B parçacık küresi (Canvas).
+ * Geometri ve çizim outroOrb.ts'te; burada yalnızca yaşam döngüsü.
  *
- * Neden CSS, JS rAF değil: bu döngü scroll'dan bağımsız ve sonsuz. rAF'ta
- * olsaydı video playhead'ini süren mevcut tick() ile aynı kare bütçesine
- * binerdi. CSS'te JS işi sıfır, tarayıcı ekran dışında/arka plan sekmesinde
- * animasyonu kendiliğinden kısıyor ve prefers-reduced-motion motorda dal
- * açmadan çözülüyor.
+ * NE ZAMAN ÇİZİYOR: yalnızca görünürken. Küre faz 8'e kadar opaklık 0'da
+ * (useHeroScroll üst div'e yazıyor); o sürede kare atlanıyor. Ekran dışında
+ * (IntersectionObserver) döngü tamamen duruyor. Arka plan sekmesinde rAF
+ * zaten tarayıcı tarafından durduruluyor.
  *
- * `will-change` bilinçli olarak YOK: 10 dilimin her biri yüzlerce nokta
- * taşıyor, ayrı katmanlar kazançtan çok bellek maliyeti.
+ * NEDEN AYRI rAF: döngü scroll'dan bağımsız ve sonsuz (dönüş). Hero'nun
+ * tick()'i yalnızca scroll'da çalışıyor; dönüşü oraya bağlamak kullanıcı
+ * scroll etmeyi bıraktığı anda küreyi dondururdu.
+ *
+ * RENKLER token'lardan, çalışma anında okunuyor (--color-fg-on-paper,
+ * --color-accent) — canvas CSS değişkeni bilmiyor, ikinci bir hex yazılmıyor.
+ *
+ * Hareketi kapalı kullanıcıda bu bileşen hiç mount edilmiyor (HeroReduced);
+ * yine de mount olursa tek bir durağan kare çiziyor.
  */
+/** Kürenin kare aralığı (ms) — 30 fps, yuvarlama payıyla. */
+const ORB_FRAME_MS = 1000 / 30 - 2;
+
 function HeroOutroOrb() {
-  return (
-    <svg
-      className="hero-outro-orb"
-      viewBox={`0 0 ${ORB_VIEWBOX} ${ORB_VIEWBOX}`}
-      aria-hidden="true"
-      focusable="false"
-      // Süre tek kaynakta (outroOrb.ts); gecikmeler de ondan türüyor.
-      style={{ "--odur": `${ORB_WAVE_DURATION}s` } as React.CSSProperties}
-    >
-      {ORB_GROUPS.map((group) => (
-        <g
-          key={group.delay}
-          style={{ "--odly": `${group.delay}s` } as React.CSSProperties}
-        >
-          {group.dots.map((dot) => (
-            <circle
-              key={`${dot.cx},${dot.cy}`}
-              cx={dot.cx}
-              cy={dot.cy}
-              r={dot.r}
-              opacity={dot.opacity}
-            />
-          ))}
-        </g>
-      ))}
-    </svg>
-  );
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    const particles = buildOrbParticles();
+    const styles = getComputedStyle(canvas);
+    const palette: OrbPalette = {
+      body: styles.getPropertyValue("--color-fg-on-paper").trim() || "#1c1c1c",
+      accent: styles.getPropertyValue("--color-accent").trim() || "#e8ae30",
+    };
+    // Görünürlüğü süren eleman: useHeroScroll'un opaklık yazdığı div.
+    const gate = canvas.closest<HTMLElement>(".hero-outro-orb-wrap > div");
+
+    let size = 0;
+    const resize = () => {
+      const cssSize = canvas.clientWidth;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (cssSize === 0) return;
+      size = cssSize;
+      canvas.width = Math.round(cssSize * dpr);
+      canvas.height = Math.round(cssSize * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      drawOrb(ctx, particles, 0, size, palette);
+      return () => ro.disconnect();
+    }
+
+    let raf = 0;
+    let running = false;
+    let last = 0;
+    const start = performance.now();
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      // 30 kare/sn tavanı. Küre 48 sn'de bir tur atıyor — karede ~0.25°;
+      // 60'la 30 arasındaki fark gözle seçilmiyor, çizim maliyeti yarıya
+      // iniyor (ölçüldü: 4200 parçacıkta 60 fps'te çizim hero'nun kendi
+      // tick()'iyle birlikte kare bütçesini aşıyordu).
+      if (now - last < ORB_FRAME_MS) return;
+      last = now;
+      // Opaklık 0 → kimse görmüyor, çizme. Satır içi stil okumak ucuz
+      // (layout tetiklemiyor).
+      if (gate && gate.style.opacity !== "" && Number(gate.style.opacity) <= 0) return;
+      if (size === 0) return;
+      drawOrb(ctx, particles, (now - start) / 1000, size, palette);
+    };
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !running) {
+        running = true;
+        raf = requestAnimationFrame(frame);
+      } else if (!entry.isIntersecting && running) {
+        running = false;
+        cancelAnimationFrame(raf);
+      }
+    });
+    io.observe(canvas);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      ro.disconnect();
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="hero-outro-orb" aria-hidden="true" />;
 }
 
 /** Ana, scroll-scrubbing'li hero. prefers-reduced-motion: no-preference. */
@@ -348,10 +401,9 @@ function HeroInteractive() {
           </svg>
         </div>
 
-        {/* Küre: sahnenin sağında, butonların üstünde. Görünürlüğü scroll'dan
-            (svg kökünde), nefes alması CSS'ten (iç <g>) sürülüyor — iki
-            hareket ayrı elemanlarda olmak zorunda, aksi halde her frame
-            yazılan transform animasyonun karesini eziyor. */}
+        {/* Küre: sahnenin sağında, butonların üstünde. Görünürlüğü ve giriş
+            ölçeği scroll'dan (bu div), dönüşü kendi rAF'ından (canvas)
+            sürülüyor — bkz. HeroOutroOrb. */}
         <div className="hero-outro-orb-wrap" aria-hidden="true">
           <div ref={outroOrbRef} style={{ opacity: 0 }}>
             <HeroOutroOrb />

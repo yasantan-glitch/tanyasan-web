@@ -700,15 +700,20 @@
     fill: color-mix(in srgb, var(--color-accent) 18%, transparent);
   }
 
-  /* Nokta bulutu küresi. Sarmalayıcı yerleşimi, içteki div scroll'a bağlı
-     görünürlüğü, SVG'nin içindeki <g> ise sürekli nefes döngüsünü taşır —
-     üçü ayrı eleman olmak zorunda: aynı elemanda olsalar her frame yazılan
-     transform, CSS animasyonunun karesini ezerdi. */
+  /* Parçacık küresi (canvas, bkz. outroOrb.ts). Sarmalayıcı yerleşimi,
+     içteki div scroll'a bağlı görünürlük + giriş ölçeği, canvas kendi
+     rAF'ıyla dönüş — üçü ayrı eleman.
+
+     BOYUT: canvas kürenin kendisinden büyük (küre kenarın %66'sı); kalan pay
+     dağılan parçacıkların savrulduğu alan. Eski SVG'de küre kutunun %88'iydi,
+     yani aynı görünür küre için kutu büyüdü: 250 → 340px. Alt kenar da o
+     kadar aşağı çekildi ki kürenin MERKEZİ eski yerinde kalsın (slogan ve
+     CTA'yla olan ilişkisi değişmesin). */
   .hero-outro-orb-wrap {
     position: absolute;
-    inset-inline-start: calc(var(--hero-outro-rail-x) + 4vw);
-    inset-block-end: 26svh;
-    width: min(20vw, 250px);
+    inset-inline-start: calc(var(--hero-outro-rail-x) + 2vw);
+    inset-block-end: calc(26svh - min(3vw, 45px));
+    width: min(26vw, 340px);
     pointer-events: none;
   }
 
@@ -719,60 +724,7 @@
   .hero-outro-orb {
     display: block;
     width: 100%;
-    height: auto;
-  }
-
-  /* Noktalar durağan; hareket DİLİM (<g>) seviyesinde. Her dilim aynı
-     keyframe'i kendi (negatif) gecikmesiyle sürüyor — gecikmeler boylam
-     sırasına göre kaydırıldığı için şişkinlik ve amber ton kürenin etrafında
-     dolaşıyor, yavaş bir dönüş gibi okunuyor (bkz. outroOrb.ts).
-
-     Ölçek VIEWBOX merkezinden: `transform-box: view-box` + %50 orijin =
-     küre merkezi (100,100). Yani dilim radyal yönde dışa çıkıyor, silüet
-     küresel kalıyor. Genlik %3.5 — daha fazlası dilim sınırlarında noktalar
-     arasında görünür bir yarık açıyor.
-
-     `fill: currentColor` + dilimde `color` animasyonu: renk noktaya değil
-     dilime bağlı, amber tek bir bant olarak yüzeyde geziniyor.
-
-     `will-change` YOK: dilimler yüzlerce nokta taşıyor, ayrı katman
-     kazançtan çok bellek maliyeti. */
-  .hero-outro-orb circle {
-    fill: currentColor;
-  }
-
-  .hero-outro-orb g {
-    color: var(--color-fg-on-paper-muted);
-    transform-box: view-box;
-    transform-origin: 50% 50%;
-    animation: hero-orb-wave var(--odur, 7.2s) var(--ease-in-out-soft)
-      var(--odly, 0s) infinite;
-  }
-
-  /* Tepe döngünün yalnızca orta %40'ında: dilimlerin çoğu her an dinlenme
-     hâlinde. 0→50→100 düz eğriyle aynı anda kürenin yarısı amber
-     görünüyordu (ölçüldü) — dalga bir bant değil bir yarıküre gibiydi. */
-  @keyframes hero-orb-wave {
-    0%,
-    30%,
-    70%,
-    100% {
-      transform: scale(1);
-      color: var(--color-fg-on-paper-muted);
-    }
-    50% {
-      transform: scale(1.035);
-      color: var(--color-accent);
-    }
-  }
-
-  /* Hareketi kapalı olan kullanıcıda küre zaten render EDİLMİYOR
-     (bkz. Hero.tsx'in HeroReduced dalı); bu kural, hareketli dal bir şekilde
-     mount olursa nefesin yine de durmasını garanti eder. */
-  @media (prefers-reduced-motion: reduce) {
-    .hero-outro-orb g {
-      animation: none;
-    }
+    aspect-ratio: 1;
   }
 
   /* Faz 8'in CTA'ları: sol kenarı raya yaslı kendi kutusunda. Faz 1'in alt
@@ -3367,9 +3319,7 @@
          Track zaten bu isme bağlı `home-portfolio-slide`'ı taşıyor;
          burada farklı bir ELEMAN (img) kendi TEK animasyonuyla aynı ismi
          okuyor — §12'nin kısıtı yalnızca AYNI elemanda iki animasyonu
-         yasaklıyor, bu ihlal etmiyor (tıpkı `.hero-outro-orb g` ile
-         `.hero-outro-dot`ın ayrı elemanlarda aynı fizikten beslenmesi
-         gibi). Ölçek `--pan-scale` (page.tsx'te satır içi, normal
+         yasaklıyor, bu ihlal etmiyor. Ölçek `--pan-scale` (page.tsx'te satır içi, normal
          karelerde 1.08, Wellness'te 1.22 — `.home-portfolio-media--boost`
          zaten büyütüyor, parallax'ın kendisi onun üstüne biniyor)
          img'i çerçeveden taşıracak kadar büyütüyor ki panda kenar
@@ -3889,10 +3839,15 @@
   .hero-outro-orb-wrap {
     inset-block-start: 62svh;
     inset-block-end: auto;
-    inset-inline-start: 50%;
+    /* Canvas'ın kenar payı (savrulma alanı) yüzünden kutu kürenin
+       kendisinden büyük. Dağılma SAĞA doğru; merkez %50'de olunca saçak
+       sağdaki dikey rayın üstüne taşıyordu (ölçüldü, 390px) — kutu %44'e
+       çekildi, küre ekranın ortasının biraz solunda, saçak rayın önünde
+       bitiyor. */
+    inset-inline-start: 44%;
     inset-inline-end: auto;
     translate: -50% -50%;
-    width: min(70vw, 260px);
+    width: min(80vw, 300px);
   }
 
   .hero-outro-cta {

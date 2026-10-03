@@ -204,7 +204,7 @@ const OUTRO_WASH_TO = 0.12;
  * Faz 8'in kapanış koreografisi (hepsi resolve-yerel q). Sahne tamamen kod
  * tabanlı: sayfanın 2/3 hattında dikey bir ray, onu çizerek inen bir nokta,
  * raydan SOLA çıkan slogan satırları, raydan SAĞA çıkan CTA'lar ve sağda
- * nefes alan bir nokta bulutu küresi.
+ * dönen bir parçacık küresi.
  *
  * Sıra bilinçli: nokta önce belirir, inerken rayı çizer, iniş sürerken slogan
  * satırları raydan sökülür, nokta CTA hizasında DURDUĞU anda (0.55) butonlar
@@ -696,7 +696,7 @@ export function useHeroScroll(): HeroScrollHandle {
       // hattındaki dikey rayı bir nokta çizerek iner; slogan satırları o
       // raydan SOLA, CTA'lar ters yönde SAĞA çıkar; sağda nokta bulutu
       // küresi yerleşir. Hareketin tamamı scroll'a bağlı — CSS transition
-      // YOK, tek istisna kürenin kendi nefes döngüsü (bkz. .hero-outro-orb).
+      // YOK, tek istisna kürenin kendi dönüşü (bkz. Hero.tsx HeroOutroOrb).
       const wash = smooth(clamp01(resolveQ / OUTRO_WASH_TO));
       if (bgWashRef.current) bgWashRef.current.style.opacity = String(wash.toFixed(3));
       // Koyu okunurluk gradyanı beyaz sahnede ters etki yapar; onunla birlikte
@@ -768,8 +768,8 @@ export function useHeroScroll(): HeroScrollHandle {
       }
 
       // --- küre: sahnenin son öğesi. Yalnızca görünürlük + giriş ölçeği
-      // buradan; nefes alma ve renk döngüsü SVG'nin içindeki <g>'de sürekli
-      // bir CSS animasyonu (scroll'dan bağımsız, reduced-motion'da kapalı). ---
+      // buradan; dönüş canvas'ın kendi rAF'ında (scroll'dan bağımsız, bkz.
+      // Hero.tsx HeroOutroOrb). ---
       if (outroOrbRef.current) {
         const ovis = smooth(
           clamp01((resolveQ - OUTRO_ORB_FROM) / (OUTRO_ORB_TO - OUTRO_ORB_FROM))

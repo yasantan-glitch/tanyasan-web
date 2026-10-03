@@ -5,8 +5,8 @@ sahnesi değil; sekans hâlinde geçen **8 fazlı** bir deneyimdir: `intro`
 (ekrana hakim tipografik statement) → 6 hizmet fazı (`grafik`, `dijital`,
 `web`, `yazilim`, `foto`, `danismanlik`) → `resolve` (kapanış: zemin koyudan
 beyaza döner, sayfanın 2/3 hattındaki dikey rayı bir nokta çizerek iner,
-slogan satırları raydan sola / CTA'lar aynı raydan sağa çıkar, sağda nokta
-bulutundan bir küre nefes alır).
+slogan satırları raydan sola / CTA'lar aynı raydan sağa çıkar, sağda bir
+parçacık küresi döner ve bir yanından dağılır).
 
 **Faz 8'in hiç medyası yoktur** — sahne tamamen kod tabanlı (CSS + SVG).
 Eski monitör fotoğrafı, 3D yerleşme koreografisi ve `mix-blend-mode: multiply`
@@ -45,21 +45,19 @@ yazılmaz**; kaydırma butonların kendisindedir.
 salınır; opaklığa uygulansaydı görünür bir titreme olurdu — opaklık her yerde
 monotonik `smooth` ile sürülür.
 
-**Kürenin geometrisi VE nefes dilimleri deterministiktir**
-(`outroOrb.ts`, Fibonacci kafesi + `hash01`): `Math.random` yok, modül
-seviyesinde bir kez hesaplanır. Burada bu bir stil tercihi değil zorunluluk —
-değerler SSR HTML'ine attribute olarak yazılır, sunucu ile istemci aynı
-diziyi üretmezse hydration patlar.
-
-**Küre gerçekçi olmalı, düzensiz değil** (Eylül 2026 kullanıcı kararı; eski
-280 noktalı düzensiz bulut kaldırıldı). 680 nokta; boyut ve opaklık yalnızca
-derinlikten ve bir Lambert ışığından gelir, hash payı ±%6. Boyut jitter'ı ya
-da dış hattı bozan bir alan geri eklenmemeli. **Nefes per-nokta değil dilim
-seviyesindedir:** noktalar boylama göre 10 `<g>`'ye ayrılır, her dilim
-`hero-orb-wave` ile viewBox merkezinden `scale(1.035)`'e çıkar, gecikmeler
-dilim sırasına göre kayar ve dalga kürenin etrafında dolaşır. Hareket
-CSS'tedir (rAF değil); `will-change` verilmez. Gerekçe için
-`docs/design-system.md` §8.
+**Küre Canvas'ta döner** (Ekim 2026 kullanıcı kararı, referans Auros'un
+parçacık küresi; eski 680 noktalı SVG ve `hero-orb-wave` dilim nefesi
+kaldırıldı). `outroOrb.ts` geometri + çizim, `Hero.tsx` `HeroOutroOrb` yaşam
+döngüsü. Kurallar:
+- Dağılım deterministik (`hash01`, `Math.random` yok), Fibonacci kafesi DEĞİL
+  — örgü gibi okunuyordu.
+- Dağılma alanı ekrana sabit, küre içinden döner; dağılmayı parçacığa ya da
+  küreye bağlamayın, hareket donar.
+- Renkler token'lardan çalışma anında okunur (`--color-fg-on-paper`,
+  `--color-accent`); canvas koduna hex yazmayın.
+- 30 fps tavanı, opaklık 0'da kare atlama ve ekran dışında durma bilinçli;
+  kaldırmayın. Parçacık sayısını artırırsanız kare hızını ölçün.
+- Gerekçe: `docs/design-system.md` §8 "Küre".
 
 ## Tek kaynak: `heroPhases.ts`
 

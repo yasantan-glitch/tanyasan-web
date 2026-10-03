@@ -1,160 +1,240 @@
 import { hash01 } from "./heroMath";
 
 /**
- * Faz 8'in nokta küresi — geometrisi VE nefes gruplaması deterministik
- * üretilir.
+ * Faz 8'in parçacık küresi — geometri ve çizim (Canvas 2D).
  *
- * Math.random YOK (faz 1'in kelime saçılmasıyla aynı disiplin, bkz.
- * heroMath.ts): küre her yüklemede aynı görünmeli, aksi halde tasarlanmış
- * değil kazara oluşmuş gibi okunur. Burada ayrıca zorunlu: değerler SSR
- * HTML'ine attribute olarak yazıldığı için sunucu ve istemci birebir aynı
- * diziyi üretmek zorunda (hydration uyuşmazlığı olmaz).
+ * KARAR DEĞİŞTİ (Ekim 2026, kullanıcı kararı): referans Auros'un "Particle
+ * Sphere Visual"ı — "binlerce küçük noktadan oluşan, dönen 3B bir küre;
+ * kenarlarında aksan rengini yakalayan, biyolüminesan bir veri küresi".
+ * Görselde ayrıca kürenin bir yanı DAĞILIYOR: parçacıklar o tarafta yüzeyden
+ * kopup seyrekleşiyor.
  *
- * KARAR DEĞİŞTİ (Eylül 2026, kullanıcı geri bildirimi): önceki sürüm 280
- * noktalı, bilinçli olarak DÜZENSİZ bir buluttu — karesel boyut jitter'ı, dış
- * hattı yönlere göre şişiren bir lob alanı ve her noktanın kendi yönüne
- * giden per-nokta animasyonu. Sonuç küre değil seyrek bir bulut gibi
- * okunuyordu. Artık hedef GERÇEKÇİ bir küre: sık, yüzeye düzgün oturan
- * noktalar; boyut ve ton yalnızca derinlikten ve ışıktan geliyor.
+ * Önceki sürüm 680 noktalı statik bir SVG'ydi; "dönme" hissi yalnızca 10
+ * dilimin sırayla şişmesinden geliyordu. Gerçek dönüş + binlerce parçacık +
+ * dağılma, her karede binlerce noktanın yeniden izdüşümü demek: SVG'de bu
+ * binlerce DOM elemanının her karede yeniden yazılması olurdu. Canvas'ta tek
+ * bir bitmap, birkaç düzine `fillRect` çağrısı grubu.
  *
- * Dağılım: Fibonacci (altın açı) kafesi. Kutuplarda yığılan enlem/boylam
- * ızgarasının aksine noktaları küre yüzeyine eşit aralıklı serer.
+ * DETERMİNİZM KORUNUYOR: Math.random yok, Fibonacci kafesi + hash01. Küre
+ * her yüklemede aynı başlıyor. (SSR zorunluluğu artık yok — canvas yalnızca
+ * istemcide çiziliyor — ama "tasarlanmış, kazara değil" disiplini aynı.)
  *
- * İzdüşüm ortografik: z yalnızca noktanın YARIÇAPINI ve OPAKLIĞINI belirler;
- * üstüne sol üst önden gelen bir Lambert ışığı biniyor. Arka yarıküre küçük
- * ve soluk, aydınlık taraf dolgun — perspektif matrisi gerekmeden hacimli.
- *
- * NEFES GRUP SEVİYESİNDE: noktalar boylamlarına göre ORB_GROUP_COUNT dilime
- * ayrılıyor, her dilim (<g>) küre merkezinden hafifçe şişiyor ve gecikmeler
- * dilim sırasına göre kaydırılmış. Şişkinlik kürenin etrafında DOLAŞIYOR —
- * yavaş bir dönüş gibi okunuyor, silüet küresel kalıyor. 680 animasyon
- * yerine 10: per-nokta animasyonun bedelini (bkz. docs/design-system.md §8)
- * artık ödemiyoruz.
+ * KOORDİNATLAR: birim küre. Ekran: x sağ, y AŞAĞI, z izleyiciye doğru.
  */
 
-/** SVG viewBox'ı: kare, 200×200. Nefeste dilimler dışa taştığı için küre
- * yarıçapı 200'ün yarısı değil, 88 — en büyük ölçek + en büyük nokta bile
- * kutunun içinde kalır. */
-export const ORB_VIEWBOX = 200;
-const ORB_CENTER = ORB_VIEWBOX / 2;
-const ORB_RADIUS = 88;
+/** Parçacık sayısı. Auros'un "binlerce" yoğunluğu. 2400'de (ilk deneme)
+ * küre seyrek, noktalar tek tek sayılabilir okunuyordu; 4200'de yüzey
+ * sürekli bir doku. */
+export const ORB_PARTICLES = 4200;
 
-/** Nokta sayısı. 680'de komşu aralığı ~12 viewBox birimi: yüzey sürekli bir
- * doku olarak okunuyor, noktalar yine tek tek seçilebiliyor. */
-const ORB_POINT_COUNT = 680;
+/** Küre yarıçapı, canvas kenarının oranı olarak. Kalan pay dağılan
+ * parçacıkların gideceği alan — 0.5'e yaklaşırsa dağılma kenarda kırpılır. */
+export const ORB_RADIUS_RATIO = 0.33;
 
-/** Derinliğe bağlı yarıçap aralığı. Jitter yalnızca ±%6 — boyut farkı
- * rastlantıdan değil derinlikten gelmeli, yoksa yüzey kırılır. */
-const ORB_R_MIN = 0.7;
-const ORB_R_MAX = 2.3;
-const ORB_R_DEPTH_POW = 1.4;
+/** Bir tam tur (sn). Auros'ta dönüş ağır ve sinematik; hızlısı oyuncak
+ * gibi okunuyor. */
+export const ORB_TURN_SECONDS = 48;
 
-/** Opaklık = taban + derinlik payı + ışık payı. */
-const ORB_OPACITY_BASE = 0.1;
-const ORB_OPACITY_DEPTH = 0.5;
-const ORB_OPACITY_LIGHT = 0.4;
-
-/** Işık yönü (birim vektör): sol (−x), üst (SVG'de −y), öne doğru (+z). */
-const LIGHT = (() => {
-  const v = [-0.45, -0.55, 0.7];
-  const len = Math.hypot(v[0], v[1], v[2]);
-  return v.map((c) => c / len);
-})();
-
-/** Nefes dilimi sayısı. 10 dilim dalganın gözle görülür adımlarla değil
- * akarak dolaşmasına yetiyor; her dilim ayrı bir animasyon olduğu için daha
- * fazlası yalnızca maliyet. */
-export const ORB_GROUP_COUNT = 10;
-
-/** Dalganın kürenin etrafında bir tur atma süresi (sn). */
-export const ORB_WAVE_DURATION = 7.2;
-
-export interface OrbDot {
-  cx: number;
-  cy: number;
-  r: number;
-  opacity: number;
-}
-
-export interface OrbGroup {
-  /** Saniye, NEGATİF: dilim döngünün ortasından başlar, yani ilk karede
-   * dalga zaten yolda. Pozitif gecikmeyle dilimler bir süre kıpırdamadan
-   * bekler ve sahneye "sıra sıra" girerdi. */
-  delay: number;
-  dots: OrbDot[];
-}
-
-/** Altın açı — Fibonacci kafesinin boylam adımı. */
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+/** Dönme ekseninin izleyiciye eğimi (radyan): kutup hafifçe öne yatık,
+ * kafesin kutup sarmalı tepede simetrik bir "kapak" gibi okunmuyor. */
+const ORB_TILT = 0.38;
 
 /**
- * Küre biraz eğik duruyor: kafes ekseni tam dikeyken kutuplardaki düzenli
- * sarmal ekranın tepesinde ve dibinde simetrik bir "kapak" gibi okunuyordu.
- * Sabit bir eğim (radyan) bunu kırıyor — yine deterministik.
+ * DAĞILMA ALANI — kürenin "çözülen" yanı. Alan EKRANA sabit (sağ alt), küre
+ * onun içinden DÖNEREK geçiyor: bir parçacık o yana geldiğinde yüzeyden
+ * kopup dışa savruluyor, arkaya dönünce yeniden yerine oturuyor. Böylece
+ * dağılma tek bir donuk yara değil, sürekli akan bir hareket.
+ *
+ * Yön: sağ-alt (ekranda y aşağı). Eşikler: dot ürünü FROM'dan küçükse hiç
+ * etkilenmiyor, TO'da tam etki.
  */
-const ORB_TILT = 0.42;
+const SCATTER_DIR = (() => {
+  const v = [0.82, 0.46, 0.34];
+  const len = Math.hypot(v[0], v[1], v[2]);
+  return v.map((c) => c / len) as [number, number, number];
+})();
+const SCATTER_FROM = 0.1;
+const SCATTER_TO = 0.92;
+/** En uzağa savrulan parçacığın merkezden mesafesi (yarıçap cinsinden ek). */
+const SCATTER_REACH = 0.5;
 
-const round = (value: number, digits: number) => Number(value.toFixed(digits));
+/** Parçacık kenarı (CSS px), derinliğe göre. Kare parçacık: Auros'taki
+ * noktalar da yuvarlak değil küçük kareler — "veri" hissi oradan geliyor. */
+const SIZE_BACK = 0.6;
+const SIZE_FRONT = 1.6;
 
-export const ORB_GROUPS: OrbGroup[] = (() => {
-  const groups: OrbGroup[] = Array.from({ length: ORB_GROUP_COUNT }, (_, g) => ({
-    delay: round(-(g / ORB_GROUP_COUNT) * ORB_WAVE_DURATION, 2),
-    dots: [],
-  }));
-  const cosT = Math.cos(ORB_TILT);
-  const sinT = Math.sin(ORB_TILT);
+/** Opaklık seviyeleri. Her parçacık bir kovaya düşüyor; kova başına tek
+ * `fillStyle` → kare başına ~2×ALPHA_LEVELS durum değişimi, parçacık başına
+ * değil. */
+const ALPHA_LEVELS = 8;
 
-  for (let i = 0; i < ORB_POINT_COUNT; i++) {
-    // y: -1..1 arasında eşit aralıklı; ring yarıçapı küre denkleminden.
-    const y = 1 - (2 * i + 1) / ORB_POINT_COUNT;
+export interface OrbParticles {
+  /** Birim küre koordinatları, [x0,y0,z0, x1,y1,z1, …]. */
+  pos: Float32Array;
+  /** Parçacık başına sabit rastgelelik (0–1): savrulma payı, titreşim fazı. */
+  seed: Float32Array;
+}
+
+/**
+ * DAĞILIM: hash'li düzgün rastgele (y = 1 − 2u, θ = 2πv) — Fibonacci
+ * kafesi DEĞİL. İlk denemede Fibonacci kullanıldı: noktalar kusursuz eşit
+ * aralıklı olunca küre sarmal sıralı bir "örgü" gibi okunuyordu. Auros'un
+ * dokusu organik; hafif kümelenmeler ve boşluklar onu "veri bulutu" yapıyor.
+ * Hash yine deterministik.
+ */
+export function buildOrbParticles(count: number = ORB_PARTICLES): OrbParticles {
+  const pos = new Float32Array(count * 3);
+  const seed = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    const y = 1 - 2 * hash01(i * 3 + 11);
     const ring = Math.sqrt(Math.max(1 - y * y, 0));
-    const theta = GOLDEN_ANGLE * i;
-    const x = Math.cos(theta) * ring;
-    const z = Math.sin(theta) * ring;
+    const theta = Math.PI * 2 * hash01(i * 3 + 29);
+    pos[i * 3] = Math.cos(theta) * ring;
+    pos[i * 3 + 1] = y;
+    pos[i * 3 + 2] = Math.sin(theta) * ring;
+    seed[i] = hash01(i * 3 + 503);
+  }
+  return { pos, seed };
+}
 
-    // X ekseni etrafında sabit eğim. (ux, uy, uz) noktanın birim yönü.
-    const ux = x;
-    const uy = y * cosT - z * sinT;
-    const uz = y * sinT + z * cosT;
+export interface OrbPalette {
+  /** Gövde parçacıkları (açık zeminde mürekkep). */
+  body: string;
+  /** Kenar ve savrulan parçacıklar — markanın amberi. Auros'ta bu rol
+   * lavanta-pembe; bizde logo amberi. */
+  accent: string;
+}
 
-    // depth 0 = en arka, 1 = en ön.
-    const depth = (uz + 1) / 2;
-    const light = Math.max(ux * LIGHT[0] + uy * LIGHT[1] + uz * LIGHT[2], 0);
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+  return t * t * (3 - 2 * t);
+};
 
-    const r =
-      (ORB_R_MIN + Math.pow(depth, ORB_R_DEPTH_POW) * (ORB_R_MAX - ORB_R_MIN)) *
-      (0.94 + 0.12 * hash01(i + 911));
-    const opacity = Math.min(
-      (ORB_OPACITY_BASE + depth * ORB_OPACITY_DEPTH + light * ORB_OPACITY_LIGHT) *
-        (0.94 + 0.06 * hash01(i + 337)),
-      1
-    );
+/** Kovalar, çağrılar arasında yeniden kullanılıyor (her karede ayırma yok). */
+type Buckets = { xs: Float32Array; ys: Float32Array; ss: Float32Array; n: number }[];
+let bucketCache: { size: number; buckets: Buckets } | null = null;
 
-    /**
-     * Dilim: dikey eksen etrafındaki boylam. Eğimden ÖNCEKİ (x, z) değil
-     * ekrandaki (ux, uz) kullanılıyor ki dalga görünen dikey eksen etrafında
-     * dönsün — eğik eksende dönen bir dalga "yalpalıyor" gibi okunuyordu.
-     */
-    const azimuth = Math.atan2(ux, uz); // -π..π
-    const g = Math.min(
-      Math.floor(((azimuth + Math.PI) / (2 * Math.PI)) * ORB_GROUP_COUNT),
-      ORB_GROUP_COUNT - 1
-    );
+function getBuckets(count: number): Buckets {
+  if (bucketCache && bucketCache.size === count) return bucketCache.buckets;
+  const buckets: Buckets = Array.from({ length: ALPHA_LEVELS * 2 }, () => ({
+    xs: new Float32Array(count),
+    ys: new Float32Array(count),
+    ss: new Float32Array(count),
+    n: 0,
+  }));
+  bucketCache = { size: count, buckets };
+  return buckets;
+}
 
-    groups[g].dots.push({
-      cx: round(ORB_CENTER + ux * ORB_RADIUS, 2),
-      cy: round(ORB_CENTER + uy * ORB_RADIUS, 2),
-      r: round(r, 2),
-      opacity: round(opacity, 3),
-    });
+/**
+ * Tek kare. `t` saniye. `size` canvas'ın CSS px kenarı, `dpr` cihaz oranı
+ * (bağlam zaten dpr ile ölçeklenmiş olmalı).
+ */
+export function drawOrb(
+  ctx: CanvasRenderingContext2D,
+  particles: OrbParticles,
+  t: number,
+  size: number,
+  palette: OrbPalette,
+) {
+  const { pos, seed } = particles;
+  const count = seed.length;
+  const half = size / 2;
+  const R = size * ORB_RADIUS_RATIO;
+
+  ctx.clearRect(0, 0, size, size);
+
+  // Dönüş: dikey eksen etrafında (yaw), sonra sabit eğim (X ekseni). Hafif
+  // bir yalpa (±0.05 rad, 31 sn) eğimi canlı tutuyor — tam sabit eksen
+  // mekanik okunuyordu.
+  const yaw = (t / ORB_TURN_SECONDS) * Math.PI * 2;
+  const tilt = ORB_TILT + Math.sin(t * ((Math.PI * 2) / 31)) * 0.05;
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const ct = Math.cos(tilt);
+  const st = Math.sin(tilt);
+
+  const buckets = getBuckets(count);
+  for (const b of buckets) b.n = 0;
+
+  const [dx, dy, dz] = SCATTER_DIR;
+
+  for (let i = 0; i < count; i++) {
+    const px = pos[i * 3];
+    const py = pos[i * 3 + 1];
+    const pz = pos[i * 3 + 2];
+
+    // yaw (Y ekseni)
+    const x1 = px * cy + pz * sy;
+    const z1 = -px * sy + pz * cy;
+    // tilt (X ekseni)
+    const y2 = py * ct - z1 * st;
+    const z2 = py * st + z1 * ct;
+    const x2 = x1;
+
+    // Dağılma: ekrana sabit alana ne kadar girdiği.
+    const s = seed[i];
+    const field = smoothstep(SCATTER_FROM, SCATTER_TO, x2 * dx + y2 * dy + z2 * dz);
+    // Her parçacık aynı anda kopmuyor: seed eşiği alanın içinde parçacığa
+    // kendi kopma noktasını veriyor; savrulma mesafesi de parçacığa özel.
+    // Sonuç: kenarda seyrekleşen, düzensiz bir saçak.
+    const loose = smoothstep(s * 0.55, s * 0.55 + 0.45, field);
+    const flutter = 1 + 0.18 * Math.sin(t * 0.9 + s * 40);
+    const push = loose * SCATTER_REACH * (0.25 + 0.75 * hash(s)) * flutter;
+
+    // Savrulma radyal + alan yönüne doğru hafif sürüklenme: parçacıklar
+    // yalnızca "şişmiyor", bir yöne akıyor.
+    const sx = x2 * (1 + push) + dx * push * 0.35;
+    const syy = y2 * (1 + push) + dy * push * 0.35;
+    const sz = z2 * (1 + push);
+
+    // Derinlik 0 (arka) … 1 (ön).
+    const depth = Math.min(Math.max((sz + 1) / 2, 0), 1);
+    // Kenar ışığı (fresnel benzeri): izleyiciye yan duran yüzey.
+    const rim = Math.pow(1 - Math.abs(z2), 3);
+
+    let alpha =
+      (0.1 + 0.9 * Math.pow(depth, 1.3)) * (1 - 0.4 * loose) *
+      (0.85 + 0.15 * s);
+    // Arka yarıkürenin kenarı da hafifçe görünsün (kürenin hacmi).
+    alpha = Math.max(alpha, rim * 0.35);
+
+    // Renk: kenarda ya da savrulmuşsa amber. Eşik seed'le yumuşatılıyor —
+    // keskin bir halka değil, kenara doğru yoğunlaşan bir parıltı.
+    // Savrulanların yarısı kadarı amber (loose × 0.6): hepsi amber
+    // olunca dağılma ayrı renkte bir leke gibi okunuyordu; Auros'ta saçak
+    // gövdeyle aynı malzemeden, yalnızca ışığı yakalayanlar parlıyor.
+    const accentScore = rim * 0.9 + loose * 0.6;
+    const isAccent = accentScore > 0.55 + s * 0.35 ? 1 : 0;
+    // Amber beyaz zeminde mürekkepten çok daha açık: aynı opaklıkta
+    // kayboluyordu (ilk denemede savrulan bulut neredeyse görünmezdi).
+    // Amber parçacıklara bir taban opaklık veriliyor.
+    if (isAccent) alpha = Math.max(alpha, 0.55 + 0.35 * depth);
+
+    const level = Math.min(Math.floor(alpha * ALPHA_LEVELS), ALPHA_LEVELS - 1);
+    if (level < 0) continue;
+    const b = buckets[isAccent * ALPHA_LEVELS + level];
+    const sz2 = SIZE_BACK + (SIZE_FRONT - SIZE_BACK) * depth;
+    b.xs[b.n] = half + sx * R - sz2 / 2;
+    b.ys[b.n] = half + syy * R - sz2 / 2;
+    b.ss[b.n] = sz2;
+    b.n++;
   }
 
-  // Boyama sırası: arkadaki noktalar önce. Dilim içinde nokta yarıçapına
-  // (derinliğin tekdüze bir fonksiyonu) göre; dilimler arasında ortalama
-  // derinliğe göre — arka yarıküredeki bir dilim DOM'da öndekinin üstüne
-  // binmesin. Gecikme dilime bağlı sabit kaldığı için sıra dalgayı bozmuyor.
-  const meanR = (group: OrbGroup) =>
-    group.dots.reduce((sum, dot) => sum + dot.r, 0) / Math.max(group.dots.length, 1);
-  for (const group of groups) group.dots.sort((a, b) => a.r - b.r);
-  return groups.sort((a, b) => meanR(a) - meanR(b));
-})();
+  for (let k = 0; k < buckets.length; k++) {
+    const b = buckets[k];
+    if (b.n === 0) continue;
+    const accent = k >= ALPHA_LEVELS;
+    const level = k % ALPHA_LEVELS;
+    ctx.globalAlpha = (level + 0.5) / ALPHA_LEVELS;
+    ctx.fillStyle = accent ? palette.accent : palette.body;
+    for (let j = 0; j < b.n; j++) ctx.fillRect(b.xs[j], b.ys[j], b.ss[j], b.ss[j]);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** seed'den ikinci, bağımsız bir 0–1 değeri (savrulma mesafesi için). */
+function hash(s: number) {
+  const x = Math.sin(s * 9973.13) * 43758.5453;
+  return x - Math.floor(x);
+}
