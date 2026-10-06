@@ -17,6 +17,8 @@ import DragGallery from "@/app/components/gallery/DragGallery";
 import GalleryCard from "@/app/components/gallery/GalleryCard";
 import type { PortfolioCategory } from "@/app/content/portfolioCategories";
 
+import WorkLightbox from "./WorkLightbox";
+
 /**
  * /portfolyo'nun kategori kartları — gertix.studio/portfolio referansı
  * (Ekim 2026). İki katman:
@@ -78,12 +80,15 @@ const pad = (n: number) => String(n).padStart(2, "0");
 function StackCard({
   category,
   index,
+  count,
   rise,
   onOpen,
   onRelease,
 }: {
   category: PortfolioCategory;
   index: number;
+  /** Kart sayısı — ton rampası sıradan türüyor. */
+  count: number;
   rise: { from: number; to: number };
   /** Detay açılırken: kartı duruşuna yumuşakça getir + sayfayı kilitle. */
   onOpen: (index: number) => void;
@@ -100,6 +105,22 @@ function StackCard({
   const exitTimer = useRef<number | undefined>(undefined);
   const releaseTimer = useRef<number | undefined>(undefined);
   const galleryId = `${category.id}-isler`;
+
+  // Detay: etiketler ↔ galeri eşleşmesi ve tam ekran görünüm.
+  const galleryApi = useRef<{ goTo: (index: number) => void } | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [zoom, setZoom] = useState<number | null>(null);
+  /** Detay hangi kareden açıldı: 0 = baştan (buton/başlık/kapak), >0 = bir
+   * iş etiketinden (galeri o kareyle açılır). */
+  const [entryFrom, setEntryFrom] = useState(0);
+  const firstOf = useMemo(() => {
+    const map = new Map<string, number>();
+    category.items.forEach((item, i) => {
+      if (!map.has(item.brand)) map.set(item.brand, i);
+    });
+    return map;
+  }, [category.items]);
+  const activeBrand = category.items[activeIndex]?.brand;
 
   // Kapağı aktif yuvaya oturt. Yuva ölçüsü layout'tan (offset*), transform'suz.
   const place = useCallback((target: "media" | "thumb") => {
@@ -167,10 +188,13 @@ function StackCard({
   // Uçuş süresince galeri penceresi kırpmasın (globals.css
   // `[data-entering]`): son karenin gecikmesi + kendi süresi. DOM bayrağı —
   // React state'i değil, ikinci bir render gerekmiyor.
+  // Bir iş etiketinden açılınca (entryFrom > 0) bayrak YOK: kırpmasız
+  // pencere (`overflow: visible`) kaydırılamaz, galeri o kareye atlayamazdı.
+  // O durumda kareler pencerenin içinde, hedef kareden başlayarak girer.
   const galleryRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const gallery = galleryRef.current;
-    if (!open || !gallery) return;
+    if (!open || !gallery || entryFrom > 0) return;
     gallery.dataset.entering = "";
     const timer = window.setTimeout(
       () => delete gallery.dataset.entering,
@@ -180,7 +204,7 @@ function StackCard({
       window.clearTimeout(timer);
       delete gallery.dataset.entering;
     };
-  }, [open, category.items.length]);
+  }, [open, category.items.length, entryFrom]);
 
   // Yan etki (zamanlayıcı) state güncelleyicisinin İÇİNDE değil: React
   // güncelleyiciyi iki kez çağırabilir, sızan ikinci zamanlayıcı hızlı
@@ -208,6 +232,24 @@ function StackCard({
     }
   }, [index, onOpen, onRelease]);
 
+  // Başlık, kapak ve "İşleri Gör": detay baştan açılır.
+  const onToggleClick = () => {
+    if (phaseRef.current === "closed") setEntryFrom(0);
+    toggle();
+  };
+
+  // İş etiketi: kapalıysa detayı o işin karesiyle aç, açıksa galeriyi oraya
+  // kaydır. Kapanırken basılırsa kapanış iptal, galeri hâlâ yerinde.
+  const showWork = (target: number) => {
+    if (phaseRef.current === "closed") {
+      setEntryFrom(target);
+      toggle();
+      return;
+    }
+    if (phaseRef.current === "closing") toggle();
+    galleryApi.current?.goTo(target);
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape" && open) {
       event.stopPropagation();
@@ -217,7 +259,13 @@ function StackCard({
   };
 
   const link = category.href;
+  // Header: gri logo (#676767) ~#979797 zeminde kaybolur — p ≥ 0.35'ten
+  // itibaren beyaz logo. Ton rampası: 0 (beyaz) → 1 (ink-950), kartlara eşit dağılıyor. Eşikler
+  // globals.css `.pf-card[data-tone]` yorumuyla aynı.
+  const p = count > 1 ? index / (count - 1) : 0;
+  const tone = p < 0.45 ? "light" : p < 0.7 ? "mid" : "dark";
   const style = {
+    "--pf-p": p,
     "--rise-from": rise.from,
     "--rise-to": rise.to,
   } as CSSProperties;
@@ -237,9 +285,9 @@ function StackCard({
       ref={cardRef}
       id={category.id}
       className="pf-card"
-      data-theme={index}
+      data-tone={tone}
       data-phase={phase}
-      data-header-tone={index < 2 ? "light" : "dark"}
+      data-header-tone={p < 0.35 ? "light" : "dark"}
       data-cover-wide={category.coverWide ? "" : undefined}
       style={style}
       onKeyDown={onKeyDown}
@@ -253,7 +301,7 @@ function StackCard({
         ) : (
           <button
             type="button"
-            onClick={toggle}
+            onClick={onToggleClick}
             aria-expanded={open}
             aria-controls={galleryId}
           >
@@ -263,9 +311,33 @@ function StackCard({
       </h2>
 
       <ul className="pf-card__labels" aria-label="Markalar">
-        {category.labels.map((label) => (
-          <li key={label}>{label}</li>
-        ))}
+        {category.labels.map((label) => {
+          const target = firstOf.get(label);
+          // Her iş etiketi her zaman düğme (kapak da galeride, her işin bir
+          // karesi var). Vurgu yalnızca detay açıkken, galeriyle senkron.
+          // Detaysız kart (Yazılım & Uygulama): etiketler de vaka sayfasına.
+          if (link) {
+            return (
+              <li key={label}>
+                <Link href={link}>{label}</Link>
+              </li>
+            );
+          }
+          if (target === undefined) return <li key={label}>{label}</li>;
+          const active = open && label === activeBrand;
+          return (
+            <li key={label} data-active={active ? "" : undefined}>
+              <button
+                type="button"
+                aria-pressed={open ? active : undefined}
+                aria-controls={galleryId}
+                onClick={() => showWork(target)}
+              >
+                {label}
+              </button>
+            </li>
+          );
+        })}
       </ul>
 
       {/* Açıkken kapağın küçülüp oturduğu yuva — başlığın hemen altı. */}
@@ -284,12 +356,12 @@ function StackCard({
             ref={toggleRef}
             type="button"
             className="pf-btn"
-            onClick={toggle}
+            onClick={onToggleClick}
             aria-expanded={open}
             aria-controls={galleryId}
           >
             <span className="pf-btn__title">
-              {open ? "Kapat" : `${category.cta} (${pad(category.items.length + 1)})`}
+              {open ? "Kapat" : `${category.cta} (${pad(category.workCount)})`}
             </span>
             <span
               className={`pf-btn__arrow${open ? " pf-btn__arrow--close" : ""}`}
@@ -317,7 +389,7 @@ function StackCard({
             tabIndex={-1}
             aria-hidden="true"
             className="pf-card__cover-hit"
-            onClick={toggle}
+            onClick={onToggleClick}
           >
             {cover}
           </button>
@@ -345,7 +417,13 @@ function StackCard({
             </button>
           ) : null}
           {phase !== "closed" ? (
-            <DragGallery label={`${category.title} işleri`} className="pf-gallery">
+            <DragGallery
+              label={`${category.title} işleri`}
+              className="pf-gallery"
+              apiRef={galleryApi}
+              onActive={setActiveIndex}
+              initialIndex={entryFrom}
+            >
               {category.items.map((item, itemIndex) => (
                 <GalleryCard
                   key={item.src}
@@ -354,15 +432,32 @@ function StackCard({
                   brand={item.brand}
                   meta={item.event ?? item.category}
                   description={item.alt}
+                  onOpen={() => setZoom(itemIndex)}
                   sizes="(max-width: 860px) 70vw, 24rem"
                   className={item.wide ? "gallery-card--wide" : undefined}
-                  style={{ "--i": itemIndex } as CSSProperties}
+                  style={{ "--i": Math.max(0, itemIndex - entryFrom) } as CSSProperties}
                 />
               ))}
             </DragGallery>
           ) : null}
         </div>
       )}
+
+      {zoom !== null ? (
+        <WorkLightbox
+          items={category.items}
+          index={zoom}
+          onIndex={setZoom}
+          onClose={(index) => {
+            setZoom(null);
+            // Odak ve galeri, kapanırken gösterilen işe dönsün.
+            galleryApi.current?.goTo(index);
+            galleryRef.current
+              ?.querySelectorAll<HTMLButtonElement>(".gallery-card__zoom")
+              [index]?.focus({ preventScroll: true });
+          }}
+        />
+      ) : null}
     </article>
   );
 }
@@ -445,6 +540,7 @@ export default function PortfolioStack({
               key={category.id}
               category={category}
               index={index}
+              count={categories.length}
               rise={geometry.rise(index)}
               onOpen={onOpen}
               onRelease={onRelease}

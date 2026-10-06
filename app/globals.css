@@ -2719,7 +2719,7 @@
      Kart tonları açıktan koyuya kademeli (gertix'in #E8EBEB → #9EABAD →
      #72797A dizisinin sitenin paletindeki karşılığı); her biri kendi yüzey
      değişkenlerini bağlıyor, içerideki her şey (`.gallery-card` dahil)
-     onları okuyor. `data-header-tone` (PortfolioStack) ilk ikide açık.
+     onları okuyor. `data-header-tone` (PortfolioStack) açık tonlu kartlarda açık.
      ========================================================================== */
   /* Alt pay = alttaki bandın dikiş şeridi (`.seam::before`, --seam-h):
      şerit yukarı taşıp son kartın altını örtüyor, butonu sarı banda
@@ -2755,30 +2755,45 @@
     --btn-fg: var(--color-fg-on-ink);
   }
 
-  .pf-card[data-theme="0"] {
-    --pf-bg: var(--color-paper-0);
+  /* TON RAMPASI kart sayısından türüyor: PortfolioStack her karta
+     `--pf-p` (0 → 1, sıra / (adet - 1)) ve `data-tone` (light | mid | dark)
+     yazıyor. Zemin beyaz → ink-950 arası oklab karışımı; kategori eklenince
+     rampa kendiliğinden yeniden dağılır. 6 kartta: #fff, #cacaca, #979797,
+     #676767 (logonun .st2'si), #3b3b3b, #141414. Son kart tam ink-950 —
+     `.pf-stack`ın zemini ve alt payla birebir aynı. Hepsi opak. */
+  .pf-card {
+    --pf-p: 0;
+    --pf-bg: color-mix(
+      in oklab,
+      var(--color-ink-950) calc(var(--pf-p) * 100%),
+      var(--color-paper-0)
+    );
   }
 
-  .pf-card[data-theme="1"] {
-    --pf-bg: var(--color-paper-200);
-  }
-
-  .pf-card[data-theme="0"],
-  .pf-card[data-theme="1"] {
+  /* AÇIK (p < 0.45): koyu metin. En koyu açık ton #979797'de koyu metin
+     5.8:1. */
+  .pf-card[data-tone="light"] {
+    /* Zemin koyulaştıkça (p↑) soluk metin ve vurgu inkine doğru koyulaşır:
+       #676767 metin beyazda 5.6:1 ama #979797'de 2.9:1 olurdu. p=0'da
+       değerler eskisiyle aynı. */
+    --pf-ink-mix: calc(var(--pf-p) * 200%);
     --hairline: color-mix(in srgb, #1c1c1c 16%, transparent);
-    --focus: var(--color-accent-ink);
-    --accent-text: var(--color-accent-ink);
+    --focus: color-mix(in oklab, var(--color-ink-900) var(--pf-ink-mix), var(--color-accent-ink));
+    --accent-text: var(--focus);
     --fg-strong: var(--color-fg-on-paper);
-    --fg-muted: var(--color-fg-on-paper-muted);
+    --fg-muted: color-mix(
+      in oklab,
+      var(--color-ink-900) calc(var(--pf-p) * 170%),
+      var(--color-fg-on-paper-muted)
+    );
     --field-bg: color-mix(in srgb, #1c1c1c 6%, transparent);
   }
 
-  /* Orta gri (logonun .st2'si, #676767) — koyu tona geçilen ilk kart
-     (gertix'in üçüncü kartı gibi açık metin). Logonun AÇIK hâlinin gri
-     harfleri (#A4A5A8) bu zeminde kaybolurdu; header burada beyaz logoya
-     geçiyor. Amber bu zeminde ~2.6:1 — vurgu ve odak beyaz. */
-  .pf-card[data-theme="2"] {
-    --pf-bg: var(--color-fg-on-paper-muted);
+  /* ORTA (0.45 ≤ p < 0.7): koyu tona geçilen ilk kart, açık metin (#676767'de
+     beyaz 5.6:1). Logonun AÇIK hâlinin gri harfleri bu zeminde kaybolurdu;
+     header burada beyaz logoya geçiyor. Amber bu zeminde ~2.6:1 — vurgu ve
+     odak beyaz. */
+  .pf-card[data-tone="mid"] {
     --hairline: color-mix(in srgb, #ffffff 22%, transparent);
     --focus: var(--color-fg-on-ink);
     --accent-text: var(--color-fg-on-ink);
@@ -2787,8 +2802,7 @@
     --field-bg: color-mix(in srgb, #000000 12%, transparent);
   }
 
-  .pf-card[data-theme="3"],
-  .pf-card[data-theme="4"] {
+  .pf-card[data-tone="dark"] {
     --hairline: color-mix(in srgb, #ffffff 14%, transparent);
     --focus: var(--color-accent);
     --accent-text: var(--color-accent);
@@ -2797,14 +2811,6 @@
     --field-bg: var(--color-ink-800);
     --btn-bg: var(--color-accent);
     --btn-fg: var(--color-ink-900);
-  }
-
-  .pf-card[data-theme="3"] {
-    --pf-bg: var(--color-ink-800);
-  }
-
-  .pf-card[data-theme="4"] {
-    --pf-bg: var(--color-ink-950);
   }
 
   .pf-card__num {
@@ -3997,6 +4003,158 @@
       inline-size: 220vw;
       max-inline-size: none;
       max-block-size: none;
+    }
+  }
+
+  /* Kategori detayı: galeri karesinin üstüne binen şeffaf "büyüt" düğmesi
+     (GalleryCard `onOpen`) — `.case-shot__zoom` ile aynı fikir. */
+  .gallery-card__body {
+    position: relative;
+  }
+
+  .gallery-card__zoom {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: zoom-in;
+  }
+
+  .gallery-card__zoom:focus-visible {
+    outline: 2px solid var(--accent-text, var(--color-accent));
+    outline-offset: -3px;
+  }
+
+  /* Etiketler detayda düğme: aktif iş galeriyle birlikte vurgulanır
+     (hover'ın aynı dili). */
+  /* Etiketin tamamı tıklanır: dolgu li'den kontrolün kendisine geçiyor. */
+  .pf-card__labels li:has(> :is(a, button)) {
+    padding: 0;
+  }
+
+  .pf-card__labels li > :is(a, button) {
+    all: unset;
+    cursor: pointer;
+    display: block;
+    padding: 0.1875rem 0.625rem;
+  }
+
+  .pf-card__labels li > :is(a, button):focus-visible {
+    outline: 2px solid var(--accent-text, var(--color-accent));
+    outline-offset: 4px;
+  }
+
+  .pf-card__labels li[data-active] {
+    background-color: var(--fg-strong);
+    color: var(--pf-bg);
+  }
+
+  /* İş görünümü (WorkLightbox): `.lightbox` iskeletinin üstüne ok düğmeleri
+     ve künye. Görsel her ekranda sığdırılır (vaka sayfasındaki 220vw yatay
+     kaydırma kuralı bu görseller için geçerli DEĞİL). */
+  .lightbox__stage--work {
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    padding-block-end: 4.5rem;
+    overflow: hidden;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  /* Görsel hücreyi doldurur, `contain` oranı korur (küçük kaynaklar da
+     büyür). Çıplak arka plana tıklamayı WorkLightbox'ın isabet testi ayırır. */
+  .lightbox__img--work {
+    inline-size: 100%;
+    block-size: 100%;
+    max-inline-size: none;
+    max-block-size: none;
+    object-fit: contain;
+    border-radius: 0;
+  }
+
+  .lightbox__caption {
+    position: absolute;
+    inset-block-start: 1rem;
+    inset-inline-start: var(--spacing-gutter);
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.875rem;
+    max-inline-size: calc(100% - 9rem);
+    margin: 0;
+    padding-block: 0.75rem;
+  }
+
+  .lightbox__count {
+    color: var(--color-accent);
+  }
+
+  .lightbox__title {
+    color: inherit;
+  }
+
+  .lightbox__meta,
+  .lightbox__more {
+    color: rgb(255 255 255 / 0.62);
+  }
+
+  .lightbox__more:hover {
+    color: inherit;
+  }
+
+  .lightbox__nav {
+    position: absolute;
+    inset-block-end: 1rem;
+    z-index: 1;
+    inline-size: 3rem;
+    block-size: 3rem;
+    border-radius: var(--radius-md);
+    background-color: rgb(128 128 128 / 0.32);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    color: inherit;
+    font-size: 1.25rem;
+    cursor: pointer;
+  }
+
+  .lightbox__nav:hover {
+    background-color: rgb(128 128 128 / 0.5);
+  }
+
+  .lightbox__nav:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .lightbox__nav--prev {
+    inset-inline-start: var(--spacing-gutter);
+  }
+
+  .lightbox__nav--next {
+    inset-inline-end: var(--spacing-gutter);
+  }
+
+  @media (min-width: 861px) {
+    .lightbox__nav {
+      inset-block-end: auto;
+      inset-block-start: 50%;
+      translate: 0 -50%;
+    }
+
+    .lightbox__stage--work {
+      padding-inline: 5.5rem;
+      padding-block-end: var(--spacing-gutter);
+    }
+  }
+
+  @media (max-width: 860px) and (orientation: portrait) {
+    .lightbox__stage--work {
+      place-items: center;
+    }
+
+    .lightbox__caption {
+      max-inline-size: calc(100% - 7rem);
     }
   }
 
@@ -5523,6 +5681,24 @@
 
     html[data-cursor-ball="on"] :disabled {
       cursor: not-allowed;
+    }
+
+    /* MODAL <dialog> (lightbox'lar: ShotZoom, WorkLightbox) tarayıcının TOP
+       LAYER'ında çiziliyor — `z-index` ne olursa olsun body'deki topun
+       üstünde. Top orada görünmez kalıyor ve native imleç de `none`
+       olduğu için işaretçi tamamen kayboluyordu. Açık dialog'un içinde
+       native SVG imleçlere (yukarıdaki taban) dönülüyor; top, altındaki
+       imleç `none` olmadığında kendiliğinden gizlendiği için ikisi asla
+       üst üste binmiyor. Topu dialog'a taşımaktan (portal) daha sade:
+       gelecekteki her modal için de otomatik çalışıyor. */
+    html[data-cursor-ball="on"] dialog[open] {
+      cursor: url("/cursors/arrow.svg") 3 2, auto;
+    }
+
+    html[data-cursor-ball="on"]
+      dialog[open]
+      :is(a, button, [role="button"], summary, label[for], select) {
+      cursor: url("/cursors/pointer.svg") 3 2, pointer;
     }
   }
 

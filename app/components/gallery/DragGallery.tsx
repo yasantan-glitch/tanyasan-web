@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type MutableRefObject, type ReactNode } from "react";
 
 /**
  * Yatay galeri denetleyicisi — gertix.studio galerisinin (Swiper free-mode,
@@ -28,6 +28,12 @@ import { useEffect, useRef, type ReactNode } from "react";
  * Konum tek bir `target` değişkeninde; tüm girişler onu değiştirir ve tek bir
  * rAF döngüsü `scrollLeft`i ona yaklaştırır. Native scroll (dokunma, scrollbar)
  * döngü çalışmıyorken `target`i kendi konumuna eşitler.
+ *
+ * DIŞARIDAN KUMANDA (isteğe bağlı): `apiRef.current.goTo(i)` i. kareyi aynı
+ * yumuşak animasyonla başa getirir; `onActive(i)` konum değiştikçe (sürükle,
+ * tekerlek, dokunma, oklar, goTo) soldan ilk görünen kareyi bildirir. goTo ile
+ * gidilen kare, kullanıcı galeriyi kendisi oynatana dek AKTİF sayılır (son
+ * kareler görünüm sınırına yaslanıp başa gelemediğinde de doğru etiket yanar).
  */
 const DRAG_THRESHOLD = 4;
 const EASE = 0.16;
@@ -38,6 +44,9 @@ export default function DragGallery({
   className,
   head,
   center = false,
+  apiRef,
+  onActive,
+  initialIndex = 0,
 }: {
   label: string;
   children: ReactNode;
@@ -46,7 +55,18 @@ export default function DragGallery({
   head?: ReactNode;
   /** Dikey tekerlek yatay kaymaya dönmeden önce galeriyi ekranda ortala. */
   center?: boolean;
+  /** `goTo(index)`: i. kareyi galerinin başına getirir. */
+  apiRef?: MutableRefObject<{ goTo: (index: number) => void } | null>;
+  /** Soldan ilk görünen karenin sırası değişince çağrılır. */
+  onActive?: (index: number) => void;
+  /** Mount anında (animasyonsuz) başa getirilecek kare. */
+  initialIndex?: number;
 }) {
+  const initialRef = useRef(initialIndex);
+  const onActiveRef = useRef(onActive);
+  useEffect(() => {
+    onActiveRef.current = onActive;
+  }, [onActive]);
   const rootRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -63,9 +83,36 @@ export default function DragGallery({
     let current = el.scrollLeft;
     let raf = 0;
     let uiQueued = false;
+    let forced: number | null = null;
+    let forcedPos = 0;
+    let reported = -1;
 
     const max = () => Math.max(0, el.scrollWidth - el.clientWidth);
     const clamp = (x: number) => Math.min(max(), Math.max(0, x));
+
+    const reportActive = () => {
+      if (!onActiveRef.current) return;
+      let index = forced ?? 0;
+      if (forced === null) {
+        const starts = itemStarts();
+        const x = el.scrollLeft;
+        if (starts.length && x >= max() - 1 && max() > 0) index = starts.length - 1;
+        else {
+          let best = Infinity;
+          starts.forEach((start, i) => {
+            const d = Math.abs(start - x);
+            if (d < best) {
+              best = d;
+              index = i;
+            }
+          });
+        }
+      }
+      if (index !== reported) {
+        reported = index;
+        onActiveRef.current(index);
+      }
+    };
 
     const syncUi = () => {
       uiQueued = false;
@@ -74,6 +121,7 @@ export default function DragGallery({
       if (prev) prev.disabled = x <= 1;
       if (next) next.disabled = x >= m - 1;
       if (bar) bar.style.transform = `scaleX(${m ? Math.min(1, x / m) : 1})`;
+      reportActive();
     };
     const queueUi = () => {
       if (uiQueued) return;
@@ -103,14 +151,17 @@ export default function DragGallery({
     };
 
     // ---- kare adımları (butonlar + klavye) --------------------------------
+    // Karelerin başlangıcı LAYOUT ofsetinden (kardeşler aynı offsetParent'ı
+    // paylaşıyor, ilk kare içerik başında = 0). getBoundingClientRect
+    // transform'u da sayardı: /portfolyo'da kareler giriş animasyonundayken
+    // (`pf-work-in`, translate) konumlar yanlış çıkıyordu.
     const itemStarts = () => {
-      const pad = parseFloat(getComputedStyle(el).paddingInlineStart) || 0;
-      const base = el.getBoundingClientRect().left - el.scrollLeft + pad;
-      return Array.from(el.querySelectorAll<HTMLElement>(".drag-gallery__track > *")).map(
-        (item) => clamp(item.getBoundingClientRect().left - base)
-      );
+      const items = Array.from(el.querySelectorAll<HTMLElement>(".drag-gallery__track > *"));
+      const first = items[0]?.offsetLeft ?? 0;
+      return items.map((item) => clamp(item.offsetLeft - first));
     };
     const stepBy = (dir: 1 | -1) => {
+      forced = null;
       const starts = itemStarts();
       const from = target;
       const found =
@@ -119,6 +170,18 @@ export default function DragGallery({
           : [...starts].reverse().find((x) => x < from - 2);
       animateTo(found ?? (dir > 0 ? max() : 0));
     };
+    if (apiRef) {
+      apiRef.current = {
+        goTo: (index) => {
+          const starts = itemStarts();
+          if (!starts[index] && starts[index] !== 0) return;
+          forced = index;
+          forcedPos = starts[index];
+          animateTo(starts[index]);
+          reportActive();
+        },
+      };
+    }
     const onPrev = () => stepBy(-1);
     const onNext = () => stepBy(1);
     prev?.addEventListener("click", onPrev);
@@ -173,6 +236,7 @@ export default function DragGallery({
       const atEnd = target >= m - 0.5 && delta > 0;
       if (atStart || atEnd) return; // uca varıldı → sayfaya bırak
       event.preventDefault();
+      forced = null;
       const coarse = event.deltaMode !== 0 || Math.abs(delta) >= 50;
       if (coarse) animateTo(target + delta);
       else jumpTo(target + delta);
@@ -197,6 +261,7 @@ export default function DragGallery({
       if (!dragged && Math.abs(dx) < DRAG_THRESHOLD) return;
       if (!dragged) {
         dragged = true;
+        forced = null;
         el.setPointerCapture(event.pointerId);
         root.dataset.dragging = "true";
       }
@@ -226,6 +291,9 @@ export default function DragGallery({
 
     // ---- native scroll + yeniden boyutlandırma -----------------------------
     const onScroll = () => {
+      if (forced !== null && !raf && Math.abs(el.scrollLeft - clamp(forcedPos)) > 3) {
+        forced = null;
+      }
       if (!raf && pointerId === null) target = current = el.scrollLeft;
       queueUi();
     };
@@ -235,10 +303,21 @@ export default function DragGallery({
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
+    // Açılışta istenen kare (ör. /portfolyo'da kapalı karttaki iş etiketi).
+    const initial = initialRef.current;
+    if (initial > 0) {
+      const starts = itemStarts();
+      if (starts[initial] !== undefined) {
+        forced = initial;
+        forcedPos = starts[initial];
+        jumpTo(starts[initial]);
+      }
+    }
     syncUi();
 
     return () => {
       cancelAnimationFrame(raf);
+      if (apiRef) apiRef.current = null;
       prev?.removeEventListener("click", onPrev);
       next?.removeEventListener("click", onNext);
       el.removeEventListener("keydown", onKey);
@@ -252,7 +331,7 @@ export default function DragGallery({
       el.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-  }, [center]);
+  }, [center, apiRef]);
 
   return (
     <div ref={rootRef} className={`drag-gallery${className ? ` ${className}` : ""}`}>

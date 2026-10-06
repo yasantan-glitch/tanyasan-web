@@ -23,6 +23,9 @@ export interface GalleryCardProps {
   description: string;
   href?: string;
   more?: string;
+  /** Verilirse karenin üstüne şeffaf bir "büyüt" düğmesi biner (link yok):
+   * tıklama/Enter bunu çağırır. `href` ile birlikte kullanılmaz. */
+  onOpen?: () => void;
   sizes: string;
   className?: string;
   style?: CSSProperties;
@@ -36,6 +39,7 @@ export default function GalleryCard({
   description,
   href,
   more,
+  onOpen,
   sizes,
   className,
   style,
@@ -66,7 +70,19 @@ export default function GalleryCard({
           {inner}
         </Link>
       ) : (
-        <div className="gallery-card__body">{inner}</div>
+        <div className="gallery-card__body">
+          {inner}
+          {onOpen ? (
+            <button
+              type="button"
+              className="gallery-card__zoom"
+              aria-haspopup="dialog"
+              aria-label={`Büyüt: ${brand}, ${description}`}
+              onClick={onOpen}
+              draggable={false}
+            />
+          ) : null}
+        </div>
       )}
     </article>
   );

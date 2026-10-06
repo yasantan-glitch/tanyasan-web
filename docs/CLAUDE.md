@@ -361,7 +361,7 @@ Ekim 2026 yeniden kurgusu (gertix.studio referansları):
   (dikey tekerlek yalnızca galeri ekranın orta bandındayken yakalanır ve uçta
   sayfaya bırakılır), ←/→ ve klavye. Adım HEDEFTEN hesaplanır — hızlı art
   arda tık kare atlamaz. `wide` işler galeride yok.
-- **/portfolyo**: filtre + ızgara + "Yazılım · Vaka Çalışması" satırı
+- **/portfolyo (kart yapısı)**: filtre + ızgara + "Yazılım · Vaka Çalışması" satırı
   kaldırıldı. `PortfolioStack`: kategori başına kart
   (`content/portfolioCategories.ts`, metinler `services.ts`'ten), kartlar
   named view-timeline (`--pf-stack`) ile üst üste biner (gated: destek +
@@ -372,6 +372,35 @@ Ekim 2026 yeniden kurgusu (gertix.studio referansları):
   kartların üstüne çıkıyor). Faz zamanlayıcısı state güncelleyicisinin
   içine YAZILMAZ (React çift çağırır, hızlı aç/kapa bozulur).
   Son kart "YAZILIM & UYGULAMA" doğrudan vaka sayfasına gider.
+- **/portfolyo işleri klasörlerden gelir** (`content/portfolioFolders.ts`,
+  build zamanında `fs`): `public/images/portfolyo/{kurumsal-kimlik,logo,
+  sosyal-medya,afis,web}/`. Kategoriler: Kurumsal Kimlik, Logo, Sosyal Medya,
+  Afiş, Web (+ Yazılım & Uygulama kartı). Yeni iş = dosyayı klasöre atmak.
+  Sıra dosya adının sayısal önekine göre (`2-` < `10-`; önek yoksa ad sırası,
+  `Ad.png` < `Ad-2.png`); aynı önek ad sırasıyla çözülür ve build'de uyarı
+  basar (çökmez), eksik numara sorun değil. Önek + sondaki `-N`/`_N` atılınca
+  aynı anahtar = TEK İŞ (detayda her dosya ayrı kare, künye `KATEGORİ · 1/3`).
+  İş adları `NAMES` tablosunda (tabloda yoksa dosya adı Title Case'e düşer);
+  vaka sayfası olan iş `WORK_LINKS`'te (emlakcrmpro → /portfolyo/emlak-crm-pro).
+  Kapaklar `FOLDER_CATEGORIES`'te: Kurumsal Kimlik =
+  `kurumsal-kimlik/2-mavi-akdeniz.jpg`, Logo = `kurumsal-kimlik/5-poyraz.jpg`
+  (bilerek başka klasörden), Afiş = `afis/3-ozan.jpg`, Web =
+  `web/talep-form.png`, Sosyal Medya = ilk iş. Kapak galeride de yer alır
+  (kendi sırasında, tek kez) — her iş etiketinin bir karesi var. Etiketler
+  her zaman düğme: kapalı kartta detayı o işin karesiyle açar
+  (`DragGallery initialIndex`), açıkken galeriyi kaydırır. Lightbox içinde
+  imleç topu yerine native SVG imleçler (dialog top layer'da, top altında kalır).
+  "İşleri Gör (NN)" sayısı iş sayısıdır, dosya sayısı değil. Manzara (>1.4)
+  kareler otomatik `wide`.
+- **Kart tonları kart sayısından türer**: `PortfolioStack` her karta `--pf-p`
+  (sıra / (adet − 1)) ve `data-tone` (light < 0.45 ≤ mid < 0.7 ≤ dark) yazar;
+  zemin `.pf-card`te beyaz → ink-950 oklab karışımı, hepsi opak. Kategori
+  eklemek rampayı kendiliğinden yeniden dağıtır — kart başına `nth-child` /
+  `data-theme` kuralı YAZILMAZ. Header tonu p < 0.35'e kadar açık.
+- **Anasayfa galerisi** (`content/portfolio.ts`, `PORTFOLIO_ITEMS`) klasörlerden
+  BAĞIMSIZ, düz dosyalardan oluşan ayrı bir liste; kategori adı
+  `portfolioCategories` başlıklarıyla birebir aynı olmalı (kare `#çapa`ya
+  gider). `serviceMedia.ts` Wellness ve Rixos Ozan'ı buradan `src` ile arar.
 - **/portfolyo/emlak-crm-pro**: her kare açık + koyu çift
   (`crm-<ad>.png` / `crm-<ad>-koyu.png`), `ShotTheme` anahtarı. Dosyası
   olmayan kare DERLEME anında elenir (`crm-dashboard-*` gelince kendiliğinden

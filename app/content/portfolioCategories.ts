@@ -1,4 +1,5 @@
-import { PORTFOLIO_ITEMS, type PortfolioItem } from "./portfolio";
+import type { PortfolioItem } from "./portfolio";
+import { getFolderCategories } from "./portfolioFolders";
 import { SERVICES } from "./services";
 
 /**
@@ -7,9 +8,8 @@ import { SERVICES } from "./services";
  * tıklanınca ana görsel başlığın altına küçülüp kategorinin diğer işleri
  * sağ alttan sırayla giriyor (bkz. app/portfolyo/PortfolioStack.tsx).
  *
- * İŞLERİN KENDİSİ `portfolio.ts`'te kalıyor — buradaki tek şey sıralama,
- * kapak seçimi ve kart metni. Kategoriye yeni iş eklenince detay görünümüne
- * kendiliğinden girer.
+ * İŞLER klasörlerden okunuyor (portfolioFolders.ts) — buradaki tek şey kart
+ * metni. Kategori klasörüne dosya atılınca detay görünümüne kendiliğinden girer.
  *
  * METİN UYDURULMADI: kart açıklamaları `services.ts`'in ilgili hizmetinin
  * cümleleri (tek kaynak), etiketler kategorideki işlerin MARKALARI.
@@ -27,8 +27,10 @@ export interface PortfolioCategory {
   /** 16:9 kapak (web ekranı, cihaz mockup'ı) — çerçevede yatay yuvaya
    * oturur, dikey çerçeveye kırpılmaz. */
   coverWide?: boolean;
-  /** Detayda kapaktan SONRA sırayla giren işler (kapak hariç). */
+  /** Detayda sırayla giren kareler (klasör kategorilerinde kapak dahil). */
   items: readonly PortfolioItem[];
+  /** Kategorideki İŞ sayısı (butonda; gruplanan dosyalar tek sayılır). */
+  workCount: number;
   /** Varsa kart detay açmaz, bu adrese gider. */
   href?: string;
   cta: string;
@@ -40,57 +42,29 @@ const serviceText = (id: string, field: "lead" | "body0") => {
   return field === "lead" ? service.lead : service.body[0];
 };
 
-/** Kategori sırası başlığın cümlesini izliyor: kimlikten kampanyaya,
- * tasarımdan yazılıma. Kapak her kategorinin en güçlü karesi. */
-const CATEGORY_ORDER: readonly {
-  category: string;
-  id: string;
-  cover: string;
-  excerpt: string;
-}[] = [
-  {
-    category: "KURUMSAL KİMLİK",
-    id: "kurumsal-kimlik",
-    cover: "/images/portfolyo/Turksoy_Kurumsal.jpg",
-    excerpt: serviceText("grafik", "body0"),
-  },
-  {
-    category: "LOGO & LOGOTYPE",
-    id: "logo",
-    cover: "/images/portfolyo/Zenges_Logo.jpg",
-    excerpt: serviceText("grafik", "lead"),
-  },
-  {
-    category: "SOSYAL MEDYA",
-    id: "sosyal-medya",
-    cover: "/images/portfolyo/Rixos_Bodrum_Ozan.jpg",
-    excerpt: serviceText("dijital", "lead"),
-  },
-  {
-    category: "WEB TASARIM",
-    id: "web-tasarim",
-    cover: "/images/portfolyo/Poyraz_Global_Web.jpg",
-    excerpt: `${serviceText("web", "lead")} ${serviceText("web", "body0")}`,
-  },
-];
-
-const unique = (values: readonly string[]) => Array.from(new Set(values));
+/** Kategori sırası, kapaklar ve işler `portfolioFolders.ts`'ten (klasörler);
+ * buradaki tek şey kart metni. Afiş için ayrı hizmet cümlesi yok — grafik
+ * tasarımın girişi kullanılıyor (metin uydurulmadı). */
+const EXCERPTS: Readonly<Record<string, string>> = {
+  "kurumsal-kimlik": serviceText("grafik", "body0"),
+  logo: serviceText("grafik", "lead"),
+  "sosyal-medya": serviceText("dijital", "lead"),
+  afis: serviceText("grafik", "lead"),
+  web: `${serviceText("web", "lead")} ${serviceText("web", "body0")}`,
+};
 
 export const PORTFOLIO_CATEGORIES: readonly PortfolioCategory[] = [
-  ...CATEGORY_ORDER.map(({ category, id, cover, excerpt }) => {
-    const works = PORTFOLIO_ITEMS.filter((item) => item.category === category);
-    const coverItem = works.find((item) => item.src === cover) ?? works[0];
-    return {
-      id,
-      title: category,
-      labels: unique(works.map((item) => item.brand)),
-      excerpt,
-      cover: { src: coverItem.src, alt: coverItem.alt },
-      coverWide: coverItem.wide,
-      items: works.filter((item) => item !== coverItem),
-      cta: "İşleri Gör",
-    };
-  }),
+  ...getFolderCategories().map((category) => ({
+    id: category.id,
+    title: category.title,
+    labels: category.labels,
+    excerpt: EXCERPTS[category.id] ?? "",
+    cover: category.cover,
+    coverWide: category.coverWide,
+    items: category.items,
+    workCount: category.workCount,
+    cta: "İşleri Gör",
+  })),
   {
     id: "yazilim-uygulama",
     title: "YAZILIM & UYGULAMA",
@@ -102,6 +76,7 @@ export const PORTFOLIO_CATEGORIES: readonly PortfolioCategory[] = [
     },
     coverWide: true,
     items: [],
+    workCount: 1,
     href: "/portfolyo/emlak-crm-pro",
     cta: "Projeyi İncele",
   },
