@@ -113,7 +113,8 @@ export const CASE_FIELD_USERS: readonly {
  * Ekim 2026 eşlemesi (yeni kareler):
  * - Yönetim Paneli: `crm-dashboard-*` — dosyalar henüz yok; gelince
  *   kendiliğinden görünür, gelene dek modül hiç basılmaz (`optional`).
- * - Portföy & Harita: portföy listesi + harita/filtre ekranı.
+ * - Portföy & Harita: portföy listesi (2 kare) + Coğrafi Analiz
+ *   haritası (`crm-harita`, kümeli portföy işaretleri ve fiyat özeti).
  * - Müşteri-Talep Eşleştirme: müşteri listesi, müşteri kartı, eşleştirme.
  * - Raporlar & Danışman Performansı: danışman teması raporu + müşteri
  *   kaynakları raporu (ikisi de "Raporlar" ekranının sekmeleri).
@@ -154,6 +155,11 @@ export const CASE_MODULES: readonly CaseModule[] = [
         "crm-portfoy-2",
         "PORTFÖY — FİLTRE VE KAPANAN İŞLER",
         "Emlak CRM Pro portföy listesi: kira ve satış durumuna göre filtrelenmiş ilan kartları ve kapanan portföyler"
+      ),
+      shot(
+        "crm-harita",
+        "HARİTA GÖRÜNÜMÜ",
+        "Emlak CRM Pro coğrafi analiz ekranı: Google haritası üzerinde konumlandırılmış portföyler, kümeleme işaretleri ve sağda portföy sayısı ile ortalama, en düşük, en yüksek fiyat kartları"
       ),
     ],
   },
