@@ -239,9 +239,9 @@ export default function Home() {
 
       {/* 3 — Çalıştığım firmalar (Ekim 2026, eski "Öne Çıkan İş" bandının
           yerine). gertix.studio'nun "OUR CLIENTS" ızgarası: ortada başlık,
-          artı işaretli kesik çizgiler arasında gri tonlu logolar; hover'da
-          logo büyüyüp rengine döner. Logosu olmayan firma yazı markası
-          olarak aynı hücrede (bkz. content/clients.ts).
+          artı işaretli kesik çizgiler arasında tek renkli koyu siluet logolar
+          (CSS mask); hover'da logo büyür. Yalnızca public/images/clients
+          klasöründeki logolar (bkz. content/clients.ts).
 
           YÜZEY paper-raised (#FFF): bant 2 `paper` (#FAFAFA), alttaki
           portfolyo `ink` — iki açık bant arasındaki adım renk değil ton
@@ -256,11 +256,20 @@ export default function Home() {
             <ClientsSeparator />
             <ul className="clients__grid" data-enter-stagger>
               {CLIENTS.map((client, index) => {
-                const mark = client.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={client.logo} alt={client.name} loading="lazy" decoding="async" />
-                ) : (
-                  <span className="clients__wordmark">{client.name}</span>
+                const mark = (
+                  <span
+                    className={`clients__logo${
+                      client.width / client.height <= 1.1 ? " clients__logo--compact" : ""
+                    }`}
+                    role="img"
+                    aria-label={`${client.name} logo`}
+                    style={
+                      {
+                        "--logo": `url("${client.logo}")`,
+                        aspectRatio: `${client.width} / ${client.height}`,
+                      } as React.CSSProperties
+                    }
+                  />
                 );
                 return (
                   <li

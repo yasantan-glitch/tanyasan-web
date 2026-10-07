@@ -2332,9 +2332,8 @@
   /* ==========================================================================
      ÇALIŞTIĞIM FİRMALAR (anasayfa bant 3) — gertix.studio "OUR CLIENTS".
      Ortalı başlık, iki uçta artı işaretli kesik ayraç, ortalı sarmalanan
-     logo ızgarası. Logolar gri tonlu (gertix: grayscale(100%)), hover'da
-     1.2 büyüyor — burada ayrıca rengine dönüyor. Yazı markası (logosuz
-     firma) aynı hücrede mono büyük harf; hover'da aksan rengine dönüyor.
+     logo ızgarası. Logolar tek renkli koyu siluet (CSS mask), hover'da
+     1.2 büyüyor; renk değişmez.
      ========================================================================== */
   .clients {
     display: flex;
@@ -2393,39 +2392,38 @@
     display: contents;
   }
 
-  .clients__item img {
-    inline-size: 5rem;
-    block-size: 5rem;
-    object-fit: contain;
-    filter: grayscale(100%);
+  /* Logo = tek renkli siluet: dosyanın yalnızca alfa kanalı mask olarak
+     kullanılır, renk koyu mürekkep token'ı. Genişlik inline
+     aspect-ratio'dan türer (yerleşim kayması yok); çok geniş logolar hücreye
+     sığacak şekilde max-inline-size ile kısılır, mask `contain` oranı korur. */
+  .clients__logo {
+    display: block;
+    block-size: 2rem;
+    max-inline-size: 100%;
+    background-color: var(--color-ink-700);
+    -webkit-mask-image: var(--logo);
+    mask-image: var(--logo);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    opacity: 0.85;
     transition:
       transform 0.3s var(--ease-out-quart),
-      filter 0.3s var(--ease-out-quart),
       opacity 0.3s var(--ease-out-quart);
   }
 
-  .clients__wordmark {
-    font-family: var(--font-display);
-    font-size: 0.875rem;
-    font-weight: 700;
-    font-stretch: 88%;
-    line-height: 1.1;
-    letter-spacing: 0.01em;
-    color: var(--color-ink-700);
-    text-wrap: balance;
-    transition:
-      transform 0.3s var(--ease-out-quart),
-      color 0.3s var(--ease-out-quart);
+  /* Kare/dikey (oran <= 1.1) logolar aynı yükseklikte görsel olarak ufak kalıyor:
+     yükseklik artıyor ki ağırlıkları geniş logolarla dengelensin. */
+  .clients__logo--compact {
+    block-size: 3rem;
   }
 
-  .clients__item:hover img {
+  .clients__item:hover .clients__logo {
     transform: scale(1.2);
-    filter: grayscale(0%);
-  }
-
-  .clients__item:hover .clients__wordmark {
-    transform: scale(1.12);
-    color: var(--accent-text);
+    opacity: 1;
   }
 
   /* Telefonda 8rem kareler satıra ikişer düşüyor ve liste ekranlarca
@@ -2447,13 +2445,12 @@
       padding: 0.75rem 0.25rem;
     }
 
-    .clients__item img {
-      inline-size: 4rem;
-      block-size: 3.5rem;
+    .clients__logo {
+      block-size: 1.5rem;
     }
 
-    .clients__wordmark {
-      font-size: 0.75rem;
+    .clients__logo--compact {
+      block-size: 2.5rem;
     }
   }
 
