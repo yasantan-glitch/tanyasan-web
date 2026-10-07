@@ -7,9 +7,9 @@ import { SOCIAL_LINKS } from "@/app/content/socialLinks";
 import ContactForm from "./ContactForm";
 
 export const metadata: Metadata = {
-  title: "İletişim — Tan Yasan Reklam ve Tasarım Ajansı",
+  title: "İletişim: Antalya Web Tasarım ve Yazılım Teklifi",
   description:
-    "Dijitalde Fark Yaratın. Antalya Konyaaltı'ndan Türkiye geneline tasarım, dijital pazarlama ve yazılım geliştirme. Formu doldurun ya da doğrudan arayın.",
+    "Konyaaltı / Antalya'dan Türkiye geneline web tasarım, yazılım ve dijital pazarlama. Formu doldurun, +90 530 691 3612'yi arayın ya da tan@tanyasan.com'a yazın.",
 };
 
 /**

@@ -5,9 +5,9 @@ import { NAV_CTA } from "@/app/components/nav/navLinks";
 import { formatBlogDate, getPublishedPosts } from "@/app/content/blog";
 
 export const metadata: Metadata = {
-  title: "Blog — Tan Yasan Reklam ve Tasarım Ajansı",
+  title: "Blog: Web Tasarım, Dijital Pazarlama ve Yazılım Yazıları",
   description:
-    "Grafik tasarım, dijital pazarlama, web tasarımı ve yazılım geliştirme üzerine yazılar.",
+    "Antalya'dan web tasarım, grafik tasarım, dijital pazarlama ve yazılım geliştirme üzerine rehberler ve notlar.",
 };
 
 /**

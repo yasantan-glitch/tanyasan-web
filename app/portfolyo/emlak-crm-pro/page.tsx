@@ -25,9 +25,9 @@ import ShotTheme from "./ShotTheme";
 import ShotZoom from "./ShotZoom";
 
 export const metadata: Metadata = {
-  title: "Emlak CRM Pro — Vaka Çalışması — Tan Yasan Reklam ve Tasarım Ajansı",
+  title: "Emlak CRM Pro Vaka Çalışması: Emlak Ofisi Yazılımı",
   description:
-    "Bir emlak ofisinin portföyünü, müşterilerini, danışman performansını ve muhasebesini tek sistemde topladık. Sıfırdan tasarlanan ve kodlanan Emlak CRM Pro'nun vaka çalışması.",
+    "Portföy, müşteri, danışman performansı ve muhasebeyi tek sistemde toplayan, sıfırdan tasarlanıp kodlanan emlak CRM yazılımının vaka çalışması.",
 };
 
 /**

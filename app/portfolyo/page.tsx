@@ -4,9 +4,9 @@ import { PORTFOLIO_CATEGORIES } from "@/app/content/portfolioCategories";
 import PortfolioStack from "./PortfolioStack";
 
 export const metadata: Metadata = {
-  title: "Portfolyo — Tan Yasan Reklam ve Tasarım Ajansı",
+  title: "Portfolyo: Logo, Kurumsal Kimlik ve Web Tasarım Çalışmaları",
   description:
-    "Kurumsal kimlikten kampanyaya, tasarımdan yazılıma: logo, kurumsal kimlik, sosyal medya ve web tasarım çalışmaları ile sıfırdan kodlanan Emlak CRM Pro.",
+    "Antalya'dan markalara yaptığımız logo, kurumsal kimlik, afiş, sosyal medya ve web tasarım işleri ile sıfırdan kodlanan Emlak CRM Pro yazılımı.",
 };
 
 /**

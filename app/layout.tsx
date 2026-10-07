@@ -32,10 +32,31 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const SITE_DESCRIPTION =
+  "Antalya'da web tasarım, yazılım geliştirme, dijital pazarlama ve grafik tasarım. 20 yıla yakın tecrübeyle markanız için strateji, tasarım ve kod tek çatı altında.";
+
 export const metadata: Metadata = {
-  title: "Tan Yasan Reklam ve Tasarım Ajansı",
-  description:
-    "Dijitalde Fark Yaratın. Grafik tasarım, dijital pazarlama, web tasarım ve yazılım geliştirme — 20 yıla yakın tecrübeyle Antalya'dan Türkiye geneline.",
+  metadataBase: new URL("https://tanyasan.com"),
+  title: {
+    default: "Tan Yasan Reklam ve Tasarım Ajansı | Antalya Web Tasarım & Yazılım",
+    template: "%s | Tan Yasan Reklam ve Tasarım Ajansı",
+  },
+  description: SITE_DESCRIPTION,
+  // "./" = her rota kendi URL'ine canonical verir (metadataBase'e göre çözülür).
+  alternates: { canonical: "./" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    siteName: "Tan Yasan Reklam ve Tasarım Ajansı",
+    title: "Tan Yasan Reklam ve Tasarım Ajansı | Antalya Web Tasarım & Yazılım",
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tan Yasan Reklam ve Tasarım Ajansı | Antalya Web Tasarım & Yazılım",
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

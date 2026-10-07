@@ -12,9 +12,9 @@ import { SERVICE_MEDIA } from "@/app/content/serviceMedia";
 const RAIL = railTiming(SERVICES.length);
 
 export const metadata: Metadata = {
-  title: "Hizmetler — Tan Yasan Reklam ve Tasarım Ajansı",
+  title: "Hizmetler: Web Tasarım, Yazılım, Dijital Pazarlama",
   description:
-    "Dijitalde Fark Yaratın. Grafik tasarım, dijital pazarlama, web tasarımı, yazılım geliştirme, fotoğraf & video ve danışmanlık — altı hizmet, tek ekip.",
+    "Antalya merkezli ajansımızdan web tasarım, özel yazılım geliştirme, dijital pazarlama, grafik tasarım, fotoğraf & video ve danışmanlık hizmetleri.",
 };
 
 /**

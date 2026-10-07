@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
+import JsonLd from "@/app/components/seo/JsonLd";
+import { SOCIAL_LINKS } from "@/app/content/socialLinks";
+
 
 export const metadata: Metadata = {
-  title: "Hakkımda — Tan Yasan Reklam ve Tasarım Ajansı",
+  title: "Tan Yasan: Antalya Grafik Tasarımcı ve Dijital Pazarlama Uzmanı",
   description:
-    "Dijitalde Fark Yaratın. Yaklaşık 20 yıllık grafik tasarım ve dijital pazarlama deneyimiyle markalara stratejik iletişim çözümleri geliştiriyor, zamanla bu hizmetlere yazılım geliştirmeyi de katıyoruz.",
+    "Antalya'dan yaklaşık 20 yıllık grafik tasarım ve dijital pazarlama deneyimiyle markalara stratejik çözümler geliştiriyor, web tasarım ve yazılımı da hizmetlerime kattım.",
 };
 
 /**
@@ -59,9 +62,28 @@ const CHAPTERS = [
   },
 ] as const;
 
+const PERSON_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Tan Yasan",
+  jobTitle: "Grafik Tasarımcı ve Dijital Pazarlama Uzmanı",
+  url: "https://tanyasan.com/hakkimda",
+  image: "https://tanyasan.com/images/tan-yasan-portre.jpg",
+  email: "tan@tanyasan.com",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Konyaaltı",
+    addressRegion: "Antalya",
+    addressCountry: "TR",
+  },
+  worksFor: { "@id": "https://tanyasan.com/#business" },
+  sameAs: SOCIAL_LINKS.map((link) => link.href),
+};
+
 export default function HakkimdaPage() {
   return (
     <>
+      <JsonLd data={PERSON_JSON_LD} />
       {/* Başlık bandı. Nav bu sayfada baştan solid ve position: fixed, yani
           akışta yer kaplamıyor — üst boşluğa nav yüksekliği elle eklenir. */}
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section-tight) pt-[calc(var(--nav-h)+var(--spacing-section))]">

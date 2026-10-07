@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import JsonLd from "@/app/components/seo/JsonLd";
 import { NAV_CTA } from "@/app/components/nav/navLinks";
 import { formatBlogDate, getPostBySlug, getPublishedPosts } from "@/app/content/blog";
 
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!post) return {};
 
   return {
-    title: `${post.title} — Tan Yasan Blog`,
+    title: post.title,
     description: post.excerpt,
   };
 }
@@ -41,6 +42,18 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: post.title,
+          description: post.excerpt,
+          datePublished: post.date,
+          author: { "@type": "Person", name: "Tan Yasan", url: "https://tanyasan.com/hakkimda" },
+          publisher: { "@id": "https://tanyasan.com/#business" },
+          mainEntityOfPage: `https://tanyasan.com/blog/${post.slug}`,
+        }}
+      />
       <section className="surface-ink surface-ink-deep px-(--spacing-gutter) pb-(--spacing-section-tight) pt-[calc(var(--nav-h)+var(--spacing-section))]">
         <div className="mx-auto max-w-(--container-page)">
           <Link href="/blog" className="eyebrow text-accent-auto">

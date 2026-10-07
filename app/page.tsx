@@ -1,6 +1,9 @@
 import Link from "next/link";
 
 import Hero from "./components/hero/Hero";
+import JsonLd from "./components/seo/JsonLd";
+import { CONTACT } from "./content/contact";
+import { SOCIAL_LINKS } from "./content/socialLinks";
 import HomeRailPanel from "./components/home/HomeRailPanel";
 import SplitWords from "./components/motion/SplitWords";
 import ServiceRail from "./components/services/ServiceRail";
@@ -100,9 +103,34 @@ function SectionMarker({
   );
 }
 
+const BUSINESS_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "@id": "https://tanyasan.com/#business",
+  name: "Tan Yasan Reklam ve Tasarım Ajansı",
+  url: "https://tanyasan.com",
+  logo: "https://tanyasan.com/Logo.svg",
+  image: "https://tanyasan.com/opengraph-image",
+  description:
+    "Antalya'da web tasarım, yazılım geliştirme, dijital pazarlama ve grafik tasarım hizmetleri.",
+  telephone: CONTACT.phone.display,
+  email: CONTACT.email,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: CONTACT.address.lines[0],
+    postalCode: "07130",
+    addressLocality: "Konyaaltı",
+    addressRegion: "Antalya",
+    addressCountry: "TR",
+  },
+  areaServed: { "@type": "Country", name: "Türkiye" },
+  sameAs: SOCIAL_LINKS.map((link) => link.href),
+};
+
 export default function Home() {
   return (
     <>
+      <JsonLd data={BUSINESS_JSON_LD} />
       <Hero />
 
       {/* 1 — Kısa tanıtım. Yeni CSS yok: .service-grid + .service-head
