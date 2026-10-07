@@ -24,6 +24,7 @@ import {
   isServicePhase,
   type HeroVideoSources,
 } from "./heroPhases";
+import type { HeroClipTiming } from "./heroClipScript";
 
 // Eğriler `heroMath.ts`'te — site genelindeki hareket onlarla aynı dili
 // konuşsun diye. Aşağıdakiler PHASE_RANGES'e ve hero sabitlerine bağlı
@@ -108,6 +109,14 @@ const VIDEO_FADE = { rIn: 0.12, rOut: 0.12 };
  * Yalnızca hizmet fazları için: faz 8'in hiç medyası yok. */
 const VIDEO_PRELOAD_RADIUS = 1;
 
+/** Mobilde scroll yönü bu kadar süre değişmezse "durdu" sayılır ve bağlama
+ * penceresi yeniden aktif fazın ortasına döner. Kısa tutulursa parmak
+ * hamleleri arasındaki duraklamalarda pencere ileri-geri kayıp klipleri
+ * boşuna çözüp yeniden bağlar. */
+const SCROLL_IDLE_MS = 900;
+/** Bundan küçük scroll farkı yön sayılmaz (adres çubuğu / momentum titremesi). */
+const SCROLL_DIR_DEADBAND_PX = 2;
+
 /**
  * Scroll'a bağlı sürülen tek bir video katmanı. Her katman kendi fazının
  * klibini taşır (phaseIndex ile heroPhases.ts'e eşlenir) ve aktif fazdan
@@ -138,6 +147,10 @@ interface VideoLayer {
   wanted: boolean;
   /** Bağlı src bir play()/pause() ile primelendi mi — her bağlamada sıfırlanır. */
   primed: boolean;
+  /** Bağlı src'nin ilk karesi çözüldü mü (rVFC, yoksa loadeddata). Bu andan
+   * sonra tarayıcı poster yerine kareyi gösteriyor — poster `poster`
+   * attribute'u, aradaki takası JS beklemiyor. */
+  frameReady: boolean;
   /** Son yazılan opaklık — aynı değeri tekrar yazıp style recalc tetiklemeyiz. */
   opacity: number;
 }
@@ -448,7 +461,52 @@ export function useHeroScroll(): HeroScrollHandle {
     const log = (...args: unknown[]) => {
       if (debug) console.info("[hero]", ...args);
     };
-    log("mount", { mobileSource, saveData, eager });
+    /** ms, navigationStart'a göre — inline script'in zamanlarıyla aynı eksen. */
+    const now = () => Math.round(performance.now());
+    /** `?herodebug` zaman çizelgesi: klip başına attach / ilk kare, faz
+     * başına "faza girildiğinde klip hazır mıydı". İndirme zamanları
+     * window.__heroClipT'de (inline script + bu hook yazar). Gerçek cihazda
+     * konsoldan `__heroDebug.report()` ile tablo olarak okunur. */
+    const timeline = {
+      hydrated: now(),
+      clips: {} as Record<number, { attached?: number; decoded?: number; firstFrame?: number }>,
+      phases: [] as Array<{ phase: number; at: number; clip: string }>,
+      report() {
+        const T = window.__heroClipT ?? {};
+        const rows = layers.map((layer) => {
+          const url = mobileSource ? layer.sources.mobileSrc : layer.sources.src;
+          const t = T[url];
+          const c = timeline.clips[layer.phaseIndex] ?? {};
+          return {
+            phase: layer.phaseIndex + 1,
+            by: t?.by ?? "-",
+            fetchStart: t ? Math.round(t.start) : "-",
+            fetchEnd: t?.end ? Math.round(t.end) : t?.failed ? "HATA" : "-",
+            KB: t?.size ? Math.round(t.size / 1024) : "-",
+            attached: c.attached ?? "-",
+            decoded: c.decoded ?? "-",
+            firstFrame: c.firstFrame ?? "-",
+          };
+        });
+        console.info("[hero] hydrated (mount) @", timeline.hydrated, "ms");
+        console.table(rows);
+        console.table(timeline.phases);
+        return rows;
+      },
+    };
+    if (debug) {
+      (window as Window & { __heroDebug?: typeof timeline }).__heroDebug = timeline;
+    }
+    /** Tabloya yalnızca İLK an yazılır (ilk ziyaretin sorusu: klip faza
+     * yetişti mi); konsol satırı her yeniden bağlamada o anı gösterir. */
+    const mark = (phaseIndex: number, key: "attached" | "decoded" | "firstFrame") => {
+      if (!debug) return;
+      const entry = (timeline.clips[phaseIndex] ??= {});
+      const at = now();
+      entry[key] ??= at;
+      log(`⏱ ${key}`, phaseIndex, `@${at}ms`);
+    };
+    log("mount", { mobileSource, saveData, eager, at: timeline.hydrated });
 
     // Fazların çoğu her frame'de görünmez. Görünmez bir fazın ~9 node'una
     // stil yazmak boşuna "Recalculate Style" maliyeti — bir kez sıfırlayıp
@@ -495,6 +553,7 @@ export function useHeroScroll(): HeroScrollHandle {
         download: null,
         wanted: false,
         primed: false,
+        frameReady: false,
         opacity: 0,
       };
       layers.push(layer);
@@ -520,8 +579,10 @@ export function useHeroScroll(): HeroScrollHandle {
 
     // ---- blob-preload (güvenilir seek için) ----
     // Klip için <link rel="preload" as="fetch"> YOK (Ekim 2026'da kaldırıldı):
-    // iOS'ta preload yanıtının fetch()'e devri doğrulanamadı; yalnızca ilk
-    // poster HTML'den önyükleniyor (bkz. Hero.tsx HeroVideoPreloads).
+    // iOS'ta preload yanıtının fetch()'e devri doğrulanamadı. Onun yerine
+    // HTML'deki inline script (heroClipScript.ts) fetch()'leri hydration'dan
+    // önce başlatıp promise'leri window.__heroClips'e bırakıyor; download()
+    // aynı URL'yi orada bulursa yeniden istemiyor, devralıyor.
     //
     // Poster: klip inene ya da cihaz kareyi boyayana dek (yavaş hücresel ağ,
     // iOS Düşük Güç Modu'nda reddedilen play()) katman boş koyu zemin yerine
@@ -535,29 +596,64 @@ export function useHeroScroll(): HeroScrollHandle {
       layer.el.poster = mobileSource ? layer.sources.posterMobile : layer.sources.poster;
     }
 
+    /** Bu mount'un kendi başlattığı (abort'a bağlı) fetch'ler — unmount'ta
+     * ortak tablodan SENKRON silinir: StrictMode'un ikinci mount'u ya da
+     * sonraki bir mount iptal edilmiş promise'i devralmasın. */
+    const ownFetches = new Map<string, Promise<Blob>>();
+
+    /** URL'nin ham Blob promise'i — ortak tablodan (inline script ya da
+     * daha önceki bir istek) ya da yeni bir fetch. Yeni fetch de tabloya
+     * yazılır ki inline script'in geç kalan kuyruğu aynı URL'yi ikinci kez
+     * istemesin. */
+    function clipBlob(url: string): Promise<Blob> {
+      const clips = (window.__heroClips ??= {});
+      const timings = (window.__heroClipT ??= {});
+      const shared = clips[url];
+      if (shared) {
+        const t = timings[url];
+        log("devralındı", url, t ? { by: t.by, start: Math.round(t.start) } : "");
+        return shared;
+      }
+      const t: HeroClipTiming = (timings[url] = { start: performance.now(), by: "hook" });
+      const pending = fetch(url, { signal: net.signal })
+        .then((r) => {
+          if (!r.ok) throw new Error(`${r.status} ${url}`);
+          return r.blob();
+        })
+        .then((blob) => {
+          t.end = performance.now();
+          t.size = blob.size;
+          return blob;
+        });
+      pending.catch(() => {
+        t.failed = performance.now();
+        if (clips[url] === pending) delete clips[url];
+      });
+      clips[url] = pending;
+      ownFetches.set(url, pending);
+      return pending;
+    }
+
     /** Klibi indirir (ya da süren/bitmiş indirmeyi döndürür). Scroll'da
      * iptal edilmez; yalnızca unmount `net`i iptal eder. */
     function download(layer: VideoLayer): Promise<Blob> {
       if (layer.download) return layer.download;
       const { src, mobileSrc, poster } = layer.sources;
       const fetchBlob = (url: string) =>
-        fetch(url, { signal: net.signal }).then((r) => {
-          if (!r.ok) throw new Error(`${r.status} ${url}`);
-          return r.blob().then((raw) => {
-            // iOS blob: URL'inde türü Blob'dan okuyor; Content-Type eksik ya
-            // da yanlış gelirse (proxy, önbellek) klip çözülemez.
-            const blob = raw.type.startsWith("video/")
-              ? raw
-              : new Blob([raw], { type: "video/mp4" });
-            log(
-              "fetched",
-              layer.phaseIndex,
-              url,
-              `${Math.round(blob.size / 1024)} KB`,
-              raw.type || "(tür yok)"
-            );
-            return blob;
-          });
+        clipBlob(url).then((raw) => {
+          // iOS blob: URL'inde türü Blob'dan okuyor; Content-Type eksik ya
+          // da yanlış gelirse (proxy, önbellek) klip çözülemez.
+          const blob = raw.type.startsWith("video/")
+            ? raw
+            : new Blob([raw], { type: "video/mp4" });
+          log(
+            "fetched",
+            layer.phaseIndex,
+            url,
+            `${Math.round(blob.size / 1024)} KB`,
+            raw.type || "(tür yok)"
+          );
+          return blob;
         });
       const pending = mobileSource
         ? fetchBlob(mobileSrc).catch((err) => {
@@ -587,7 +683,33 @@ export function useHeroScroll(): HeroScrollHandle {
       const url = URL.createObjectURL(blob);
       layer.blobUrl = url;
       layer.primed = false;
+      layer.frameReady = false;
       log("attach", layer.phaseIndex, blob.type, `${Math.round(blob.size / 1024)} KB`);
+      mark(layer.phaseIndex, "attached");
+      // İlk kare: poster `poster` attribute'u olduğu için tarayıcı onu ilk
+      // sunulan kareyle KENDİSİ değiştirir — opaklık `ready`'e bağlı değil,
+      // arada JS beklemesi yok. Burada yalnızca anı işaretliyoruz.
+      // requestVideoFrameCallback kare gerçekten sunulunca, loadeddata kare
+      // çözülünce gelir; rVFC olmayan tarayıcıda loadeddata ilk kare sayılır.
+      const el = layer.el as HTMLVideoElement & {
+        requestVideoFrameCallback?: (cb: () => void) => number;
+      };
+      const hasFrameCallback = typeof el.requestVideoFrameCallback === "function";
+      const onFirstFrame = () => {
+        if (layer.blobUrl !== url || layer.frameReady) return;
+        layer.frameReady = true;
+        mark(layer.phaseIndex, "firstFrame");
+      };
+      if (hasFrameCallback) el.requestVideoFrameCallback!(onFirstFrame);
+      el.addEventListener(
+        "loadeddata",
+        () => {
+          if (layer.blobUrl !== url) return;
+          mark(layer.phaseIndex, "decoded");
+          if (!hasFrameCallback) onFirstFrame();
+        },
+        { once: true }
+      );
       layer.el.addEventListener(
         "loadedmetadata",
         () => {
@@ -650,13 +772,23 @@ export function useHeroScroll(): HeroScrollHandle {
       }
       layer.ready = false;
       layer.primed = false;
+      layer.frameReady = false;
       layer.cur = 0;
       layer.stuckAt = 0;
       if (eager) return;
       const pending = layer.download;
       pending?.then(
         () => {
-          if (!layer.wanted && layer.download === pending) layer.download = null;
+          if (!layer.wanted && layer.download === pending) {
+            layer.download = null;
+            // Ortak tablo da Blob'u tutuyor — o da bırakılmazsa masaüstünün
+            // ~3 MB'lık klibi sayfa boyunca bellekte kalırdı.
+            const clips = window.__heroClips;
+            if (clips) {
+              delete clips[layer.sources.src];
+              delete clips[layer.sources.mobileSrc];
+            }
+          }
         },
         () => {}
       );
@@ -724,6 +856,8 @@ export function useHeroScroll(): HeroScrollHandle {
       stageH = stage?.offsetHeight || window.innerHeight;
       mobile = isMobile();
       mobileSource = mobileVideoMq.matches;
+      // Pencere kuralı mobileSource'a bağlı — değişmiş olabilir, yeniden uygula.
+      windowKey = "";
       const rect = section!.getBoundingClientRect();
       top = rect.top + window.scrollY;
       height = section!.offsetHeight;
@@ -792,17 +926,49 @@ export function useHeroScroll(): HeroScrollHandle {
       zeroed[index] = true;
     }
 
-    /** Bir hizmet fazının video katmanını sürer: playhead + crossfade + lazy
-     * pencere. İçerik koreografisinden (icon/title/items) ayrı tutulur. */
-    function driveVideoLayer(index: number, q: number, inRange: boolean, current: number) {
+    /** Bir hizmet fazının video katmanını sürer: playhead + crossfade.
+     * İçerik koreografisinden (icon/title/items) ayrı tutulur; hangi
+     * kliplerin bağlı olacağı syncVideoWindow'da. */
+    function driveVideoLayer(index: number, q: number, inRange: boolean) {
       const layer = layerByPhase[index];
       if (!layer) return;
       layer.target = q;
       setLayerOpacity(layer, inRange ? cue(q, 0, 1, VIDEO_FADE.rIn, VIDEO_FADE.rOut) : 0);
-      if (Math.abs(index - current) <= VIDEO_PRELOAD_RADIUS) ensureLoaded(layer);
-      // Eager modda da bırakılır: iOS'ta en fazla 3 bağlı <video>. Blob
-      // bellekte kaldığı için geri dönüşte yeniden bağlama anında.
-      else unload(layer);
+    }
+
+    /** Scroll yönü: +1 aşağı, −1 yukarı, 0 durdu (SCROLL_IDLE_MS). Yalnızca
+     * mobil kaynakta bağlama penceresini kaydırır. */
+    let scrollDir = 0;
+    let lastScrollY = window.scrollY;
+    let idleTimer = 0;
+    /** Son uygulanan pencere — aynıysa hiçbir katmana dokunulmaz. */
+    let windowKey = "";
+
+    /**
+     * Bağlı klip penceresi: her zaman 3 faz genişliğinde (iOS'ta en fazla 3
+     * bağlı <video>, bkz. VideoLayer notu). Durağanken aktif faz ortada
+     * [c−1, c, c+1]; mobilde aşağı scroll'da bir faz ileri kayar
+     * [c, c+1, c+2], yukarıda geri [c−2, c−1, c] — gelmekte olan faz,
+     * içine girilmeden çözülmüş ve primelenmiş olsun. Arkada kalan faz
+     * bu sırada opaklık 0'da (video yalnızca kendi aralığında görünür),
+     * bırakılması görünmüyor.
+     *
+     * Önce pencere dışı çözülür, SONRA pencere içi istenir — bağlama zaten
+     * asenkron (download().then), sayı hiçbir anda 3'ü aşmaz.
+     */
+    function syncVideoWindow(current: number) {
+      const shift = mobileSource ? scrollDir : 0;
+      const key = `${current}:${shift}`;
+      if (key === windowKey) return;
+      windowKey = key;
+      const from = current - VIDEO_PRELOAD_RADIUS + shift;
+      const to = current + VIDEO_PRELOAD_RADIUS + shift;
+      const inWindow = (layer: VideoLayer) => layer.phaseIndex >= from && layer.phaseIndex <= to;
+      // Eager modda da bırakılır: Blob bellekte kaldığı için geri dönüşte
+      // yeniden bağlama anında.
+      for (const layer of layers) if (!inWindow(layer)) unload(layer);
+      for (const layer of layers) if (inWindow(layer)) ensureLoaded(layer);
+      log("pencere", { current, shift, from, to });
     }
 
     function read() {
@@ -835,8 +1001,9 @@ export function useHeroScroll(): HeroScrollHandle {
             i === firstServiceIndex ? leadingPhaseProgress(p, i, HANDOFF_SPAN) : q
           );
         } else zeroPhase(i);
-        driveVideoLayer(i, q, inRange, current);
+        driveVideoLayer(i, q, inRange);
       }
+      syncVideoWindow(current);
 
       const introQ = phaseProgress(p, INTRO_PHASE_INDEX);
       const resolveQ = phaseProgress(p, RESOLVE_PHASE_INDEX);
@@ -1020,6 +1187,23 @@ export function useHeroScroll(): HeroScrollHandle {
           const next = phaseTickRefs.current[current];
           if (next) next.dataset.active = "true";
           activeTick = current;
+          if (debug) {
+            // Faza girildiği an klibin durumu: ilk kare > bağlı > inmiş > yok.
+            const layer = layerByPhase[current];
+            const T = window.__heroClipT ?? {};
+            const url = layer && (mobileSource ? layer.sources.mobileSrc : layer.sources.src);
+            const clip = !layer
+              ? "(klip yok)"
+              : layer.frameReady
+                ? "ilk kare hazır"
+                : layer.blobUrl
+                  ? "bağlı, kare yok"
+                  : url && T[url]?.end
+                    ? "inmiş, bağlı değil"
+                    : "inmedi";
+            timeline.phases.push({ phase: current + 1, at: now(), clip });
+            log("faz", current + 1, `@${now()}ms`, clip);
+          }
         }
       }
 
@@ -1228,6 +1412,18 @@ export function useHeroScroll(): HeroScrollHandle {
 
     let ticking = false;
     function onScroll() {
+      const y = window.scrollY;
+      const dy = y - lastScrollY;
+      if (Math.abs(dy) >= SCROLL_DIR_DEADBAND_PX) {
+        scrollDir = dy > 0 ? 1 : -1;
+        lastScrollY = y;
+      }
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => {
+        if (destroyed || scrollDir === 0) return;
+        scrollDir = 0;
+        read();
+      }, SCROLL_IDLE_MS);
       if (!ticking) {
         ticking = true;
         requestAnimationFrame(() => {
@@ -1246,6 +1442,13 @@ export function useHeroScroll(): HeroScrollHandle {
       window.removeEventListener("resize", layout);
       primeEvents.forEach((ev) => window.removeEventListener(ev, prime));
       activateRef.current = null;
+      window.clearTimeout(idleTimer);
+      // İptal edilecek kendi fetch'lerimizi ortak tablodan şimdi çıkar —
+      // reddetme mikro görevde gelir, sonraki mount ondan önce bakabilir.
+      const clips = window.__heroClips;
+      ownFetches.forEach((pending, url) => {
+        if (clips?.[url] === pending) delete clips[url];
+      });
       net.abort();
       layers.forEach((layer) => {
         if (layer.blobUrl) URL.revokeObjectURL(layer.blobUrl);

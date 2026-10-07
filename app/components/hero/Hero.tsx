@@ -251,8 +251,9 @@ function HeroOutroOrb() {
  *
  * Klibin kendisi için `<link rel="preload" as="fetch">` Ekim 2026'da
  * KALDIRILDI: iPhone'da hero videoları hiç oynamamaya başladığında preload
- * yanıtının fetch()'e devri iOS'ta doğrulanamadı. Klip indirmesi mount'ta
- * useHeroScroll'un fetch()'iyle başlıyor.
+ * yanıtının fetch()'e devri iOS'ta doğrulanamadı. Klip indirmesi HTML'deki
+ * inline script'in fetch()'iyle hydration'dan önce başlıyor (bkz.
+ * heroClipScript.ts); useHeroScroll aynı promise'leri devralıyor.
  */
 const MOTION_OK = "(prefers-reduced-motion: no-preference)";
 const MOBILE_PRELOAD_MEDIA = `${HERO_MOBILE_VIDEO_MEDIA} and ${MOTION_OK}`;

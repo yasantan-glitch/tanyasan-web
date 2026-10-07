@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import Hero from "./components/hero/Hero";
+import HeroClipPrefetch from "./components/hero/HeroClipPrefetch";
 import JsonLd from "./components/seo/JsonLd";
 import { CONTACT } from "./content/contact";
 import { SOCIAL_LINKS } from "./content/socialLinks";
@@ -131,6 +132,8 @@ export default function Home() {
   return (
     <>
       <JsonLd data={BUSINESS_JSON_LD} />
+      {/* Klip indirmesi hydration'ı beklemesin — bkz. heroClipScript.ts. */}
+      <HeroClipPrefetch />
       <Hero />
 
       {/* 1 — Kısa tanıtım. Yeni CSS yok: .service-grid + .service-head
