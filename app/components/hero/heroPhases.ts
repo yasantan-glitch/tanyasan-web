@@ -136,9 +136,9 @@ const SERVICE_VIDEOS: Record<string, string> = {
 
 /**
  * Dikey telefon klibinin (`mobileSrc`) seçilme koşulu — TEK kaynak. Hem
- * motor (useHeroScroll, matchMedia) hem Hero.tsx'teki <link rel="preload">
- * etiketleri (media) bu dizgeyi okur; ikisi aynı URL'i seçmezse fetch()
- * preload edilen yanıtı kullanamaz, klip iki kez iner.
+ * motor (useHeroScroll, matchMedia) hem Hero.tsx'teki poster
+ * <link rel="preload"> etiketi (media) bu dizgeyi okur; ikisi farklı
+ * posteri seçerse önyüklenen görsel boşa iner.
  *
  * Oran 3:5'ten darsa cover kırpımı yükseklikten yapar ve 3:5 kaynak, 16:9
  * kaynağın gösterdiği pikselin aynısını gösterir; daha genişse (dikey

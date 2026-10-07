@@ -241,47 +241,33 @@ function HeroOutroOrb() {
 }
 
 /**
- * İlk hizmet klibinin (faz 2) ve posterinin ön yüklemesi — HTML'de, JS
+ * İlk hizmet fazının (faz 2) telefon posterinin ön yüklemesi — HTML'de, JS
  * inmeden başlasın diye. React 19 <link>'i <head>'e taşıyor; sunucu
- * snapshot'ı bu dalı bastığı için etiketler ilk HTML'de.
+ * snapshot'ı bu dalı bastığı için etiket ilk HTML'de.
  *
- * `media` iki işi birden görüyor: motorla AYNI sorguyla (HERO_MOBILE_VIDEO_
- * MEDIA) tek bir klip seçiliyor — useHeroScroll'daki fetch() aynı URL'i
- * istediği için preload edilen yanıtı devralıyor (`crossOrigin` bu eşleşme
- * için şart) — ve reduced-motion kullanıcısı (video hiç yok) hiçbirini
- * indirmiyor. Masaüstü sorgusu mobilinkinin tümleyeni.
+ * `media`: motorla AYNI sorgu (HERO_MOBILE_VIDEO_MEDIA) — yalnızca dikey
+ * telefon posteri seçen ekranda iner; reduced-motion kullanıcısı (video hiç
+ * yok) indirmiyor.
+ *
+ * Klibin kendisi için `<link rel="preload" as="fetch">` Ekim 2026'da
+ * KALDIRILDI: iPhone'da hero videoları hiç oynamamaya başladığında preload
+ * yanıtının fetch()'e devri iOS'ta doğrulanamadı. Klip indirmesi mount'ta
+ * useHeroScroll'un fetch()'iyle başlıyor.
  */
 const MOTION_OK = "(prefers-reduced-motion: no-preference)";
 const MOBILE_PRELOAD_MEDIA = `${HERO_MOBILE_VIDEO_MEDIA} and ${MOTION_OK}`;
-const DESKTOP_PRELOAD_MEDIA = `(min-width: 861px) and ${MOTION_OK}, (min-aspect-ratio: 601/1000) and ${MOTION_OK}`;
 
 function HeroVideoPreloads() {
   const first = SERVICE_PHASES[0]?.video;
   if (!first) return null;
   return (
-    <>
-      <link
-        rel="preload"
-        as="fetch"
-        href={first.mobileSrc}
-        crossOrigin="anonymous"
-        media={MOBILE_PRELOAD_MEDIA}
-      />
-      <link
-        rel="preload"
-        as="image"
-        href={first.posterMobile}
-        fetchPriority="high"
-        media={MOBILE_PRELOAD_MEDIA}
-      />
-      <link
-        rel="preload"
-        as="fetch"
-        href={first.src}
-        crossOrigin="anonymous"
-        media={DESKTOP_PRELOAD_MEDIA}
-      />
-    </>
+    <link
+      rel="preload"
+      as="image"
+      href={first.posterMobile}
+      fetchPriority="high"
+      media={MOBILE_PRELOAD_MEDIA}
+    />
   );
 }
 

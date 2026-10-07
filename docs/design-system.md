@@ -591,12 +591,15 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   klipleri tek keyframe'li; telefon çözücüsü her seek'te 120 kareyi baştan
   çözüyordu, scrub donuyordu. Her klibin ilk karesi `hero-videos/posters/`
   altında poster olarak bağlanır (yavaş ağ / Düşük Güç Modu'nda boş zemin
-  yerine). Mobil dosya yoksa bir kez masaüstü klibine düşülür. İlk klip ve
+  yerine). Mobil dosya yoksa bir kez masaüstü klibine düşülür. İlk hizmetin
   mobil posteri HTML'de `<link rel="preload">` ile (media sorgulu, motorla
-  aynı `HERO_MOBILE_VIDEO_MEDIA`) JS'ten önce iner. Mobilde (Save-Data
-  kapalıysa) tüm posterler mount'ta bağlanır, 6 klip (~2.3 MB) faz sırasıyla
-  tek tek arka planda iner ve bellekte kalır; masaüstünde aktif ±1 penceresi
-  korunur. Scroll'da hiçbir indirme iptal edilmez. Kaynaklar
+  aynı `HERO_MOBILE_VIDEO_MEDIA`) JS'ten önce iner; klip için fetch preload
+  yok. Mobilde (Save-Data kapalıysa) tüm posterler mount'ta bağlanır, 6 klip
+  (~2.3 MB) faz sırasıyla tek tek arka planda iner ve Blob olarak bellekte
+  kalır. `<video>`'ya BAĞLAMA ise her ekranda aktif ±1 penceresiyle sınırlı
+  (en fazla 3 bağlı video — 6'sı birden iPhone'da oynatmayı durdurdu);
+  bellekteki Blob sayesinde yeniden bağlama anında. Scroll'da hiçbir indirme
+  iptal edilmez. Kaynaklar
   `heroPhases.ts`'teki `heroVideoSources()`'tan türetilir; gerçek cihazda
   tanı için `?herodebug` konsola klip/priming olaylarını yazar. Üretim
   (`public/hero-videos/` içinde, `<ad>` = klibin taban adı):

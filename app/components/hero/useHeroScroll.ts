@@ -111,13 +111,15 @@ const VIDEO_PRELOAD_RADIUS = 1;
 /**
  * Scroll'a bağlı sürülen tek bir video katmanı. Her katman kendi fazının
  * klibini taşır (phaseIndex ile heroPhases.ts'e eşlenir) ve aktif fazdan
- * uzaklaşınca src'si bırakılır (mobil eager modda bırakılmaz). Taban katman
- * kavramı yok.
+ * uzaklaşınca src'si bırakılır — mobilde de: aynı anda en fazla aktif ±1
+ * (≤3) <video> bağlı. iOS Safari'de 6 klibin birden bağlı/primelenmiş olması
+ * oynatmayı tamamen durdurdu (Ekim 2026). Taban katman kavramı yok.
  *
  * İNDİRME ile BAĞLAMA ayrı: `download` ağ isteğidir ve scroll'da ASLA iptal
  * edilmez (yalnızca unmount'ta) — hızlı scroll'da bitmek üzere olan bir klip
- * kesilip baştan indirilmesin. `wanted` ise katmanın src'sinin bağlı olup
- * olmaması gerektiğidir.
+ * kesilip baştan indirilmesin. Mobil eager modda bitmiş indirmenin Blob'u
+ * bellekte kalır, yeniden bağlama anında olur. `wanted` ise katmanın
+ * src'sinin bağlı olup olmaması gerektiğidir.
  */
 interface VideoLayer {
   el: HTMLVideoElement;
@@ -134,6 +136,8 @@ interface VideoLayer {
   /** Sürmekte olan ya da bitmiş indirme; başarısızlıkta null'a döner. */
   download: Promise<Blob> | null;
   wanted: boolean;
+  /** Bağlı src bir play()/pause() ile primelendi mi — her bağlamada sıfırlanır. */
+  primed: boolean;
   /** Son yazılan opaklık — aynı değeri tekrar yazıp style recalc tetiklemeyiz. */
   opacity: number;
 }
@@ -398,6 +402,8 @@ export function useHeroScroll(): HeroScrollHandle {
   const dockNavRef = useRef<HTMLElement>(null);
   const dockSegRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const dockFillRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  /** Effect'in priming'i — dok düğmeleri dokunuş anında çağırır. */
+  const activateRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -426,8 +432,10 @@ export function useHeroScroll(): HeroScrollHandle {
     /**
      * Mobil eager mod — mount'ta bir kez karar verilir. Açıkken: tüm
      * posterler hemen bağlanır, klipler faz sırasıyla arka planda TEK TEK
-     * iner ve hiçbiri scroll'da bırakılmaz (6 küçük klip ≈ 2.3 MB). Kapalıyken
-     * (masaüstü — klipler büyük; ya da Save-Data) aktif ±1 penceresi.
+     * iner ve Blob'ları bellekte tutulur (6 küçük klip ≈ 2.3 MB). BAĞLAMA ise
+     * her iki modda da aktif ±1 penceresiyle sınırlı. Kapalıyken (masaüstü —
+     * klipler büyük; ya da Save-Data) yalnızca pencere iner, uzaklaşan klibin
+     * Blob'u bırakılır.
      */
     const saveData = saveDataOn();
     const eager = mobileSource && !saveData;
@@ -468,9 +476,10 @@ export function useHeroScroll(): HeroScrollHandle {
       el.playsInline = true;
       if (debug) {
         el.addEventListener("error", () =>
-          console.warn("[hero] video error", phaseIndex, el.currentSrc, el.error)
+          console.warn("[hero] video error", phaseIndex, el.currentSrc, el.error?.code, el.error)
         );
         el.addEventListener("loadeddata", () => log("loadeddata", phaseIndex, el.duration));
+        el.addEventListener("stalled", () => log("stalled", phaseIndex));
       }
 
       const layer: VideoLayer = {
@@ -485,6 +494,7 @@ export function useHeroScroll(): HeroScrollHandle {
         blobUrl: null,
         download: null,
         wanted: false,
+        primed: false,
         opacity: 0,
       };
       layers.push(layer);
@@ -509,9 +519,9 @@ export function useHeroScroll(): HeroScrollHandle {
     }
 
     // ---- blob-preload (güvenilir seek için) ----
-    // İlk klibin isteği fetch()'ten ÖNCE, HTML'deki <link rel="preload"
-    // as="fetch"> ile başlıyor (bkz. Hero.tsx HeroVideoPreloads); aynı URL
-    // + crossorigin olduğu için buradaki fetch o yanıtı devralıyor.
+    // Klip için <link rel="preload" as="fetch"> YOK (Ekim 2026'da kaldırıldı):
+    // iOS'ta preload yanıtının fetch()'e devri doğrulanamadı; yalnızca ilk
+    // poster HTML'den önyükleniyor (bkz. Hero.tsx HeroVideoPreloads).
     //
     // Poster: klip inene ya da cihaz kareyi boyayana dek (yavaş hücresel ağ,
     // iOS Düşük Güç Modu'nda reddedilen play()) katman boş koyu zemin yerine
@@ -533,8 +543,19 @@ export function useHeroScroll(): HeroScrollHandle {
       const fetchBlob = (url: string) =>
         fetch(url, { signal: net.signal }).then((r) => {
           if (!r.ok) throw new Error(`${r.status} ${url}`);
-          return r.blob().then((blob) => {
-            log("fetched", layer.phaseIndex, url, `${Math.round(blob.size / 1024)} KB`);
+          return r.blob().then((raw) => {
+            // iOS blob: URL'inde türü Blob'dan okuyor; Content-Type eksik ya
+            // da yanlış gelirse (proxy, önbellek) klip çözülemez.
+            const blob = raw.type.startsWith("video/")
+              ? raw
+              : new Blob([raw], { type: "video/mp4" });
+            log(
+              "fetched",
+              layer.phaseIndex,
+              url,
+              `${Math.round(blob.size / 1024)} KB`,
+              raw.type || "(tür yok)"
+            );
             return blob;
           });
         });
@@ -557,10 +578,16 @@ export function useHeroScroll(): HeroScrollHandle {
       return pending;
     }
 
+    /** `?herodebug`: o an src'si bağlı <video> sayısı (≤3 beklenir). */
+    const logAttached = () =>
+      log("attached", layers.filter((layer) => layer.blobUrl).length);
+
     /** İnmiş blob'u video elemanına bağlar. */
     function attach(layer: VideoLayer, blob: Blob) {
       const url = URL.createObjectURL(blob);
       layer.blobUrl = url;
+      layer.primed = false;
+      log("attach", layer.phaseIndex, blob.type, `${Math.round(blob.size / 1024)} KB`);
       layer.el.addEventListener(
         "loadedmetadata",
         () => {
@@ -575,7 +602,7 @@ export function useHeroScroll(): HeroScrollHandle {
           } catch {
             /* seek atlanır */
           }
-          if (primed) primeLayer(layer);
+          if (activated) primeLayer(layer);
           read();
         },
         { once: true }
@@ -584,6 +611,7 @@ export function useHeroScroll(): HeroScrollHandle {
       layer.el.muted = true;
       layer.el.playsInline = true;
       layer.el.src = url;
+      logAttached();
     }
 
     function ensureLoaded(layer: VideoLayer) {
@@ -603,11 +631,12 @@ export function useHeroScroll(): HeroScrollHandle {
       );
     }
 
-    /** Uzaklaşan fazın klibini videodan çözer. Süren indirme İPTAL EDİLMEZ
-     * — bitmek üzere olan klip hızlı scroll'da kesilip geri dönüşte baştan
-     * inmesin; dönülürse aynı promise kullanılır. Bitmiş indirmenin Blob'u
-     * ise bırakılır (bellek aktif ±1'de kalsın); geri dönüşte fetch HTTP
-     * cache'ten döner. Eager modda hiç çağrılmaz. */
+    /** Uzaklaşan fazın klibini videodan çözer (src + decoder bırakılır).
+     * Süren indirme İPTAL EDİLMEZ — bitmek üzere olan klip hızlı scroll'da
+     * kesilip geri dönüşte baştan inmesin; dönülürse aynı promise kullanılır.
+     * Bitmiş indirmenin Blob'u: eager modda bellekte KALIR (geri dönüşte
+     * yeniden bağlama anında), aksi hâlde bırakılır (bellek aktif ±1'de
+     * kalsın; geri dönüşte fetch HTTP cache'ten döner). */
     function unload(layer: VideoLayer) {
       if (!layer.wanted) return;
       layer.wanted = false;
@@ -616,10 +645,14 @@ export function useHeroScroll(): HeroScrollHandle {
         layer.blobUrl = null;
         layer.el.removeAttribute("src");
         layer.el.load();
+        log("detach", layer.phaseIndex);
+        logAttached();
       }
       layer.ready = false;
+      layer.primed = false;
       layer.cur = 0;
       layer.stuckAt = 0;
+      if (eager) return;
       const pending = layer.download;
       pending?.then(
         () => {
@@ -629,20 +662,16 @@ export function useHeroScroll(): HeroScrollHandle {
       );
     }
 
-    /** Eager mod: klipler faz sırasıyla, TEK TEK. İlk iterasyon faz 2'nin
-     * klibi (preload'dan geliyor) — geri kalanlar onun bitişinden sonra
-     * sırayla. Hızlı scroll ileride bir klibi talep ederse pencere onu
-     * paralel başlatır, kuyruk aynı promise'i bekler. */
+    /** Eager mod: klipler faz sırasıyla, TEK TEK İNER — bağlanmaz. Bağlamayı
+     * read()'in ±1 penceresi (ensureLoaded) yapar; inen klip pencerede ise
+     * ensureLoaded'ın bekleyen then'i onu bağlar. Hızlı scroll ileride bir
+     * klibi talep ederse pencere onu paralel başlatır, kuyruk aynı promise'i
+     * bekler. */
     async function prefetchAll() {
       for (let i = 0; i < layers.length; i++) {
         if (destroyed) return;
-        const layer = layers[i];
-        ensureLoaded(layer);
         try {
-          const blob = await download(layer);
-          // Önceki bir denemesi başarısız olmuş katman için ensureLoaded
-          // bağlamayı üstlenmiyor — burada bağlanır.
-          if (!destroyed && layer.wanted && !layer.blobUrl) attach(layer, blob);
+          await download(layers[i]);
         } catch {
           /* sıradakine geç */
         }
@@ -771,9 +800,9 @@ export function useHeroScroll(): HeroScrollHandle {
       layer.target = q;
       setLayerOpacity(layer, inRange ? cue(q, 0, 1, VIDEO_FADE.rIn, VIDEO_FADE.rOut) : 0);
       if (Math.abs(index - current) <= VIDEO_PRELOAD_RADIUS) ensureLoaded(layer);
-      // Eager modda bırakılmaz: 6 küçük klip bağlı kalır, geri scroll'da
-      // yeniden priming / seek beklenmez.
-      else if (!eager) unload(layer);
+      // Eager modda da bırakılır: iOS'ta en fazla 3 bağlı <video>. Blob
+      // bellekte kaldığı için geri dönüşte yeniden bağlama anında.
+      else unload(layer);
     }
 
     function read() {
@@ -1115,45 +1144,66 @@ export function useHeroScroll(): HeroScrollHandle {
     // gibi etkinleştirme sayılmayan olaylarda play() tekrar denenmez — her
     // scroll karesinde boşuna reddedilen bir istek atılıyordu. Bu arada
     // katmanda poster görünür.
-    let primed = false;
+    //
+    // Priming KATMAN BAŞINA izlenir: yalnızca bağlı (≤3) ve henüz
+    // primelenmemiş katmanlar play() alır. Eskiden tek bir başarısız play()
+    // global bayrağı düşürüyor, sonraki her scroll olayı TÜM bağlı klipleri
+    // yeniden play()/pause()'a sokuyordu.
+    /** Bir etkileşim (dokunuş/scroll/tuş) oldu mu — sonradan bağlanan katman
+     * loadedmetadata'da bu bayrağa bakıp kendini primeler. */
+    let activated = false;
     let blockedByPolicy = false;
+    const priming = new Set<VideoLayer>();
     function primeLayer(layer: VideoLayer) {
-      if (!layer.el.src) return;
+      if (!layer.el.src || layer.primed || priming.has(layer)) return;
+      const src = layer.el.src;
       let pr: Promise<void> | undefined;
       try {
         pr = layer.el.play();
       } catch (err) {
-        primed = false;
         log("play() hata", layer.phaseIndex, err);
         return;
       }
       if (pr && pr.then) {
+        priming.add(layer);
         pr.then(
           () => {
+            priming.delete(layer);
+            // Arada çözülüp başka src bağlandıysa bu sonuç eskisine ait.
+            if (layer.el.src !== src) return;
             layer.el.pause();
+            layer.primed = true;
             blockedByPolicy = false;
             log("primed", layer.phaseIndex);
           },
           (err: unknown) => {
-            primed = false;
-            if (err instanceof DOMException && err.name === "NotAllowedError") {
-              blockedByPolicy = true;
-            }
-            log("play() reddedildi", layer.phaseIndex, err);
+            priming.delete(layer);
+            const name = err instanceof DOMException ? err.name : String(err);
+            if (name === "NotAllowedError") blockedByPolicy = true;
+            log("play() reddedildi", layer.phaseIndex, name, err);
           }
         );
       } else {
         layer.el.pause();
+        layer.primed = true;
       }
+    }
+    function primeAttached() {
+      for (const layer of layers) if (layer.blobUrl) primeLayer(layer);
     }
     const ACTIVATION_EVENTS = new Set(["touchend", "pointerup", "click", "keydown"]);
     const prime = (event: Event) => {
-      if (primed) return;
       if (blockedByPolicy && !ACTIVATION_EVENTS.has(event.type)) return;
-      const loaded = layers.filter((layer) => layer.el.src);
-      if (!loaded.length) return;
-      primed = true;
-      loaded.forEach(primeLayer);
+      activated = true;
+      primeAttached();
+    };
+    // Dok düğmeleri (scrollToPhase / skipHero) bunu click işleyicisinin
+    // İÇİNDE, smooth scroll'dan önce çağırır — dokunuş kesin etkinleştirme
+    // sayılır, pencere dinleyicilerinin sırasına bırakılmaz.
+    activateRef.current = () => {
+      blockedByPolicy = false;
+      activated = true;
+      primeAttached();
     };
     const primeEvents: (keyof WindowEventMap)[] = [
       "touchstart",
@@ -1195,6 +1245,7 @@ export function useHeroScroll(): HeroScrollHandle {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", layout);
       primeEvents.forEach((ev) => window.removeEventListener(ev, prime));
+      activateRef.current = null;
       net.abort();
       layers.forEach((layer) => {
         if (layer.blobUrl) URL.revokeObjectURL(layer.blobUrl);
@@ -1207,9 +1258,10 @@ export function useHeroScroll(): HeroScrollHandle {
    * değil); formül read()'inkiyle aynı: travel = section − sahne yüksekliği
    * (100svh — innerHeight DEĞİL, adres çubuğu oynadıkça kaymasın).
    *
-   * iOS priming'i ayrıca tetiklemek gerekmiyor: dokunuş touchend/pointerup/
-   * click olarak effect'teki pencere dinleyicilerine (ACTIVATION_EVENTS) zaten
-   * düşüyor ve smooth scroll başlamadan yüklü klipleri primeliyor.
+   * iOS priming: ikisi de önce activateRef'i çağırır — click işleyicisinin
+   * içinde, yani kullanıcı etkinleştirmesi sürerken ve smooth scroll
+   * başlamadan bağlı klipler primelenir. Pencere dinleyicileri
+   * (ACTIVATION_EVENTS) yedek olarak kalıyor.
    *
    * scroll-snap YOK — scrub'la savaşırdı; iniş noktası PHASE_SETTLE_Q.
    */
@@ -1226,6 +1278,7 @@ export function useHeroScroll(): HeroScrollHandle {
   }
 
   function scrollToPhase(phaseIndex: number) {
+    activateRef.current?.();
     const geo = heroGeometry();
     const range = PHASE_RANGES[phaseIndex];
     if (!geo || !range) return;
@@ -1234,6 +1287,7 @@ export function useHeroScroll(): HeroScrollHandle {
   }
 
   function skipHero(moveFocus: boolean) {
+    activateRef.current?.();
     const geo = heroGeometry();
     if (!geo) return;
     window.scrollTo({ top: Math.round(geo.top + geo.height), behavior: "smooth" });

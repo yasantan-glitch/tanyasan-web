@@ -176,14 +176,17 @@ mobil, iki poster) üretilmesi gerekir — ffmpeg komutları `design-system.md` 
 Masaüstü klipleri tek keyframe'li: telefonda scrub için ASLA doğrudan
 kullanılmamalı. Gerçek cihazda tanı: `?herodebug`.
 
-**Yükleme sırası:** faz 2'nin klibi ve mobil posteri HTML'deki
-`<link rel="preload">` ile (Hero.tsx `HeroVideoPreloads`) JS'ten önce iner;
-`media` sorgusu motorla aynı (`HERO_MOBILE_VIDEO_MEDIA`) — ikisini ayrı
-değiştirmeyin, fetch preload'ı devralamaz. Mobilde (Save-Data kapalıysa)
+**Yükleme sırası:** faz 2'nin mobil posteri HTML'deki `<link rel="preload">`
+ile (Hero.tsx `HeroVideoPreloads`) JS'ten önce iner; `media` sorgusu motorla
+aynı (`HERO_MOBILE_VIDEO_MEDIA`). Klibin kendisi için `as="fetch"` preload
+YOK (iOS'ta doğrulanamadığı için kaldırıldı). Mobilde (Save-Data kapalıysa)
 **eager mod**: tüm posterler mount'ta, klipler faz sırasıyla tek tek arka
-planda iner ve scroll'da hiç bırakılmaz. Masaüstü ve Save-Data: aktif ±1.
+planda İNER ve Blob'ları bellekte kalır. **Bağlama her modda aktif ±1**:
+aynı anda en fazla 3 `<video>`'nun src'si var. 6 klibin birden bağlanıp
+primelenmesi iPhone'da oynatmayı tamamen durdurdu — geri getirmeyin.
 İndirmeler scroll'da iptal EDİLMEZ (yalnızca unmount'ta) — `download`
-(ağ) ile `wanted` (src bağlı mı) ayrı tutulur.
+(ağ) ile `wanted` (src bağlı mı) ayrı tutulur. Priming katman başına
+(`layer.primed`); dok düğmeleri `activateRef` ile dokunuş anında primeler.
 
 ## Bağımlılıklar
 
