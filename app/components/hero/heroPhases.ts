@@ -28,7 +28,22 @@ export interface HeroPhase {
   /** Fazın kendi klibi. YALNIZCA hizmet fazlarında; intro'da video yok
    * (statik zemin, bkz. globals.css .hero-bg-static), resolve'da da yok
    * (kapanış sahnesinin hiç medyası yok — bkz. HeroResolvePhase). */
-  videoSrc?: string;
+  video?: HeroVideoSources;
+}
+
+/** Bir hizmet klibinin dört dosyası — hepsi aynı taban addan türetilir. */
+export interface HeroVideoSources {
+  /** Masaüstü klibi: 1280×720. */
+  src: string;
+  /** Dikey telefon klibi: merkezden 3:5 kırpılmış 432×720, sık keyframe
+   * (GOP 6, B-frame yok), sessiz. Kırpma tam olarak object-fit: cover'ın
+   * dikey ekranda zaten gösterdiği bölge — kadraj değişmiyor. Gerekçe:
+   * masaüstü klibinde TEK keyframe var; telefonun donanım çözücüsü her
+   * currentTime seek'inde 120 kareyi baştan çözmek zorunda kalıyordu. */
+  mobileSrc: string;
+  /** İlk karenin görseli — klip inene / boyanana dek boş zemin yerine. */
+  poster: string;
+  posterMobile: string;
 }
 
 /** İkon/başlık/kalemlerin garanti olduğu daraltılmış tip. */
@@ -37,7 +52,7 @@ export interface HeroServicePhase extends HeroPhase {
   icon: LucideIcon;
   title: string;
   items: string[];
-  videoSrc: string;
+  video: HeroVideoSources;
 }
 
 /** Faz 8 (resolve) hiçbir medya taşımıyor: ne klip ne fotoğraf. Kapanış
@@ -107,30 +122,44 @@ const SERVICE_WEIGHTS: Record<string, number> = {
   danismanlik: 1.471,
 };
 
-/** Fazın kendi klibi. Yalnızca hero'yu ilgilendirir — /hizmetler medyasız. */
+/** Fazın kendi klibinin taban adı. Yalnızca hero'yu ilgilendirir —
+ * /hizmetler medyasız. Dosya yerleşimi: public/hero-videos/{ad}.mp4,
+ * mobile/{ad}.mp4, posters/{ad}.jpg, posters/{ad}-mobile.jpg. */
 const SERVICE_VIDEOS: Record<string, string> = {
-  grafik: "/hero-videos/grafik-tasarim.mp4",
-  dijital: "/hero-videos/dijital-pazarlama.mp4",
-  web: "/hero-videos/web-tasarimi.mp4",
-  yazilim: "/hero-videos/yazilim-uygulama.mp4",
-  foto: "/hero-videos/foto-video.mp4",
-  danismanlik: "/hero-videos/danismanlik-egitim.mp4",
+  grafik: "grafik-tasarim",
+  dijital: "dijital-pazarlama",
+  web: "web-tasarimi",
+  yazilim: "yazilim-uygulama",
+  foto: "foto-video",
+  danismanlik: "danismanlik-egitim",
 };
+
+function heroVideoSources(name: string): HeroVideoSources {
+  const base = "/hero-videos";
+  return {
+    src: `${base}/${name}.mp4`,
+    mobileSrc: `${base}/mobile/${name}.mp4`,
+    poster: `${base}/posters/${name}.jpg`,
+    posterMobile: `${base}/posters/${name}-mobile.jpg`,
+  };
+}
 
 /**
  * İçerik (ikon/başlık/kalemler) services.ts'ten gelir, zamanlama buradan.
  * Sıra da services.ts'in sırasıdır: aradan bir hizmet eklemek/çıkarmak için
  * o diziye dokunmak ve buraya ağırlık + klip eklemek yeterli.
  */
-const SERVICE_HERO_PHASES: HeroServicePhase[] = SERVICES.map((service) => ({
-  id: service.id,
-  kind: "service",
-  weight: SERVICE_WEIGHTS[service.id],
-  icon: service.icon,
-  videoSrc: SERVICE_VIDEOS[service.id],
-  title: service.title,
-  items: service.items,
-}));
+const SERVICE_HERO_PHASES: HeroServicePhase[] = SERVICES.map((service) => {
+  return {
+    id: service.id,
+    kind: "service",
+    weight: SERVICE_WEIGHTS[service.id],
+    icon: service.icon,
+    video: heroVideoSources(SERVICE_VIDEOS[service.id]),
+    title: service.title,
+    items: service.items,
+  };
+});
 
 export const HERO_PHASES: HeroPhase[] = [
   { id: "intro", kind: "intro", weight: 1.3 },

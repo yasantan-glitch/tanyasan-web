@@ -584,10 +584,20 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   kalemler `body → body-sm`, ikon/ayraç bir kademe küçülür, faz göstergesi
   gizlenir. Eşik `useHeroScroll`'daki `isMobile()` ile aynı (860px). Override
   `:root` üzerinde — Tailwind v4'te `@theme` media query kabul etmiyor.
-  Seek deadband mobilde hâlâ daha geniş (`0.02` vs `0.008`). Tek video dosyası
-  (`hero-network.mp4`, 720p) her iki ortamda kullanılıyor; bu ortamda ffmpeg
-  olmadığı için ayrı mobil varyant üretilemedi — ileride eklenirse
-  `useHeroScroll`'daki tek `videoSrc` parametresi genişletilebilir.
+  Seek deadband mobilde hâlâ daha geniş (`0.02` vs `0.008`). Dikey telefonda
+  (sahne ≤860px ve en/boy ≤3:5) her hizmet klibinin mobil varyantı yüklenir:
+  `hero-videos/mobile/<ad>.mp4` — merkezden 3:5 kırpım (432×720, cover'ın
+  zaten gösterdiği bölge, kadraj aynı), GOP 6, B-frame yok, sessiz. Masaüstü
+  klipleri tek keyframe'li; telefon çözücüsü her seek'te 120 kareyi baştan
+  çözüyordu, scrub donuyordu. Her klibin ilk karesi `hero-videos/posters/`
+  altında poster olarak bağlanır (yavaş ağ / Düşük Güç Modu'nda boş zemin
+  yerine). Mobil dosya yoksa bir kez masaüstü klibine düşülür. Kaynaklar
+  `heroPhases.ts`'teki `heroVideoSources()`'tan türetilir; gerçek cihazda
+  tanı için `?herodebug` konsola klip/priming olaylarını yazar. Üretim
+  (`public/hero-videos/` içinde, `<ad>` = klibin taban adı):
+  `ffmpeg -i <ad>.mp4 -an -vf "crop=ih*3/5:ih,scale=432:720:flags=lanczos,format=yuv420p" -c:v libx264 -profile:v main -level 3.1 -preset slow -crf 24 -g 6 -keyint_min 6 -sc_threshold 0 -bf 0 -movflags +faststart mobile/<ad>.mp4`,
+  `ffmpeg -i <ad>.mp4 -frames:v 1 -q:v 3 posters/<ad>.jpg`,
+  `ffmpeg -i <ad>.mp4 -frames:v 1 -vf "crop=ih*3/5:ih,scale=432:720" -q:v 3 posters/<ad>-mobile.jpg`.
 - **Reduced-motion:** Video, scrub ve rAF döngüsü hiç mount edilmez. Yerine
   `.hero-bg-static`'in düz koyu radial-gradient zemini (interaktif daldakiyle
   birebir aynı class) + `.surface-ink` bir bölümde 6 hizmet ailesi hairline

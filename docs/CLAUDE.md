@@ -162,6 +162,14 @@ Ayrı bir mobil bileşen/dal yok. Aynı 8 faz, **sıkıştırılmış bütçeyle
 başlığı/kalem tipografisi bir kademe küçük tokene düşer. `useHeroScroll`
 içindeki `isMobile()` eşiği (860px) bu CSS breakpoint'iyle aynı tutulmalı.
 
+**Klipler:** dikey telefonda (sahne ≤860px, en/boy ≤3:5) `hero-videos/mobile/`
+varyantı yüklenir (3:5 kırpım, sık keyframe), her klibe `hero-videos/posters/`
+altındaki ilk kare poster olarak bağlanır. Kaynak yolları `heroPhases.ts`'teki
+`heroVideoSources()`'tan türer; yeni klip eklerken dört dosyanın da (masaüstü,
+mobil, iki poster) üretilmesi gerekir — ffmpeg komutları `design-system.md` §8.
+Masaüstü klipleri tek keyframe'li: telefonda scrub için ASLA doğrudan
+kullanılmamalı. Gerçek cihazda tanı: `?herodebug`.
+
 ## Bağımlılıklar
 
 `lucide-react`, 8 fazlı hizmet ikonları için bu işte eklendi (`Palette`,

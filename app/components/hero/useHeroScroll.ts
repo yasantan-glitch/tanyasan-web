@@ -19,6 +19,7 @@ import {
   PHASE_RANGES,
   RESOLVE_PHASE_INDEX,
   isServicePhase,
+  type HeroVideoSources,
 } from "./heroPhases";
 
 // Eğriler `heroMath.ts`'te — site genelindeki hareket onlarla aynı dili
@@ -75,6 +76,21 @@ const isMobile = () =>
   typeof window !== "undefined" && window.matchMedia("(max-width: 860px)").matches;
 
 /**
+ * Dikey telefon klibinin (3:5 kırpım, bkz. HeroVideoSources.mobileSrc)
+ * seçilme koşulu — sahnenin KENDİ ölçüsüyle. Oran 3:5'ten darsa cover
+ * kırpımı yükseklikten yapar ve 3:5 kaynak, 16:9 kaynağın gösterdiği
+ * pikselin aynısını gösterir; daha genişse (dikey tablet, yatay telefon)
+ * masaüstü klibi kalır, kadraj hiçbir ekranda değişmez.
+ */
+const MOBILE_SOURCE_MAX_WIDTH = 860;
+const MOBILE_SOURCE_MAX_ASPECT = 3 / 5;
+
+/** `?herodebug` ile gerçek cihazda konsola klip/priming olaylarını yazar
+ * (Safari Web Inspector / chrome://inspect). Parametre yoksa sessiz. */
+const heroDebug = () =>
+  typeof window !== "undefined" && /[?&]herodebug\b/.test(window.location.search);
+
+/**
  * Hizmet klibinin faz-yerel crossfade penceresi. Fazın ilk/son %12'sinde
  * çözülür, ortada plato. İçerik zarfı (PHASE_ENVELOPE 0.06 → 0.98) bunun
  * içinde kaldığı için video, metin belirmeden yerini alır ve metin gittikten
@@ -93,7 +109,7 @@ const VIDEO_PRELOAD_RADIUS = 1;
  */
 interface VideoLayer {
   el: HTMLVideoElement;
-  src: string;
+  sources: HeroVideoSources;
   /** Faz indeksi (hizmet veya resolve). */
   phaseIndex: number;
   /** lerp'lenen ve hedef playhead — ikisi de [0,1] normalize. */
@@ -332,13 +348,25 @@ export function useHeroScroll(): HeroScrollHandle {
     const section = sectionRef.current;
     if (!section) return;
 
-    let vh = window.innerHeight;
+    /** Pin uzunluğu = sticky sahnenin yüksekliği (100svh). window.innerHeight
+     * DEĞİL: mobilde adres çubuğu açılıp kapandıkça innerHeight değişiyor,
+     * sahne (svh) değişmiyor — p her seferinde sıçrıyordu. Masaüstünde ikisi
+     * aynı sayı. */
+    let stageH = window.innerHeight;
     let top = 0;
     let height = 0;
     let ctaOn = false;
     let destroyed = false;
     /** matchMedia sonucu layout'ta bir kez okunur — her frame sorgulanmaz. */
     let mobile = isMobile();
+    /** Yeni yüklenecek kliplerin dikey telefon kaynağını mı alacağı —
+     * layout'ta sahne ölçüsünden okunur. Zaten yüklü klip değiştirilmez. */
+    let mobileSource = false;
+
+    const debug = heroDebug();
+    const log = (...args: unknown[]) => {
+      if (debug) console.info("[hero]", ...args);
+    };
 
     // Fazların çoğu her frame'de görünmez. Görünmez bir fazın ~9 node'una
     // stil yazmak boşuna "Recalculate Style" maliyeti — bir kez sıfırlayıp
@@ -354,10 +382,26 @@ export function useHeroScroll(): HeroScrollHandle {
     const layers: VideoLayer[] = [];
     const layerByPhase: Array<VideoLayer | null> = new Array(HERO_PHASE_COUNT).fill(null);
 
-    function addLayer(el: HTMLVideoElement, src: string, phaseIndex: number) {
+    function addLayer(el: HTMLVideoElement, sources: HeroVideoSources, phaseIndex: number) {
+      // iOS sessiz oynatma iznini ilk play()'den önce görmeli: React'in
+      // `muted` prop'u yalnızca property'yi yazar, attribute'u değil.
+      // Attribute + defaultMuted + property üçü birden, src bağlanmadan önce.
+      el.setAttribute("muted", "");
+      el.defaultMuted = true;
+      el.muted = true;
+      el.setAttribute("playsinline", "");
+      el.setAttribute("webkit-playsinline", "");
+      el.playsInline = true;
+      if (debug) {
+        el.addEventListener("error", () =>
+          console.warn("[hero] video error", phaseIndex, el.currentSrc, el.error)
+        );
+        el.addEventListener("loadeddata", () => log("loadeddata", phaseIndex, el.duration));
+      }
+
       const layer: VideoLayer = {
         el,
-        src,
+        sources,
         phaseIndex,
         cur: 0,
         target: 0,
@@ -378,7 +422,7 @@ export function useHeroScroll(): HeroScrollHandle {
       const phase = HERO_PHASES[i];
       const el = mediaVideoRefs.current[i];
       if (!el) continue;
-      if (isServicePhase(phase)) addLayer(el, phase.videoSrc, i);
+      if (isServicePhase(phase)) addLayer(el, phase.video, i);
     }
 
     /** Opaklık yalnızca gerçekten değiştiğinde DOM'a yazılır. */
@@ -395,17 +439,39 @@ export function useHeroScroll(): HeroScrollHandle {
     // basıyor (server snapshot false), hydration'da HeroReduced'a geçiliyor.
     // Abort olmazsa o birkaç ms'de başlayan indirme, hook unmount olduktan
     // sonra da arka planda sürüyor.
+    //
+    // Poster: klip inene ya da cihaz kareyi boyayana dek (yavaş hücresel ağ,
+    // iOS Düşük Güç Modu'nda reddedilen play()) katman boş koyu zemin yerine
+    // ilk kareyi gösterir. Yalnızca yükleme penceresine giren faz için
+    // bağlanır — sayfa açılışında 6 görsel birden inmesin.
+    //
+    // Dikey telefon klibi yoksa (dosyalar henüz deploy edilmemiş) bir kez
+    // masaüstü klibine düşülür.
     function ensureLoaded(layer: VideoLayer) {
       if (layer.requested || destroyed) return;
       layer.requested = true;
 
       const controller = new AbortController();
       layer.controller = controller;
-      fetch(layer.src, { signal: controller.signal })
-        .then((r) => {
-          if (!r.ok) throw new Error(String(r.status));
+      const { src, mobileSrc, poster, posterMobile } = layer.sources;
+      const fetchBlob = (url: string) =>
+        fetch(url, { signal: controller.signal }).then((r) => {
+          if (!r.ok) throw new Error(`${r.status} ${url}`);
+          log("fetched", layer.phaseIndex, url);
           return r.blob();
-        })
+        });
+
+      layer.el.poster = mobileSource ? posterMobile : poster;
+      const blobPromise = mobileSource
+        ? fetchBlob(mobileSrc).catch((err) => {
+            if (controller.signal.aborted) throw err;
+            log("mobil klip yüklenemedi, masaüstü klibine düşülüyor", err);
+            layer.el.poster = poster;
+            return fetchBlob(src);
+          })
+        : fetchBlob(src);
+
+      blobPromise
         .then((blob) => {
           // Arada unload olmuşsa (hızlı scroll) bu blob'u hiç bağlamıyoruz.
           if (destroyed || layer.controller !== controller) return;
@@ -435,8 +501,11 @@ export function useHeroScroll(): HeroScrollHandle {
           layer.el.playsInline = true;
           layer.el.src = url;
         })
-        .catch(() => {
-          /* klip yüklenemezse alttaki statik zemin / poster ekranda kalır */
+        .catch((err) => {
+          /* klip yüklenemezse poster / alttaki statik zemin ekranda kalır */
+          if (!controller.signal.aborted && debug) {
+            console.warn("[hero] klip yüklenemedi", layer.phaseIndex, err);
+          }
         });
     }
 
@@ -497,8 +566,16 @@ export function useHeroScroll(): HeroScrollHandle {
     }
 
     function layout() {
-      vh = window.innerHeight;
+      // stageInner sahneyi birebir kaplıyor (absolute inset-0); scale
+      // transform'u offset/client ölçülerini etkilemez.
+      const stage = stageInnerRef.current;
+      stageH = stage?.offsetHeight || window.innerHeight;
       mobile = isMobile();
+      if (stage && stage.clientHeight > 0) {
+        const w = stage.clientWidth;
+        mobileSource =
+          w <= MOBILE_SOURCE_MAX_WIDTH && w / stage.clientHeight <= MOBILE_SOURCE_MAX_ASPECT;
+      }
       const rect = section!.getBoundingClientRect();
       top = rect.top + window.scrollY;
       height = section!.offsetHeight;
@@ -580,7 +657,7 @@ export function useHeroScroll(): HeroScrollHandle {
 
     function read() {
       const y = window.scrollY;
-      const travel = Math.max(height - vh, 1);
+      const travel = Math.max(height - stageH, 1);
       const p = clamp01((y - top) / travel);
 
       // Aktif faz — hem gösterge hem de klip yükleme penceresi bunu kullanır.
@@ -847,29 +924,62 @@ export function useHeroScroll(): HeroScrollHandle {
     // ---- iOS priming: sessiz video hiç play edilmeden seek edilirse
     // Safari kare boyamaz. İlk kullanıcı etkileşiminde bir kere primele.
     // Sonradan yüklenen katmanlar ensureLoaded içinde tek tek primelenir. ----
+    //
+    // Düşük Güç Modu (iOS) sessiz play()'i de reddeder (NotAllowedError);
+    // o durumda yalnızca gerçek bir kullanıcı etkinleştirmesi (dokunup
+    // bırakma, tık, tuş) kilidi açar. Reddedildikten sonra scroll/touchstart
+    // gibi etkinleştirme sayılmayan olaylarda play() tekrar denenmez — her
+    // scroll karesinde boşuna reddedilen bir istek atılıyordu. Bu arada
+    // katmanda poster görünür.
     let primed = false;
+    let blockedByPolicy = false;
     function primeLayer(layer: VideoLayer) {
       if (!layer.el.src) return;
-      const pr = layer.el.play();
+      let pr: Promise<void> | undefined;
+      try {
+        pr = layer.el.play();
+      } catch (err) {
+        primed = false;
+        log("play() hata", layer.phaseIndex, err);
+        return;
+      }
       if (pr && pr.then) {
         pr.then(
-          () => layer.el.pause(),
           () => {
+            layer.el.pause();
+            blockedByPolicy = false;
+            log("primed", layer.phaseIndex);
+          },
+          (err: unknown) => {
             primed = false;
+            if (err instanceof DOMException && err.name === "NotAllowedError") {
+              blockedByPolicy = true;
+            }
+            log("play() reddedildi", layer.phaseIndex, err);
           }
         );
       } else {
         layer.el.pause();
       }
     }
-    const prime = () => {
+    const ACTIVATION_EVENTS = new Set(["touchend", "pointerup", "click", "keydown"]);
+    const prime = (event: Event) => {
       if (primed) return;
+      if (blockedByPolicy && !ACTIVATION_EVENTS.has(event.type)) return;
       const loaded = layers.filter((layer) => layer.el.src);
       if (!loaded.length) return;
       primed = true;
       loaded.forEach(primeLayer);
     };
-    const primeEvents: (keyof WindowEventMap)[] = ["touchstart", "touchend", "pointerdown", "click", "scroll"];
+    const primeEvents: (keyof WindowEventMap)[] = [
+      "touchstart",
+      "touchend",
+      "pointerdown",
+      "pointerup",
+      "click",
+      "keydown",
+      "scroll",
+    ];
     primeEvents.forEach((ev) => window.addEventListener(ev, prime, { passive: true }));
 
     // ---- ölçüm ve dinleyiciler ----
