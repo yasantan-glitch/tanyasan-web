@@ -237,7 +237,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3 — Çalıştığım firmalar (Ekim 2026, eski "Öne Çıkan İş" bandının
+      {/* 3 — Birlikte çalıştığım firmalar (Ekim 2026, eski "Öne Çıkan İş" bandının
           yerine). gertix.studio'nun "OUR CLIENTS" ızgarası: ortada başlık,
           artı işaretli kesik çizgiler arasında tek renkli koyu siluet logolar
           (CSS mask); hover'da logo büyür. Yalnızca public/images/clients
@@ -248,10 +248,10 @@ export default function Home() {
           kademesi (sayfanın tepesindeki #FFF → #FAFAFA'nın tersi). */}
       <section className="surface-paper surface-paper-raised seam px-(--spacing-gutter) py-(--spacing-section)">
         <div className="mx-auto max-w-(--container-page)">
-          <SectionMarker index={3} label="Müşteriler" />
+          <SectionMarker index={3} label="Referanslar" />
           <div className="clients">
             <h2 className="clients__title gx-heading text-strong" data-enter="mask">
-              ÇALIŞTIĞIM FİRMALAR
+              BİRLİKTE ÇALIŞTIKLARIM
             </h2>
             <ClientsSeparator />
             <ul className="clients__grid" data-enter-stagger>
