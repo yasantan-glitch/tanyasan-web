@@ -670,6 +670,39 @@ yukarıdan aşağı **slogan → küre → CTA** olacak şekilde yeniden dizildi
   nav'dan ayrık, küre ortada, ray "Projelerimiz"in sağında, hiçbir
   elemanda üst üste binme yok.
 
+### Mobil alt dok: ipucu, faz gezgini, atla (Ekim 2026)
+
+Sorun: telefonda (~780vh) kullanıcı kaydırması gerektiğini anlamıyor, anlayınca
+da yol uzun geliyor. Çözüm sahnenin altında tek bir dok (`HeroDock`,
+`.hero-dock`), ≤860px:
+
+- **Üst satır:** sol yuvada "KAYDIRIN" (dikey hairline içinden akan amber
+  parça — fare ikonu dokunmatikte yanlış metafor, mobilde
+  `.hero-scroll-hint` gizli) intro'nun ilk çeyreğinde söner; yerini
+  "03/06 · HİZMET ADI" alır. Sağda "ATLA ↓" → hero'nun bittiği yere
+  (ilk bölüm) yumuşak scroll; klavyeyle tetiklenirse odak da oraya taşınır.
+- **Alt satır:** 6 segmentli faz gezgini (`<nav>` + `<ol>` + `<button>`,
+  `aria-current="step"`). Her segment ≥44px dokunma alanı. Geçilenler dolu,
+  aktif olan amber ve dolgusu fazın içindeki ilerlemeyi gösteriyor.
+  Dokunulan faza `PHASE_SETTLE_Q`'da (= `ITEMS_TO + 0.08`) inilir: içerik
+  tamamen görünür, video tam opak. Formül `read()`'inkiyle aynı
+  (`PHASE_RANGES` + `travel = section − 100svh`) — ikinci bir zamanlama yok.
+- **Görünürlük:** gezgin intro'nun son `DOCK_PAD`'inde belirir, dokun tamamı
+  faz 7'nin son `DOCK_PAD`'inde söner — kapanışın beyaz sahnesine ve CTA'larına
+  hiç taşmaz. Durum/aria yazımı yalnızca faz değişince; her frame yalnızca üç
+  opaklık + aktif dolgunun `scaleX`'i.
+- **Yer:** faz içeriği header ile dok arasında ortalanıyor
+  (`.hero-phase-layer` padding'i `--hero-dock-h`), intro kopyası dokun
+  üstünde bitiyor. Alt pay `max(gutter, env(safe-area-inset-bottom))`; sahne
+  100svh olduğu için zaten iOS araç çubuğunun üstünde bitiyor.
+- **scroll-snap YOK** — scrub'la savaşırdı. iOS priming'i dokunuşun kendisi
+  (touchend/pointerup/click → `ACTIVATION_EVENTS`) sağlıyor.
+- **Masaüstü değişmedi:** tekerlek/trackpad 1200vh'yi hızlı geçiyor, fare
+  ipucu ve sağdaki tikler zaten var; ikinci bir kontrol kümesi tam ekran
+  videoyla yarışırdı. Dok masaüstünde yalnızca içine klavye odağı girince
+  (`:has(:focus-visible)`) alt ortada küçük bir panel olarak beliriyor
+  (skip-link deseni). Reduced-motion dalı (`HeroReduced`) dok render etmiyor.
+
 ## 9. Hizmetler sayfası (`/hizmetler`)
 
 Brief §5'in altı hizmet metninin evi. Üç karar taşıyor:

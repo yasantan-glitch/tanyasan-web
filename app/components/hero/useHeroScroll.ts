@@ -19,6 +19,8 @@ import {
   INTRO_PHASE_INDEX,
   PHASE_RANGES,
   RESOLVE_PHASE_INDEX,
+  SERVICE_PHASES,
+  SERVICE_PHASE_INDICES,
   isServicePhase,
   type HeroVideoSources,
 } from "./heroPhases";
@@ -72,6 +74,13 @@ function scatterOf(lineIndex: number, wordIndex: number) {
  * yani mutlak süreleri birebir korunuyor.
  */
 const WEIGHT_UNIT = 1 / HERO_WEIGHT_TOTAL;
+
+/** Faz gezgininin sayacı ("03/06") — SSR ilk karesi (Hero.tsx) ve read()'in
+ * faz değişiminde yazdığı metin aynı biçimi buradan alır. */
+export function dockCount(serviceIndex: number) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(serviceIndex + 1)}/${pad(SERVICE_PHASES.length)}`;
+}
 
 const isMobile = () =>
   typeof window !== "undefined" && window.matchMedia("(max-width: 860px)").matches;
@@ -167,6 +176,15 @@ const ITEMS_TO = 0.466;
 const ITEMS_SPREAD = 0.55;
 
 /**
+ * Faz gezgininden (bkz. Hero.tsx HeroDock) bir faza atlanınca inilen yerel q.
+ * Son kalemin yerine oturduğu andan (ITEMS_TO) biraz sonra: ikon, başlık ve
+ * kalemlerin hepsi görünür, video çoktan tam opak (VIDEO_FADE.rIn 0.12) ve
+ * plato (→ ~0.86) önümüzde. ITEMS_TO'dan türetilir — giriş koreografisi
+ * yeniden ayarlanırsa iniş noktası da onunla kayar.
+ */
+const PHASE_SETTLE_Q = ITEMS_TO + 0.08;
+
+/**
  * Faz 1 → Faz 2 devri. Faz sınırının İKİ yanına yayılan tek bir eğri: faz 1'in
  * kopyası yukarı kayıp küçülerek çıkarken faz 2'nin bloğu aynı eğri üzerinde
  * aşağıdan sahneye giriyor. Crossfade (biri kapanır, diğeri açılır) yerine tek
@@ -212,6 +230,11 @@ const SCATTER_SUB_LEAD = 0.168 * WEIGHT_UNIT;
 /** Faz göstergesinin intro sonundan önce belirip resolve başından sonra
  * sönmesi için pay. */
 const INDICATOR_PAD = 0.252 * WEIGHT_UNIT;
+/** Alt dok (mobil): gezgin intro'nun son DOCK_PAD'inde belirir — faz 1'in
+ * kelimeleri dağılırken; dokun tamamı faz 7'nin son DOCK_PAD'inde söner, yani
+ * kapanış sahnesine (beyaz zemin, CTA'lar) hiç taşmaz. Gösterge payıyla aynı
+ * ağırlık birimi. */
+const DOCK_PAD = INDICATOR_PAD;
 
 /** Faz 8: zemin geçişi. Koyu sahne beyaza bu pencerede döner (resolve-yerel
  * q). Faz 7'nin içeriği kendi zarfıyla faz sınırında zaten 0'a inmiş olduğu
@@ -308,6 +331,26 @@ export interface HeroScrollHandle {
   phaseItemRefs: React.RefObject<Array<Array<HTMLLIElement | null>>>;
   indicatorRef: React.RefObject<HTMLDivElement | null>;
   phaseTickRefs: React.RefObject<Array<HTMLSpanElement | null>>;
+  // --- alt dok: scroll ipucu + faz gezgini + atla (mobil) ---
+  /** Dokun tamamı — kapanışa girerken söner. */
+  dockRef: React.RefObject<HTMLDivElement | null>;
+  /** "Kaydırın" ipucu — intro'nun ilk çeyreğinde söner. */
+  dockCueRef: React.RefObject<HTMLDivElement | null>;
+  /** "03/06 · BAŞLIK" satırı ve segmentler — hizmet fazları boyunca. */
+  dockStatusRef: React.RefObject<HTMLParagraphElement | null>;
+  dockCountRef: React.RefObject<HTMLSpanElement | null>;
+  dockNameRef: React.RefObject<HTMLSpanElement | null>;
+  dockNavRef: React.RefObject<HTMLElement | null>;
+  /** Segment düğmeleri ve dolguları — HİZMET sırasıyla (0-5) indekslenir,
+   * faz indeksiyle değil. */
+  dockSegRefs: React.RefObject<Array<HTMLButtonElement | null>>;
+  dockFillRefs: React.RefObject<Array<HTMLSpanElement | null>>;
+  /** Faz indeksine (HERO_PHASES) yumuşak scroll — fazın her şeyi görünür
+   * olduğu noktaya (PHASE_SETTLE_Q). */
+  scrollToPhase: (phaseIndex: number) => void;
+  /** Hero'nun bittiği yere (ilk bölümün başı) yumuşak scroll. `moveFocus`
+   * klavyeyle tetiklendiğinde odağı da o bölüme taşır. */
+  skipHero: (moveFocus: boolean) => void;
 }
 
 /**
@@ -347,6 +390,14 @@ export function useHeroScroll(): HeroScrollHandle {
   const phaseItemRefs = useRef<Array<Array<HTMLLIElement | null>>>([]);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const phaseTickRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const dockCueRef = useRef<HTMLDivElement>(null);
+  const dockStatusRef = useRef<HTMLParagraphElement>(null);
+  const dockCountRef = useRef<HTMLSpanElement>(null);
+  const dockNameRef = useRef<HTMLSpanElement>(null);
+  const dockNavRef = useRef<HTMLElement>(null);
+  const dockSegRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const dockFillRefs = useRef<Array<HTMLSpanElement | null>>([]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -360,6 +411,10 @@ export function useHeroScroll(): HeroScrollHandle {
     let top = 0;
     let height = 0;
     let ctaOn = false;
+    let dockOn = true;
+    let navOn = false;
+    /** Aktif segment (hizmet sırası): -1 intro, SERVICE_PHASES.length kapanış. */
+    let activeSeg = -2;
     let destroyed = false;
     /** matchMedia sonucu layout'ta bir kez okunur — her frame sorgulanmaz. */
     let mobile = isMobile();
@@ -827,8 +882,8 @@ export function useHeroScroll(): HeroScrollHandle {
       // --- kaydır ipucu: intro fazının ilk %25'inde kaybolur ---
       // Tekerlek noktasının döngüsü CSS keyframe'de (.hero-scroll-wheel);
       // burada yalnızca sarmalayıcı sürülür, iç SVG'ye dokunulmaz.
+      const hint = 1 - smooth(clamp01(introQ / 0.25));
       if (scrollHintRef.current) {
-        const hint = 1 - smooth(clamp01(introQ / 0.25));
         scrollHintRef.current.style.opacity = String((hint * HINT_OPACITY).toFixed(3));
         // Aşağı + sağa: dağılma dilinin en sakin tonu.
         scrollHintRef.current.style.transform =
@@ -936,6 +991,69 @@ export function useHeroScroll(): HeroScrollHandle {
           const next = phaseTickRefs.current[current];
           if (next) next.dataset.active = "true";
           activeTick = current;
+        }
+      }
+
+      // --- alt dok (mobil; masaüstünde CSS yalnızca klavye odağında
+      // gösteriyor). Her frame yalnızca üç opaklık + aktif segmentin dolgusu
+      // (transform) yazılır; segment durumları, aria-current ve sayaç metni
+      // yalnızca faz DEĞİŞTİĞİNDE. ---
+      {
+        const dockVis = 1 - smooth(clamp01((p - (resolveRange.start - DOCK_PAD)) / DOCK_PAD));
+        const navVis = smooth(clamp01((p - (introRange.end - DOCK_PAD)) / DOCK_PAD));
+        const dock = dockRef.current;
+        if (dock) {
+          dock.style.opacity = dockVis.toFixed(3);
+          const on = dockVis > 0.5;
+          if (on !== dockOn) {
+            dockOn = on;
+            dock.style.pointerEvents = on ? "" : "none";
+          }
+        }
+        if (dockCueRef.current) dockCueRef.current.style.opacity = hint.toFixed(3);
+        if (dockStatusRef.current) dockStatusRef.current.style.opacity = navVis.toFixed(3);
+        const nav = dockNavRef.current;
+        if (nav) {
+          nav.style.opacity = navVis.toFixed(3);
+          // Dokun pointer-events'i çocuğun açık "auto"sunu ezmez — ikisi
+          // birlikte hesaplanıyor.
+          const on = navVis > 0.5 && dockVis > 0.5;
+          if (on !== navOn) {
+            navOn = on;
+            nav.style.pointerEvents = on ? "auto" : "none";
+          }
+        }
+
+        const kind = HERO_PHASES[current].kind;
+        const seg =
+          kind === "intro"
+            ? -1
+            : kind === "resolve"
+              ? SERVICE_PHASES.length
+              : SERVICE_PHASE_INDICES.indexOf(current);
+        if (seg !== activeSeg) {
+          const segs = dockSegRefs.current;
+          for (let i = 0; i < segs.length; i++) {
+            const el = segs[i];
+            if (!el) continue;
+            el.dataset.state = i < seg ? "done" : i === seg ? "active" : "todo";
+            if (i === seg) el.setAttribute("aria-current", "step");
+            else el.removeAttribute("aria-current");
+          }
+          // Önceki aktif dolgunun satır içi ölçeği bırakılır — "done"/"todo"
+          // dolgusu CSS'ten gelir.
+          const prevFill = dockFillRefs.current[activeSeg];
+          if (prevFill) prevFill.style.transform = "";
+          const phase = SERVICE_PHASES[seg];
+          if (phase) {
+            if (dockCountRef.current) dockCountRef.current.textContent = dockCount(seg);
+            if (dockNameRef.current) dockNameRef.current.textContent = phase.title;
+          }
+          activeSeg = seg;
+        }
+        const fill = dockFillRefs.current[seg];
+        if (fill) {
+          fill.style.transform = `scaleX(${phaseProgress(p, current).toFixed(3)})`;
         }
       }
 
@@ -1084,6 +1202,51 @@ export function useHeroScroll(): HeroScrollHandle {
     };
   }, []);
 
+  /**
+   * Dokun iki eylemi. Ölçüm dokunma ANINDA bir kez yapılır (frame başına
+   * değil); formül read()'inkiyle aynı: travel = section − sahne yüksekliği
+   * (100svh — innerHeight DEĞİL, adres çubuğu oynadıkça kaymasın).
+   *
+   * iOS priming'i ayrıca tetiklemek gerekmiyor: dokunuş touchend/pointerup/
+   * click olarak effect'teki pencere dinleyicilerine (ACTIVATION_EVENTS) zaten
+   * düşüyor ve smooth scroll başlamadan yüklü klipleri primeliyor.
+   *
+   * scroll-snap YOK — scrub'la savaşırdı; iniş noktası PHASE_SETTLE_Q.
+   */
+  function heroGeometry() {
+    const section = sectionRef.current;
+    if (!section) return null;
+    const stageH = stageInnerRef.current?.offsetHeight || window.innerHeight;
+    return {
+      section,
+      top: section.getBoundingClientRect().top + window.scrollY,
+      height: section.offsetHeight,
+      travel: Math.max(section.offsetHeight - stageH, 1),
+    };
+  }
+
+  function scrollToPhase(phaseIndex: number) {
+    const geo = heroGeometry();
+    const range = PHASE_RANGES[phaseIndex];
+    if (!geo || !range) return;
+    const p = range.start + PHASE_SETTLE_Q * (range.end - range.start);
+    window.scrollTo({ top: Math.round(geo.top + p * geo.travel), behavior: "smooth" });
+  }
+
+  function skipHero(moveFocus: boolean) {
+    const geo = heroGeometry();
+    if (!geo) return;
+    window.scrollTo({ top: Math.round(geo.top + geo.height), behavior: "smooth" });
+    if (!moveFocus) return;
+    // Klavye kullanıcısı odakla birlikte taşınır; yoksa bir sonraki Tab onu
+    // hero'nun içine geri sokardı.
+    const next = geo.section.nextElementSibling;
+    if (next instanceof HTMLElement) {
+      if (!next.hasAttribute("tabindex")) next.tabIndex = -1;
+      next.focus({ preventScroll: true });
+    }
+  }
+
   return {
     sectionRef,
     stageInnerRef,
@@ -1108,5 +1271,15 @@ export function useHeroScroll(): HeroScrollHandle {
     phaseItemRefs,
     indicatorRef,
     phaseTickRefs,
+    dockRef,
+    dockCueRef,
+    dockStatusRef,
+    dockCountRef,
+    dockNameRef,
+    dockNavRef,
+    dockSegRefs,
+    dockFillRefs,
+    scrollToPhase,
+    skipHero,
   };
 }

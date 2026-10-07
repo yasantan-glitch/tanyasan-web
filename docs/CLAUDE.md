@@ -162,6 +162,12 @@ Ayrı bir mobil bileşen/dal yok. Aynı 8 faz, **sıkıştırılmış bütçeyle
 başlığı/kalem tipografisi bir kademe küçük tokene düşer. `useHeroScroll`
 içindeki `isMobile()` eşiği (860px) bu CSS breakpoint'iyle aynı tutulmalı.
 
+**Alt dok** (`HeroDock`, Ekim 2026): "Kaydırın" ipucu, 6 segmentli faz
+gezgini, "Atla". Faza atlama `PHASE_RANGES` + `PHASE_SETTLE_Q` (=
+`ITEMS_TO + 0.08`) ile hesaplanır — ayrı bir hedef tablosu YAZMAYIN; giriş
+pencereleri değişirse iniş noktası kendiliğinden kayar. Masaüstünde yalnızca
+klavye odağında görünür. Gerekçe `design-system.md` §8 "Mobil alt dok".
+
 **Klipler:** dikey telefonda (sahne ≤860px, en/boy ≤3:5) `hero-videos/mobile/`
 varyantı yüklenir (3:5 kırpım, sık keyframe), her klibe `hero-videos/posters/`
 altındaki ilk kare poster olarak bağlanır. Kaynak yolları `heroPhases.ts`'teki
@@ -252,7 +258,10 @@ hâlinde).
 - Global z-index ölçeği `globals.css`'te: `--z-nav: 100`,
   `--z-drawer-overlay: 200`, `--z-drawer: 210`, `--z-skip-link: 300`.
   Hero kendi içinde z-index **kullanmıyor** (saf DOM sırası) — bu ölçek
-  yalnızca hero sahnesinin üstünde duran global kabuk içindir.
+  yalnızca hero sahnesinin üstünde duran global kabuk içindir. **Tek
+  istisna `.hero-dock` (`z-index: 2`, sahne-yerel):** DOM'da erken duruyor ki
+  Tab ile hero'ya giren ilk durak "Atla" olsun; z-index olmasa sonradan
+  gelen intro sarmalayıcısı dokunuşları onun üstünde yakalardı.
 
 ## Logo davranışı
 

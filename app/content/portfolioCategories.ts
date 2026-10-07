@@ -71,7 +71,7 @@ export const PORTFOLIO_CATEGORIES: readonly PortfolioCategory[] = [
     labels: ["EMLAK CRM PRO", "WEB UYGULAMASI", "YÖNETİM PANELİ", "SAAS"],
     excerpt: serviceText("yazilim", "lead"),
     cover: {
-      src: "/images/hizmetler/Yazilim-uyguluma.png",
+      src: "/images/hizmetler/yazilim-uygulama.jpg",
       alt: "Emlak CRM Pro'nun dizüstü, tablet ve telefonda açık portföy ekranı",
     },
     coverWide: true,

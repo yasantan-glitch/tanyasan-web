@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useSyncExternalStore } from "react";
 import {
@@ -9,11 +10,12 @@ import {
   RESOLVE_SLOGAN_ACCENT_LINE,
   RESOLVE_SLOGAN_LINES,
   SERVICE_PHASES,
+  SERVICE_PHASE_INDICES,
   isServicePhase,
   type HeroServicePhase,
 } from "./heroPhases";
 import { buildOrbParticles, drawOrb, type OrbPalette } from "./outroOrb";
-import { useHeroScroll } from "./useHeroScroll";
+import { dockCount, useHeroScroll, type HeroScrollHandle } from "./useHeroScroll";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -283,6 +285,119 @@ function HeroVideoPreloads() {
   );
 }
 
+/**
+ * Alt dok — telefonda hero'nun keşfedilebilirliği (Ekim 2026). Üç parça,
+ * tek yerde (sahnenin altı, safe-area payıyla):
+ *
+ *   üst satır  [Kaydırın ┆]  ↔  [03/06 · WEB TASARIMI]          [ATLA ↓]
+ *   alt satır  [━━ ━━ ▬─ ── ── ──]  ← 6 segment, her biri ≥44px dokunma alanı
+ *
+ * - "Kaydırın" yalnızca intro'nun ilk çeyreğinde (masaüstü fare ipucuyla aynı
+ *   eğri); yerini sayaç + hizmet adı alır.
+ * - Segmentler faz gezgini: dokunulan faza, her şeyin görünür olduğu noktaya
+ *   (PHASE_SETTLE_Q) yumuşak scroll. Aktif segmentin dolgusu fazın içindeki
+ *   ilerlemeyi gösterir — "ne kadar kaldı" sorusunun cevabı.
+ * - "Atla" hero'yu geçip ilk bölüme iner.
+ *
+ * Bütün görünürlük/durum yazımı useHeroScroll'un read()'inde (ref'lerle,
+ * React state'i yok). Masaüstünde dok görsel olarak GİZLİ; yalnızca içine
+ * klavye odağı girince beliriyor (skip-link deseni) — fare kullanıcısı için
+ * masaüstü değişmedi, bkz. docs/design-system.md §8.
+ */
+type HeroDockProps = Pick<
+  HeroScrollHandle,
+  | "dockRef"
+  | "dockCueRef"
+  | "dockStatusRef"
+  | "dockCountRef"
+  | "dockNameRef"
+  | "dockNavRef"
+  | "dockSegRefs"
+  | "dockFillRefs"
+  | "scrollToPhase"
+  | "skipHero"
+>;
+
+function HeroDock({
+  dockRef,
+  dockCueRef,
+  dockStatusRef,
+  dockCountRef,
+  dockNameRef,
+  dockNavRef,
+  dockSegRefs,
+  dockFillRefs,
+  scrollToPhase,
+  skipHero,
+}: HeroDockProps) {
+  const first = SERVICE_PHASES[0];
+  return (
+    <div ref={dockRef} className="hero-dock">
+      <div className="hero-dock-bar">
+        <div className="hero-dock-slot">
+          <div ref={dockCueRef} className="hero-dock-cue eyebrow" aria-hidden="true">
+            <span className="hero-dock-cue-line" />
+            Kaydırın
+          </div>
+          {/* Durum satırı ekran okuyucudan gizli: aynı bilgi aşağıdaki
+              gezginde aria-current ile veriliyor. */}
+          <p
+            ref={dockStatusRef}
+            className="hero-dock-status eyebrow"
+            style={{ opacity: 0 }}
+            aria-hidden="true"
+          >
+            <span ref={dockCountRef} className="hero-dock-count">
+              {dockCount(0)}
+            </span>
+            <span ref={dockNameRef}>{first?.title}</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          className="hero-dock-skip eyebrow"
+          aria-label="Tanıtımı atla, sonraki bölüme geç"
+          onClick={(event) => skipHero(event.detail === 0)}
+        >
+          Atla
+          <ArrowDown strokeWidth={1.5} aria-hidden="true" />
+        </button>
+      </div>
+      <nav
+        ref={dockNavRef}
+        className="hero-dock-nav"
+        aria-label="Hizmetler arasında gezin"
+        style={{ opacity: 0, pointerEvents: "none" }}
+      >
+        <ol>
+          {SERVICE_PHASES.map((phase, index) => (
+            <li key={phase.id}>
+              <button
+                ref={(node) => {
+                  dockSegRefs.current[index] = node;
+                }}
+                type="button"
+                data-state="todo"
+                aria-label={`${String(index + 1).padStart(2, "0")} — ${phase.title}`}
+                onClick={() => scrollToPhase(SERVICE_PHASE_INDICES[index])}
+              >
+                <span className="hero-dock-seg">
+                  <span
+                    ref={(node) => {
+                      dockFillRefs.current[index] = node;
+                    }}
+                    className="hero-dock-fill"
+                  />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </div>
+  );
+}
+
 /** Ana, scroll-scrubbing'li hero. prefers-reduced-motion: no-preference. */
 function HeroInteractive() {
   const {
@@ -309,6 +424,7 @@ function HeroInteractive() {
     phaseItemRefs,
     indicatorRef,
     phaseTickRefs,
+    ...dock
   } = useHeroScroll();
 
   return (
@@ -351,6 +467,10 @@ function HeroInteractive() {
         </div>
         <div ref={scrimRef} className="hero-scrim" />
         <div ref={lightScrimRef} className="hero-light-scrim" style={{ opacity: 0 }} aria-hidden="true" />
+
+        {/* Dok DOM'da erken: Tab ile hero'ya giren ilk durak "Atla" olsun
+            (skip-link sırası). Üstte kalması z-index'le, bkz. .hero-dock. */}
+        <HeroDock {...dock} />
 
         {/* Hizmet fazları — hepsi DOM'da, opaklıkları scroll'dan sürülüyor.
             aria-hidden VERİLMİYOR: opacity:0 ekran okuyucudan gizlemez, bu
@@ -535,7 +655,7 @@ function HeroInteractive() {
           Kaydır
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">
+        <div className="hero-intro-wrap absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">
           {/* Faz 1 kopyası tek bir node'da: faz 2'ye devreden çıkış hareketi
               (yukarı kayma + ölçek) bu sarmalayıcıdan sürülüyor. CTA burada
               DEĞİL — o faz 8'in sahnesine ait (bkz. .hero-outro-cta), aynı

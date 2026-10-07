@@ -44,9 +44,11 @@ const shot = (name: string, caption: string, alt: string): CaseShot => ({
  * bağlı değil.
  */
 export const CASE_LEAD_SHOT = {
-  // Ekim 2026: kullanıcının verdiği JPEG (2560×1440, 317 KB) — PNG'nin
-  // (1.7 MB) yerine.
-  src: "/images/hizmetler/Yazilim-uyguluma.jpeg",
+  // Ekim 2026: kullanıcının verdiği JPEG — PNG'nin (1.7 MB) yerine. sRGB'ye
+  // çevrildi, 2400×1350, ~317 KB. /portfolyo'daki kart da AYNI dosyayı
+  // okuyor (portfolioCategories.ts); eski .png silinmişti ama kart hâlâ onu
+  // istiyordu — canlıda 404.
+  src: "/images/hizmetler/yazilim-uygulama.jpg",
   caption: "EMLAK CRM PRO — MASAÜSTÜ, TABLET VE MOBİL",
   alt: "Emlak CRM Pro'nun portföy ekranı dizüstü bilgisayar, tablet ve telefonda açık",
 };

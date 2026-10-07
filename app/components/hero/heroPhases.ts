@@ -209,6 +209,11 @@ export function isServicePhase(phase: HeroPhase): phase is HeroServicePhase {
 
 export const HERO_PHASE_COUNT = HERO_PHASES.length;
 export const SERVICE_PHASES: HeroServicePhase[] = HERO_PHASES.filter(isServicePhase);
+/** Hizmet sırası → HERO_PHASES indeksi. Faz gezgini segmentleri hizmet
+ * sırasıyla tutuyor, zamanlama (PHASE_RANGES) faz indeksiyle. */
+export const SERVICE_PHASE_INDICES: number[] = SERVICE_PHASES.map((phase) =>
+  HERO_PHASES.indexOf(phase)
+);
 
 export const INTRO_PHASE_INDEX = HERO_PHASES.findIndex((phase) => phase.kind === "intro");
 export const RESOLVE_PHASE_INDEX = HERO_PHASES.findIndex((phase) => phase.kind === "resolve");
