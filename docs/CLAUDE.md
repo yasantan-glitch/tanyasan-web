@@ -170,6 +170,15 @@ mobil, iki poster) üretilmesi gerekir — ffmpeg komutları `design-system.md` 
 Masaüstü klipleri tek keyframe'li: telefonda scrub için ASLA doğrudan
 kullanılmamalı. Gerçek cihazda tanı: `?herodebug`.
 
+**Yükleme sırası:** faz 2'nin klibi ve mobil posteri HTML'deki
+`<link rel="preload">` ile (Hero.tsx `HeroVideoPreloads`) JS'ten önce iner;
+`media` sorgusu motorla aynı (`HERO_MOBILE_VIDEO_MEDIA`) — ikisini ayrı
+değiştirmeyin, fetch preload'ı devralamaz. Mobilde (Save-Data kapalıysa)
+**eager mod**: tüm posterler mount'ta, klipler faz sırasıyla tek tek arka
+planda iner ve scroll'da hiç bırakılmaz. Masaüstü ve Save-Data: aktif ±1.
+İndirmeler scroll'da iptal EDİLMEZ (yalnızca unmount'ta) — `download`
+(ağ) ile `wanted` (src bağlı mı) ayrı tutulur.
+
 ## Bağımlılıklar
 
 `lucide-react`, 8 fazlı hizmet ikonları için bu işte eklendi (`Palette`,

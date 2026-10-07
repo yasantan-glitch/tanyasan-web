@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useSyncExternalStore } from "react";
 import {
+  HERO_MOBILE_VIDEO_MEDIA,
   HERO_PHASES,
   HERO_STATEMENT_LINES,
   RESOLVE_SLOGAN_ACCENT_LINE,
@@ -237,6 +238,51 @@ function HeroOutroOrb() {
   return <canvas ref={canvasRef} className="hero-outro-orb" aria-hidden="true" />;
 }
 
+/**
+ * İlk hizmet klibinin (faz 2) ve posterinin ön yüklemesi — HTML'de, JS
+ * inmeden başlasın diye. React 19 <link>'i <head>'e taşıyor; sunucu
+ * snapshot'ı bu dalı bastığı için etiketler ilk HTML'de.
+ *
+ * `media` iki işi birden görüyor: motorla AYNI sorguyla (HERO_MOBILE_VIDEO_
+ * MEDIA) tek bir klip seçiliyor — useHeroScroll'daki fetch() aynı URL'i
+ * istediği için preload edilen yanıtı devralıyor (`crossOrigin` bu eşleşme
+ * için şart) — ve reduced-motion kullanıcısı (video hiç yok) hiçbirini
+ * indirmiyor. Masaüstü sorgusu mobilinkinin tümleyeni.
+ */
+const MOTION_OK = "(prefers-reduced-motion: no-preference)";
+const MOBILE_PRELOAD_MEDIA = `${HERO_MOBILE_VIDEO_MEDIA} and ${MOTION_OK}`;
+const DESKTOP_PRELOAD_MEDIA = `(min-width: 861px) and ${MOTION_OK}, (min-aspect-ratio: 601/1000) and ${MOTION_OK}`;
+
+function HeroVideoPreloads() {
+  const first = SERVICE_PHASES[0]?.video;
+  if (!first) return null;
+  return (
+    <>
+      <link
+        rel="preload"
+        as="fetch"
+        href={first.mobileSrc}
+        crossOrigin="anonymous"
+        media={MOBILE_PRELOAD_MEDIA}
+      />
+      <link
+        rel="preload"
+        as="image"
+        href={first.posterMobile}
+        fetchPriority="high"
+        media={MOBILE_PRELOAD_MEDIA}
+      />
+      <link
+        rel="preload"
+        as="fetch"
+        href={first.src}
+        crossOrigin="anonymous"
+        media={DESKTOP_PRELOAD_MEDIA}
+      />
+    </>
+  );
+}
+
 /** Ana, scroll-scrubbing'li hero. prefers-reduced-motion: no-preference. */
 function HeroInteractive() {
   const {
@@ -273,6 +319,7 @@ function HeroInteractive() {
       className="surface-ink relative"
       style={{ height: "var(--hero-span)" }}
     >
+      <HeroVideoPreloads />
       <div className="hero-stage">
         <div ref={stageInnerRef} className="absolute inset-0">
           {/* Statik koyu zemin: intro fazı ve hizmet klipleri arası her

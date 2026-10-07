@@ -12,6 +12,7 @@ import {
   staggerDraw,
 } from "./heroMath";
 import {
+  HERO_MOBILE_VIDEO_MEDIA,
   HERO_PHASES,
   HERO_PHASE_COUNT,
   HERO_WEIGHT_TOTAL,
@@ -75,15 +76,11 @@ const WEIGHT_UNIT = 1 / HERO_WEIGHT_TOTAL;
 const isMobile = () =>
   typeof window !== "undefined" && window.matchMedia("(max-width: 860px)").matches;
 
-/**
- * Dikey telefon klibinin (3:5 kırpım, bkz. HeroVideoSources.mobileSrc)
- * seçilme koşulu — sahnenin KENDİ ölçüsüyle. Oran 3:5'ten darsa cover
- * kırpımı yükseklikten yapar ve 3:5 kaynak, 16:9 kaynağın gösterdiği
- * pikselin aynısını gösterir; daha genişse (dikey tablet, yatay telefon)
- * masaüstü klibi kalır, kadraj hiçbir ekranda değişmez.
- */
-const MOBILE_SOURCE_MAX_WIDTH = 860;
-const MOBILE_SOURCE_MAX_ASPECT = 3 / 5;
+/** Data Saver / Save-Data açık mı — açıksa mobilde de klipler yalnızca
+ * talep üzerine (aktif ±1) iner, toplu ön yükleme yapılmaz. */
+const saveDataOn = () =>
+  typeof navigator !== "undefined" &&
+  (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
 
 /** `?herodebug` ile gerçek cihazda konsola klip/priming olaylarını yazar
  * (Safari Web Inspector / chrome://inspect). Parametre yoksa sessiz. */
@@ -105,7 +102,13 @@ const VIDEO_PRELOAD_RADIUS = 1;
 /**
  * Scroll'a bağlı sürülen tek bir video katmanı. Her katman kendi fazının
  * klibini taşır (phaseIndex ile heroPhases.ts'e eşlenir) ve aktif fazdan
- * uzaklaşınca src'si bırakılır. Taban katman kavramı yok.
+ * uzaklaşınca src'si bırakılır (mobil eager modda bırakılmaz). Taban katman
+ * kavramı yok.
+ *
+ * İNDİRME ile BAĞLAMA ayrı: `download` ağ isteğidir ve scroll'da ASLA iptal
+ * edilmez (yalnızca unmount'ta) — hızlı scroll'da bitmek üzere olan bir klip
+ * kesilip baştan indirilmesin. `wanted` ise katmanın src'sinin bağlı olup
+ * olmaması gerektiğidir.
  */
 interface VideoLayer {
   el: HTMLVideoElement;
@@ -119,8 +122,9 @@ interface VideoLayer {
   duration: number;
   stuckAt: number;
   blobUrl: string | null;
-  controller: AbortController | null;
-  requested: boolean;
+  /** Sürmekte olan ya da bitmiş indirme; başarısızlıkta null'a döner. */
+  download: Promise<Blob> | null;
+  wanted: boolean;
   /** Son yazılan opaklık — aynı değeri tekrar yazıp style recalc tetiklemeyiz. */
   opacity: number;
 }
@@ -360,13 +364,28 @@ export function useHeroScroll(): HeroScrollHandle {
     /** matchMedia sonucu layout'ta bir kez okunur — her frame sorgulanmaz. */
     let mobile = isMobile();
     /** Yeni yüklenecek kliplerin dikey telefon kaynağını mı alacağı —
-     * layout'ta sahne ölçüsünden okunur. Zaten yüklü klip değiştirilmez. */
-    let mobileSource = false;
+     * layout'ta HERO_MOBILE_VIDEO_MEDIA'dan (preload etiketleriyle aynı
+     * sorgu) okunur. Zaten indirilmiş klip değiştirilmez. */
+    const mobileVideoMq = window.matchMedia(HERO_MOBILE_VIDEO_MEDIA);
+    let mobileSource = mobileVideoMq.matches;
+    /**
+     * Mobil eager mod — mount'ta bir kez karar verilir. Açıkken: tüm
+     * posterler hemen bağlanır, klipler faz sırasıyla arka planda TEK TEK
+     * iner ve hiçbiri scroll'da bırakılmaz (6 küçük klip ≈ 2.3 MB). Kapalıyken
+     * (masaüstü — klipler büyük; ya da Save-Data) aktif ±1 penceresi.
+     */
+    const saveData = saveDataOn();
+    const eager = mobileSource && !saveData;
+    /** Tek ağ iptali: yalnızca unmount'ta. Reduced-motion kullanıcısında SSR
+     * önce bu dalı basıyor, hydration'da HeroReduced'a geçiliyor — o birkaç
+     * ms'de başlayan indirme hook'tan sonra arka planda sürmesin. */
+    const net = new AbortController();
 
     const debug = heroDebug();
     const log = (...args: unknown[]) => {
       if (debug) console.info("[hero]", ...args);
     };
+    log("mount", { mobileSource, saveData, eager });
 
     // Fazların çoğu her frame'de görünmez. Görünmez bir fazın ~9 node'una
     // stil yazmak boşuna "Recalculate Style" maliyeti — bir kez sıfırlayıp
@@ -409,8 +428,8 @@ export function useHeroScroll(): HeroScrollHandle {
         duration: 1,
         stuckAt: 0,
         blobUrl: null,
-        controller: null,
-        requested: false,
+        download: null,
+        wanted: false,
         opacity: 0,
       };
       layers.push(layer);
@@ -435,96 +454,145 @@ export function useHeroScroll(): HeroScrollHandle {
     }
 
     // ---- blob-preload (güvenilir seek için) ----
-    // AbortController şart: reduced-motion kullanıcısında SSR önce bu dalı
-    // basıyor (server snapshot false), hydration'da HeroReduced'a geçiliyor.
-    // Abort olmazsa o birkaç ms'de başlayan indirme, hook unmount olduktan
-    // sonra da arka planda sürüyor.
+    // İlk klibin isteği fetch()'ten ÖNCE, HTML'deki <link rel="preload"
+    // as="fetch"> ile başlıyor (bkz. Hero.tsx HeroVideoPreloads); aynı URL
+    // + crossorigin olduğu için buradaki fetch o yanıtı devralıyor.
     //
     // Poster: klip inene ya da cihaz kareyi boyayana dek (yavaş hücresel ağ,
     // iOS Düşük Güç Modu'nda reddedilen play()) katman boş koyu zemin yerine
-    // ilk kareyi gösterir. Yalnızca yükleme penceresine giren faz için
-    // bağlanır — sayfa açılışında 6 görsel birden inmesin.
+    // ilk kareyi gösterir. Eager modda hepsi mount'ta bağlanır; aksi hâlde
+    // yalnızca yükleme penceresine giren faz için.
     //
     // Dikey telefon klibi yoksa (dosyalar henüz deploy edilmemiş) bir kez
     // masaüstü klibine düşülür.
-    function ensureLoaded(layer: VideoLayer) {
-      if (layer.requested || destroyed) return;
-      layer.requested = true;
+    function setPoster(layer: VideoLayer) {
+      if (layer.el.getAttribute("poster")) return;
+      layer.el.poster = mobileSource ? layer.sources.posterMobile : layer.sources.poster;
+    }
 
-      const controller = new AbortController();
-      layer.controller = controller;
-      const { src, mobileSrc, poster, posterMobile } = layer.sources;
+    /** Klibi indirir (ya da süren/bitmiş indirmeyi döndürür). Scroll'da
+     * iptal edilmez; yalnızca unmount `net`i iptal eder. */
+    function download(layer: VideoLayer): Promise<Blob> {
+      if (layer.download) return layer.download;
+      const { src, mobileSrc, poster } = layer.sources;
       const fetchBlob = (url: string) =>
-        fetch(url, { signal: controller.signal }).then((r) => {
+        fetch(url, { signal: net.signal }).then((r) => {
           if (!r.ok) throw new Error(`${r.status} ${url}`);
-          log("fetched", layer.phaseIndex, url);
-          return r.blob();
+          return r.blob().then((blob) => {
+            log("fetched", layer.phaseIndex, url, `${Math.round(blob.size / 1024)} KB`);
+            return blob;
+          });
         });
-
-      layer.el.poster = mobileSource ? posterMobile : poster;
-      const blobPromise = mobileSource
+      const pending = mobileSource
         ? fetchBlob(mobileSrc).catch((err) => {
-            if (controller.signal.aborted) throw err;
+            if (net.signal.aborted) throw err;
             log("mobil klip yüklenemedi, masaüstü klibine düşülüyor", err);
             layer.el.poster = poster;
             return fetchBlob(src);
           })
         : fetchBlob(src);
-
-      blobPromise
-        .then((blob) => {
-          // Arada unload olmuşsa (hızlı scroll) bu blob'u hiç bağlamıyoruz.
-          if (destroyed || layer.controller !== controller) return;
-          const url = URL.createObjectURL(blob);
-          layer.blobUrl = url;
-          layer.el.addEventListener(
-            "loadedmetadata",
-            () => {
-              if (layer.blobUrl !== url) return;
-              layer.ready = true;
-              layer.duration = layer.el.duration || 1;
-              // Yeni gelen katman lerp'i sıfırdan başlatmasın — scroll zaten
-              // fazın ortasında olabilir.
-              layer.cur = layer.target;
-              try {
-                layer.el.currentTime = Math.max(layer.target * layer.duration, 0.001);
-              } catch {
-                /* seek atlanır */
-              }
-              if (primed) primeLayer(layer);
-              read();
-            },
-            { once: true }
-          );
-          layer.el.preload = "auto";
-          layer.el.muted = true;
-          layer.el.playsInline = true;
-          layer.el.src = url;
-        })
-        .catch((err) => {
-          /* klip yüklenemezse poster / alttaki statik zemin ekranda kalır */
-          if (!controller.signal.aborted && debug) {
-            console.warn("[hero] klip yüklenemedi", layer.phaseIndex, err);
-          }
-        });
+      layer.download = pending;
+      pending.catch((err) => {
+        // Bir sonraki ziyarette yeniden denenebilsin.
+        if (layer.download === pending) layer.download = null;
+        if (!net.signal.aborted && debug) {
+          console.warn("[hero] klip yüklenemedi", layer.phaseIndex, err);
+        }
+      });
+      return pending;
     }
 
-    /** Uzaklaşan fazın klibini bellekten bırakır; geri scroll'da fetch HTTP
-     * cache'ten döner. */
+    /** İnmiş blob'u video elemanına bağlar. */
+    function attach(layer: VideoLayer, blob: Blob) {
+      const url = URL.createObjectURL(blob);
+      layer.blobUrl = url;
+      layer.el.addEventListener(
+        "loadedmetadata",
+        () => {
+          if (layer.blobUrl !== url) return;
+          layer.ready = true;
+          layer.duration = layer.el.duration || 1;
+          // Yeni gelen katman lerp'i sıfırdan başlatmasın — scroll zaten
+          // fazın ortasında olabilir.
+          layer.cur = layer.target;
+          try {
+            layer.el.currentTime = Math.max(layer.target * layer.duration, 0.001);
+          } catch {
+            /* seek atlanır */
+          }
+          if (primed) primeLayer(layer);
+          read();
+        },
+        { once: true }
+      );
+      layer.el.preload = "auto";
+      layer.el.muted = true;
+      layer.el.playsInline = true;
+      layer.el.src = url;
+    }
+
+    function ensureLoaded(layer: VideoLayer) {
+      if (layer.wanted || destroyed) return;
+      layer.wanted = true;
+      setPoster(layer);
+      download(layer).then(
+        (blob) => {
+          // Arada unload olmuşsa (hızlı scroll) bağlamıyoruz; zaten bağlıysa
+          // ikinci kez bağlamıyoruz.
+          if (destroyed || !layer.wanted || layer.blobUrl) return;
+          attach(layer, blob);
+        },
+        () => {
+          /* poster / alttaki statik zemin ekranda kalır (log download'da) */
+        }
+      );
+    }
+
+    /** Uzaklaşan fazın klibini videodan çözer. Süren indirme İPTAL EDİLMEZ
+     * — bitmek üzere olan klip hızlı scroll'da kesilip geri dönüşte baştan
+     * inmesin; dönülürse aynı promise kullanılır. Bitmiş indirmenin Blob'u
+     * ise bırakılır (bellek aktif ±1'de kalsın); geri dönüşte fetch HTTP
+     * cache'ten döner. Eager modda hiç çağrılmaz. */
     function unload(layer: VideoLayer) {
-      if (!layer.requested) return;
-      layer.controller?.abort();
-      layer.controller = null;
+      if (!layer.wanted) return;
+      layer.wanted = false;
       if (layer.blobUrl) {
         URL.revokeObjectURL(layer.blobUrl);
         layer.blobUrl = null;
+        layer.el.removeAttribute("src");
+        layer.el.load();
       }
-      layer.el.removeAttribute("src");
-      layer.el.load();
       layer.ready = false;
-      layer.requested = false;
       layer.cur = 0;
       layer.stuckAt = 0;
+      const pending = layer.download;
+      pending?.then(
+        () => {
+          if (!layer.wanted && layer.download === pending) layer.download = null;
+        },
+        () => {}
+      );
+    }
+
+    /** Eager mod: klipler faz sırasıyla, TEK TEK. İlk iterasyon faz 2'nin
+     * klibi (preload'dan geliyor) — geri kalanlar onun bitişinden sonra
+     * sırayla. Hızlı scroll ileride bir klibi talep ederse pencere onu
+     * paralel başlatır, kuyruk aynı promise'i bekler. */
+    async function prefetchAll() {
+      for (let i = 0; i < layers.length; i++) {
+        if (destroyed) return;
+        const layer = layers[i];
+        ensureLoaded(layer);
+        try {
+          const blob = await download(layer);
+          // Önceki bir denemesi başarısız olmuş katman için ensureLoaded
+          // bağlamayı üstlenmiyor — burada bağlanır.
+          if (!destroyed && layer.wanted && !layer.blobUrl) attach(layer, blob);
+        } catch {
+          /* sıradakine geç */
+        }
+        log(`prefetch ${i + 1}/${layers.length}`);
+      }
     }
 
     /**
@@ -571,11 +639,7 @@ export function useHeroScroll(): HeroScrollHandle {
       const stage = stageInnerRef.current;
       stageH = stage?.offsetHeight || window.innerHeight;
       mobile = isMobile();
-      if (stage && stage.clientHeight > 0) {
-        const w = stage.clientWidth;
-        mobileSource =
-          w <= MOBILE_SOURCE_MAX_WIDTH && w / stage.clientHeight <= MOBILE_SOURCE_MAX_ASPECT;
-      }
+      mobileSource = mobileVideoMq.matches;
       const rect = section!.getBoundingClientRect();
       top = rect.top + window.scrollY;
       height = section!.offsetHeight;
@@ -652,7 +716,9 @@ export function useHeroScroll(): HeroScrollHandle {
       layer.target = q;
       setLayerOpacity(layer, inRange ? cue(q, 0, 1, VIDEO_FADE.rIn, VIDEO_FADE.rOut) : 0);
       if (Math.abs(index - current) <= VIDEO_PRELOAD_RADIUS) ensureLoaded(layer);
-      else unload(layer);
+      // Eager modda bırakılmaz: 6 küçük klip bağlı kalır, geri scroll'da
+      // yeniden priming / seek beklenmez.
+      else if (!eager) unload(layer);
     }
 
     function read() {
@@ -985,6 +1051,13 @@ export function useHeroScroll(): HeroScrollHandle {
     // ---- ölçüm ve dinleyiciler ----
     layout();
 
+    // Mobil eager: posterler (toplam ~130 KB) hemen — hiçbir faz boş koyu
+    // katman göstermesin; sonra klipler faz sırasıyla arka planda.
+    if (eager) {
+      layers.forEach(setPoster);
+      void prefetchAll();
+    }
+
     let ticking = false;
     function onScroll() {
       if (!ticking) {
@@ -1004,8 +1077,8 @@ export function useHeroScroll(): HeroScrollHandle {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", layout);
       primeEvents.forEach((ev) => window.removeEventListener(ev, prime));
+      net.abort();
       layers.forEach((layer) => {
-        layer.controller?.abort();
         if (layer.blobUrl) URL.revokeObjectURL(layer.blobUrl);
       });
     };

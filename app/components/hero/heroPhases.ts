@@ -134,6 +134,19 @@ const SERVICE_VIDEOS: Record<string, string> = {
   danismanlik: "danismanlik-egitim",
 };
 
+/**
+ * Dikey telefon klibinin (`mobileSrc`) seçilme koşulu — TEK kaynak. Hem
+ * motor (useHeroScroll, matchMedia) hem Hero.tsx'teki <link rel="preload">
+ * etiketleri (media) bu dizgeyi okur; ikisi aynı URL'i seçmezse fetch()
+ * preload edilen yanıtı kullanamaz, klip iki kez iner.
+ *
+ * Oran 3:5'ten darsa cover kırpımı yükseklikten yapar ve 3:5 kaynak, 16:9
+ * kaynağın gösterdiği pikselin aynısını gösterir; daha genişse (dikey
+ * tablet, yatay telefon) masaüstü klibi kalır — kadraj hiçbir ekranda
+ * değişmez.
+ */
+export const HERO_MOBILE_VIDEO_MEDIA = "(max-width: 860px) and (max-aspect-ratio: 3/5)";
+
 function heroVideoSources(name: string): HeroVideoSources {
   const base = "/hero-videos";
   return {
