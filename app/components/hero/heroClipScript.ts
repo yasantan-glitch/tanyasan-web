@@ -10,21 +10,21 @@ import { HERO_MOBILE_VIDEO_MEDIA, SERVICE_PHASES } from "./heroPhases";
  * sürüyor ve kullanıcı faz 2–3'e geldiğinde ortada klip yoktu.
  *
  * Bu modül, HTML ayrıştırılırken çalışan küçük bir inline script üretir
- * (bkz. HeroClipPrefetch.tsx). Script fetch()'leri başlatır ve Blob'a
- * çözülen promise'leri `window.__heroClips[url]` altında bırakır;
+ * (bkz. HeroClipPrefetch.tsx). Script fetch()'i başlatır ve Blob'a
+ * çözülen promise'i `window.__heroClips[url]` altında bırakır;
  * useHeroScroll'un download()'ı aynı URL için önce oraya bakar. URL
- * listesi derleme anında SERVICE_PHASES'ten türetilir — elle kopya yok.
+ * derleme anında SERVICE_PHASES'ten türetilir — elle kopya yok.
  *
- * Öncelik: klip 1 `high` (faz 2 onu ilk ister). Klip 2–6 klip 1 bittikten
- * sonra `low` — hydration için gereken JS chunk'larıyla yarışmasınlar; JS
- * çalışmadan hero hiç hareket edemiyor. `priority` desteklemeyen tarayıcı
- * seçeneği yok sayar.
+ * YALNIZCA klip 1, `high` öncelikle (faz 2 onu ilk ister; açılışta
+ * görünen tek klip o). `priority` desteklemeyen tarayıcı seçeneği yok sayar.
  *
- * Sıra: klip 2–6 faz sırasıyla TEK TEK, paralel DEĞİL. Wi-Fi'da paralel
- * daha hızlı (gecikme baskın), ama telefonda bant genişliği baskın: beş
- * paralel istek hattı bölüşüp HER birini geciktiriyor, yani bir sonraki
- * fazın klibi geç bitiyor. Ölçüm (Fast 4G + CPU 4×, medyan): faz 3 klibi
- * paralelde ~3170 ms, sıralıda ~2250 ms'de hazır; hydration aynı.
+ * Klip 2–6 burada İNMİYOR (Ekim 2026, PSI mobil: ilk yüklemede altı klip
+ * ≈2.4 MB'tı). Onları useHeroScroll indiriyor: ilk kullanıcı niyetinde
+ * (dokunma / tekerlek / tuş / scroll) faz sırasıyla TEK TEK — paralel
+ * DEĞİL; telefonda bant genişliği baskın, paralel istekler hattı bölüşüp
+ * bir sonraki fazın klibini geciktiriyordu (ölçüm: faz 3 klibi paralelde
+ * ~3170 ms, sıralıda ~2250 ms). Ayrıca syncVideoWindow aktif faz ±1'in
+ * klibini her durumda ister: bir klip en geç önceki fazda inmeye başlar.
  */
 
 declare global {
@@ -46,8 +46,8 @@ export interface HeroClipTiming {
   by: "inline" | "hook";
 }
 
-const MOBILE_CLIPS = SERVICE_PHASES.map((phase) => phase.video.mobileSrc);
-const DESKTOP_CLIPS = SERVICE_PHASES.map((phase) => phase.video.src).slice(0, 1);
+const FIRST_MOBILE_CLIP = SERVICE_PHASES[0].video.mobileSrc;
+const FIRST_DESKTOP_CLIP = SERVICE_PHASES[0].video.src;
 
 /**
  * ES5, try/catch'li — hata verirse hook kendi fetch'ine düşer. Koşullar
@@ -60,11 +60,9 @@ var w=window,mm=w.matchMedia,n=navigator,c=n.connection;
 if(!mm||!w.fetch||!w.Promise||!w.performance)return;
 if(mm("(prefers-reduced-motion: reduce)").matches)return;
 if(c&&c.saveData)return;
-var list=mm(${JSON.stringify(HERO_MOBILE_VIDEO_MEDIA)}).matches?${JSON.stringify(MOBILE_CLIPS)}:${JSON.stringify(DESKTOP_CLIPS)};
+var u=mm(${JSON.stringify(HERO_MOBILE_VIDEO_MEDIA)}).matches?${JSON.stringify(FIRST_MOBILE_CLIP)}:${JSON.stringify(FIRST_DESKTOP_CLIP)};
 var clips=w.__heroClips=w.__heroClips||{},T=w.__heroClipT=w.__heroClipT||{};
-function get(u,pr){if(clips[u])return clips[u];var t=T[u]={start:performance.now(),by:"inline"};
-var p=fetch(u,{priority:pr}).then(function(r){if(!r.ok)throw new Error(r.status+" "+u);return r.blob()}).then(function(b){t.end=performance.now();t.size=b.size;return b});
-p["catch"](function(){t.failed=performance.now();if(clips[u]===p)delete clips[u]});return clips[u]=p}
-var first=get(list[0],"high");
-var i=1;var next=function(){if(i<list.length)get(list[i++],"low").then(next,next)};first.then(next,next);
+if(clips[u])return;var t=T[u]={start:performance.now(),by:"inline"};
+var p=fetch(u,{priority:"high"}).then(function(r){if(!r.ok)throw new Error(r.status+" "+u);return r.blob()}).then(function(b){t.end=performance.now();t.size=b.size;return b});
+p["catch"](function(){t.failed=performance.now();if(clips[u]===p)delete clips[u]});clips[u]=p;
 }catch(e){}})();`;

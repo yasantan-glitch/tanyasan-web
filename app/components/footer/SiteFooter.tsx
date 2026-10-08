@@ -36,11 +36,14 @@ const SITEMAP = [
 
 /** Harf harf yuvarlanan slogan — her harf iki kopya, scroll'la bir satır
  * yukarı kayıyor (Hayler `has-slide`). Kelimeler kırılmasın diye harfler
- * kelime span'ı içinde. Ekran okuyucu yalnızca `aria-label`ı okur. */
+ * kelime span'ı içinde. Harfler `aria-hidden`; ekran okuyucu yalnızca
+ * görünmez (sr-only) kopyayı okur. `<p>`'ye `aria-label` VERİLMEZ:
+ * paragraf rolü isimlendirilemez (axe: aria-prohibited-attr). */
 function RollingSlogan() {
   let index = 0;
   return (
-    <p className="site-footer__slogan font-display" aria-label={SLOGAN}>
+    <p className="site-footer__slogan font-display">
+      <span className="sr-only">{SLOGAN}</span>
       {SLOGAN.split(" ").map((word, wordIndex) => (
         <span key={wordIndex} className="roll-word" aria-hidden="true">
           {Array.from(word).map((char) => {

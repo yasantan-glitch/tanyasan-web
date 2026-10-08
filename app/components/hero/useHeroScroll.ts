@@ -490,9 +490,10 @@ export function useHeroScroll(): HeroScrollHandle {
     const mobileVideoMq = window.matchMedia(HERO_MOBILE_VIDEO_MEDIA);
     let mobileSource = mobileVideoMq.matches;
     /**
-     * Mobil eager mod — mount'ta bir kez karar verilir. Açıkken: tüm
-     * posterler hemen bağlanır, klipler faz sırasıyla arka planda TEK TEK
-     * iner ve Blob'ları bellekte tutulur (6 küçük klip ≈ 2.6 MB). BAĞLAMA ise
+     * Mobil eager mod — mount'ta bir kez karar verilir. Açıkken: ilk
+     * kullanıcı niyetinde (bkz. startEagerQueue) tüm posterler bağlanır,
+     * klipler faz sırasıyla arka planda TEK TEK iner ve Blob'ları bellekte
+     * tutulur (6 küçük klip ≈ 2.6 MB). BAĞLAMA ise
      * her iki modda da syncVideoWindow'un kuralıyla (≤3). Kapalıyken (masaüstü —
      * klipler büyük; ya da Save-Data) yalnızca pencere iner, uzaklaşan klibin
      * Blob'u bırakılır.
@@ -630,14 +631,14 @@ export function useHeroScroll(): HeroScrollHandle {
     // ---- blob-preload (güvenilir seek için) ----
     // Klip için <link rel="preload" as="fetch"> YOK (Ekim 2026'da kaldırıldı):
     // iOS'ta preload yanıtının fetch()'e devri doğrulanamadı. Onun yerine
-    // HTML'deki inline script (heroClipScript.ts) fetch()'leri hydration'dan
-    // önce başlatıp promise'leri window.__heroClips'e bırakıyor; download()
+    // HTML'deki inline script (heroClipScript.ts) klip 1'in fetch()'ini
+    // hydration'dan önce başlatıp promise'i window.__heroClips'e bırakıyor; download()
     // aynı URL'yi orada bulursa yeniden istemiyor, devralıyor.
     //
     // Poster: klip inene ya da cihaz kareyi boyayana dek (yavaş hücresel ağ,
     // iOS Düşük Güç Modu'nda reddedilen play()) katman boş koyu zemin yerine
-    // ilk kareyi gösterir. Eager modda hepsi mount'ta bağlanır; aksi hâlde
-    // yalnızca yükleme penceresine giren faz için.
+    // ilk kareyi gösterir. Eager modda hepsi ilk kullanıcı niyetinde
+    // bağlanır; aksi hâlde yalnızca yükleme penceresine giren faz için.
     //
     // Dikey telefon klibi yoksa (dosyalar henüz deploy edilmemiş) bir kez
     // masaüstü klibine düşülür.
@@ -1544,6 +1545,7 @@ export function useHeroScroll(): HeroScrollHandle {
       blockedByPolicy = false;
       activated = true;
       primeAttached();
+      startEagerQueue();
     };
     const primeEvents: (keyof WindowEventMap)[] = [
       "touchstart",
@@ -1559,11 +1561,31 @@ export function useHeroScroll(): HeroScrollHandle {
     // ---- ölçüm ve dinleyiciler ----
     layout();
 
-    // Mobil eager: posterler (toplam ~130 KB) hemen — hiçbir faz boş koyu
-    // katman göstermesin; sonra klipler faz sırasıyla arka planda.
-    if (eager) {
+    // Mobil eager: kalan posterler (~110 KB) ve klipler (faz sırasıyla, tek
+    // tek) İLK KULLANICI NİYETİNDE — mount'ta değil (Ekim 2026, PSI mobil:
+    // ilk yüklemede altı klip ≈2.4 MB'tı). Açılışta yalnızca intro'nun
+    // penceresi (syncVideoWindow, aktif ±1) iner: klip 1 ve posteri. Kullanıcı
+    // scroll'a başlar başlamaz kuyruk açılıyor; pencere de her klibi en geç
+    // önceki fazda istiyor, yani hiçbir faz boş koyu katman göstermiyor.
+    const intentEvents: (keyof WindowEventMap)[] = [
+      "touchstart",
+      "pointerdown",
+      "wheel",
+      "keydown",
+      "scroll",
+    ];
+    let eagerStarted = !eager;
+    function startEagerQueue() {
+      if (eagerStarted || destroyed) return;
+      eagerStarted = true;
+      intentEvents.forEach((ev) => window.removeEventListener(ev, startEagerQueue));
       layers.forEach(setPoster);
       void prefetchAll();
+    }
+    if (!eagerStarted) {
+      intentEvents.forEach((ev) =>
+        window.addEventListener(ev, startEagerQueue, { passive: true })
+      );
     }
 
     let ticking = false;
@@ -1597,6 +1619,7 @@ export function useHeroScroll(): HeroScrollHandle {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", layout);
       primeEvents.forEach((ev) => window.removeEventListener(ev, prime));
+      intentEvents.forEach((ev) => window.removeEventListener(ev, startEagerQueue));
       activateRef.current = null;
       window.clearTimeout(idleTimer);
       // İptal edilecek kendi fetch'lerimizi ortak tablodan şimdi çıkar —
