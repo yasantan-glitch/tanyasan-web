@@ -50,7 +50,7 @@ const NAMES: Readonly<Record<string, string>> = {
   rixos: "RIXOS PREMIUM BODRUM",
   terra: "TERRA CITY",
   "evim-door": "EVİM DOOR",
-  addig: "AGGİK", // dosya adı "addig"; portfolioFolders.ts'te firma "aggik"
+  aggik: "AGGİK",
   "emlak-crm": "EMLAK CRM PRO",
   suufle: "SUUFLE",
   golden: "GOLDEN ROSE",

@@ -2627,6 +2627,12 @@
     --h: var(--logo-h-square);
   }
 
+  /* Çok geniş (oran > 6, page.tsx) logo: ortak yükseklikte diğerlerinin çok
+     üstüne taşar; yüksekliği %65'e iner, genişliği en geniş komşularla eşitlenir. */
+  .clients__logo--very-wide {
+    --h: calc(var(--logo-h-wide) * 0.65);
+  }
+
   .clients__item:hover .clients__logo {
     transform: scale(1.2);
   }

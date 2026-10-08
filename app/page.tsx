@@ -64,6 +64,8 @@ const categoryIdOf = (category: string) =>
 /** gertix'in ayıracı: iki uçta artı işareti, arada kesik çizgi. */
 /** Bu orana kadar (genişlik / yükseklik) logo "kareye yakın" sayılır. */
 const SQUARE_MAX_RATIO = 1.6;
+/** Bu orandan sonra logo "çok geniş" sayılır; ortak yükseklikte aşırı yayılmasın diye küçülür. */
+const VERY_WIDE_MIN_RATIO = 6;
 
 function ClientsSeparator() {
   return (
@@ -296,7 +298,9 @@ export default function Home() {
                     className={
                       ratio <= SQUARE_MAX_RATIO
                         ? "clients__logo clients__logo--square"
-                        : "clients__logo"
+                        : ratio > VERY_WIDE_MIN_RATIO
+                          ? "clients__logo clients__logo--very-wide"
+                          : "clients__logo"
                     }
                     role="img"
                     aria-label={`${client.name} logo`}
