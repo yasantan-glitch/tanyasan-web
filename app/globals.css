@@ -2543,7 +2543,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-inline-size: 65rem;
+    max-inline-size: 72rem;
     margin-inline: auto;
   }
 
@@ -2579,16 +2579,16 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    padding-block: 1.5rem;
+    align-items: center;
+    column-gap: 2.25rem;
+    row-gap: 1.75rem;
+    padding-block: 2rem;
   }
 
   .clients__item {
     display: flex;
     align-items: center;
     justify-content: center;
-    inline-size: 8rem;
-    block-size: 8rem;
-    padding: 1.25rem 0.75rem;
     text-align: center;
   }
 
@@ -2597,14 +2597,14 @@
   }
 
   /* Logo = tek renkli siluet: dosyanın yalnızca alfa kanalı mask olarak
-     kullanılır, renk koyu mürekkep token'ı. Genişlik inline
-     aspect-ratio'dan türer (yerleşim kayması yok); çok geniş logolar hücreye
-     sığacak şekilde max-inline-size ile kısılır, mask `contain` oranı korur. */
+     kullanılır, renk koyu mürekkep token'ı, tam opaklık. Genişlik inline
+     aspect-ratio'dan türer (yerleşim kayması yok); tüm logolar ortak bir
+     yükseklikte, modifier'lar yalnızca görsel ağırlığı dengeler. */
   .clients__logo {
     display: block;
-    block-size: 2rem;
+    block-size: clamp(1.75rem, 1.5rem + 0.6vw, 2.25rem);
     max-inline-size: 100%;
-    background-color: var(--color-ink-700);
+    background-color: var(--color-ink-950);
     -webkit-mask-image: var(--logo);
     mask-image: var(--logo);
     -webkit-mask-repeat: no-repeat;
@@ -2613,48 +2613,54 @@
     mask-position: center;
     -webkit-mask-size: contain;
     mask-size: contain;
-    opacity: 0.85;
-    transition:
-      transform 0.3s var(--ease-out-quart),
-      opacity 0.3s var(--ease-out-quart);
+    transition: transform 0.3s var(--ease-out-quart);
   }
 
-  /* Kare/dikey (oran <= 1.1) logolar aynı yükseklikte görsel olarak ufak kalıyor:
-     yükseklik artıyor ki ağırlıkları geniş logolarla dengelensin. */
+  /* Kare/dikey (oran <= 1.1) logolar aynı yükseklikte görsel olarak ufak kalır. */
   .clients__logo--compact {
-    block-size: 3rem;
+    block-size: 3.5rem;
+  }
+
+  /* Orta kademe (Nur). */
+  .clients__logo--mid {
+    block-size: 2.625rem;
+  }
+
+  /* Aşırı geniş (oran > 7, Suufle) logo ortak yükseklikte satırı taşırıyordu. */
+  .clients__logo--wide {
+    max-inline-size: 12.5rem;
   }
 
   .clients__item:hover .clients__logo {
     transform: scale(1.2);
-    opacity: 1;
   }
 
-  /* Telefonda 8rem kareler satıra ikişer düşüyor ve liste ekranlarca
-     uzuyordu — üç eşit sütun, daha alçak hücre. */
+  /* Telefon: ortalı sarmalanan satırlar (hedef 4/4/4/3), küçük logolar. */
   @media (max-width: 640px) {
     .clients__title {
       margin-block-end: 2rem;
     }
 
     .clients__grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      inline-size: 100%;
-    }
-
-    .clients__item {
-      inline-size: auto;
-      block-size: 5.25rem;
-      padding: 0.75rem 0.25rem;
+      column-gap: 0.75rem;
+      row-gap: 3rem;
+      padding-block: 1.5rem;
     }
 
     .clients__logo {
-      block-size: 1.5rem;
+      block-size: 1.25rem;
     }
 
     .clients__logo--compact {
-      block-size: 2.5rem;
+      block-size: 2.125rem;
+    }
+
+    .clients__logo--mid {
+      block-size: 1.625rem;
+    }
+
+    .clients__logo--wide {
+      max-inline-size: 10rem;
     }
   }
 

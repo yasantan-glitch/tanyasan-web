@@ -287,11 +287,18 @@ export default function Home() {
             <ClientsSeparator />
             <ul className="clients__grid" data-enter-stagger>
               {CLIENTS.map((client, index) => {
+                const ratio = client.width / client.height;
+                const logoClass = [
+                  "clients__logo",
+                  ratio <= 1.1 && "clients__logo--compact",
+                  client.name === "NUR PASTANELERİ" && "clients__logo--mid",
+                  ratio > 7 && "clients__logo--wide",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
                 const mark = (
                   <span
-                    className={`clients__logo${
-                      client.width / client.height <= 1.1 ? " clients__logo--compact" : ""
-                    }`}
+                    className={logoClass}
                     role="img"
                     aria-label={`${client.name} logo`}
                     style={
