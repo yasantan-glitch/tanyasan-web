@@ -3788,8 +3788,9 @@
       min-block-size: 100svh;
       min-block-size: 100dvh;
       justify-content: space-between;
-      /* Üst dolgu tam header yüksekliği: slogan asla header'ın altına girmesin. */
-      padding-block: var(--nav-h) clamp(0.75rem, 2svh, 1.5rem);
+      /* Üst dolgu = header yüksekliği + 1rem nefes payı: slogan header'ın
+         altına girmesin, sis katmanına da değmesin. */
+      padding-block: calc(var(--nav-h) + 1rem) clamp(0.75rem, 2svh, 1.5rem);
     }
 
     .site-footer__top {
@@ -5493,6 +5494,12 @@
   .site-header-gradient {
     height: calc(var(--nav-h) + 2.25rem);
     mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
+  }
+
+  /* Footer (amber) üstünde sis katmanı header'ın dışına taşmıyor: slogan
+     sisin soluk bölgesine girmesin. */
+  .site-header[data-accent] .site-header-gradient {
+    height: var(--nav-h);
   }
 
   .nav-toggle {
