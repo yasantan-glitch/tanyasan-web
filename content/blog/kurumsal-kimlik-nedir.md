@@ -1,6 +1,6 @@
 ---
 title: "Kurumsal Kimlik Nedir? Küçük İşletmeler İçin Neden Önemlidir?"
-date: "2026-10-07"
+date: "2026-10-05"
 excerpt: "Kurumsal kimlik yalnızca bir logo değil; müşterinin markanızı her temas noktasında aynı şekilde tanımasını sağlayan bir sistem. Küçük işletmeler için neden önemli olduğunu ve en sık yapılan hataları anlattım."
 category: "grafik"
 draft: false

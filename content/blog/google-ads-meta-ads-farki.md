@@ -1,6 +1,6 @@
 ---
 title: "Google Ads Meta Ads Farkı: Hangi Reklam Platformu İşletmenize Uygun?"
-date: "2026-10-08"
+date: "2026-10-07"
 excerpt: "Google Ads Meta Ads farkı nedir? Biri var olan talebi yakalar, diğeri yeni talep oluşturur. İşletmeniz için hangi reklam platformunu, ne zaman seçmeniz gerektiğini anlattık."
 category: "dijital"
 draft: false

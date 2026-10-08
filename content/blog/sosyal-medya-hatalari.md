@@ -1,6 +1,6 @@
 ---
 title: "Sosyal Medya Hataları: İşletmelerin En Sık Yaptığı 9 Hata"
-date: "2026-10-08"
+date: "2026-10-06"
 excerpt: "Sosyal medya hataları çoğu zaman tasarım ve reklam kararlarından doğar. Küçük ve orta ölçekli işletmelerde en sık gördüğümüz 9 hatayı ve yerine ne yapılabileceğini anlattık."
 category: "dijital"
 draft: false
