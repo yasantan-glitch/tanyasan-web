@@ -2580,8 +2580,8 @@
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    column-gap: 0.75rem;
-    row-gap: 1.5rem;
+    column-gap: 2rem;
+    row-gap: 1.75rem;
     padding-block: 2rem;
   }
 
@@ -2597,21 +2597,20 @@
   }
 
   /* Logo = tek renkli siluet: dosyanın yalnızca alfa kanalı mask olarak
-     kullanılır, renk koyu mürekkep token'ı, tam opaklık. Genişlik inline
-     aspect-ratio'dan türer (yerleşim kayması yok); tüm logolar ortak bir
-     yükseklikte, modifier'lar yalnızca görsel ağırlığı dengeler. */
+     kullanılır, renk koyu mürekkep token'ı, tam opaklık. İKİ YÜKSEKLİK
+     KURALI: geniş (yatay) logoların hepsi aynı yüksekliği (--logo-h-wide),
+     kareye yakın olanlar (oran <= 1.6, page.tsx `--square`) hepsi aynı
+     yüksekliği (--logo-h-square) alır; genişlik oran (--ar) ile türer. */
+  .clients {
+    --logo-h-wide: 1.9rem;
+    --logo-h-square: 3.75rem;
+  }
+
   .clients__logo {
-    /* Her logo aynı kutuya (--box-w x --box-h) sığar; mask-size: contain
-       taşmayı imkânsız kılar. Kutu içinde işaret, oranına göre eşit alan
-       verecek biçimde boyutlanır: yükseklik = u / sqrt(oran), genişlik =
-       u * sqrt(oran). Geniş logo bu yüzden daha alçak, kare logo daha dar
-       olur. --ar inline gelir (genişlik / yükseklik); --k mürekkep yoğunluğuna
-       göre optik düzeltmedir (page.tsx), böylece ince çizgili logo yoğun
-       olandan küçük görünmez. */
-    --u: var(--logo-unit);
+    --h: var(--logo-h-wide);
     display: block;
-    inline-size: min(var(--box-w), calc(var(--u) * var(--k) * sqrt(var(--ar))));
-    block-size: min(var(--box-h), calc(var(--u) * var(--k) / sqrt(var(--ar))));
+    block-size: var(--h);
+    aspect-ratio: var(--ar);
     background-color: var(--color-ink-950);
     -webkit-mask-image: var(--logo);
     mask-image: var(--logo);
@@ -2624,12 +2623,8 @@
     transition: transform 0.3s var(--ease-out-quart);
   }
 
-  .clients__item {
-    --box-w: 8.25rem;
-    --box-h: 3.75rem;
-    --logo-unit: 3rem;
-    inline-size: var(--box-w);
-    block-size: var(--box-h);
+  .clients__logo--square {
+    --h: var(--logo-h-square);
   }
 
   .clients__item:hover .clients__logo {
@@ -2643,15 +2638,14 @@
     }
 
     .clients__grid {
-      column-gap: 0.25rem;
+      column-gap: 0.375rem;
       row-gap: 1.25rem;
       padding-block: 1.5rem;
     }
 
-    .clients__item {
-      --box-w: 4.75rem;
-      --box-h: 2.75rem;
-      --logo-unit: 2.25rem;
+    .clients {
+      --logo-h-wide: 1.375rem;
+      --logo-h-square: 2.75rem;
     }
   }
 
