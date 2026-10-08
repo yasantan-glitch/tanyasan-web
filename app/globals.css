@@ -456,6 +456,7 @@
   .site-header-logo {
     position: relative;
     display: block;
+    grid-column: 1;
     justify-self: start;
     height: 3rem;
     aspect-ratio: 1080 / 335;
@@ -501,6 +502,7 @@
      saydam olduğu için iki tonda da aynı değer çalışıyor (koyuda koyu gri,
      açıkta açık gri okunuyor). Köşe --radius-md: §4'ün keskin dili. */
   .nav-pill {
+    grid-column: 2;
     display: flex;
     align-items: center;
     gap: 0.125rem;
@@ -563,6 +565,7 @@
   }
 
   .site-header-end {
+    grid-column: 3;
     justify-self: end;
     display: flex;
     align-items: center;
@@ -3736,6 +3739,12 @@
       grid-template-columns: 1fr;
     }
 
+    /* `.site-footer__line` zaten bu sütunun üstünde bir ayraç çiziyor;
+       kendi önündeki hr tek sütunda art arda iki çizgi gibi görünüyor. */
+    .site-footer__cols > .site-footer__col:first-child > hr:first-of-type {
+      display: none;
+    }
+
     .footer-clock {
       text-align: start;
     }
@@ -3779,7 +3788,8 @@
       min-block-size: 100svh;
       min-block-size: 100dvh;
       justify-content: space-between;
-      padding-block: calc(var(--nav-h) + clamp(0rem, 1svh, 1rem)) clamp(0.75rem, 2svh, 1.5rem);
+      /* Üst dolgu tam header yüksekliği: slogan asla header'ın altına girmesin. */
+      padding-block: var(--nav-h) clamp(0.75rem, 2svh, 1.5rem);
     }
 
     .site-footer__top {
@@ -3828,18 +3838,52 @@
     }
   }
 
-  /* Kısa ekranlar (375×667, 360×640): kalan boşluk için ek sıkıştırma. */
+  /* Kısa ekranlar (375×667, 360×640): kalan boşluk için ek sıkıştırma.
+     Toplam içerik yüksekliği viewport'tan taşarsa footer en alta
+     yapıştığında slogan header'ın arkasına kayar — bu yüzden burada
+     üst dolguya değil, aralardaki boşluklara dokunuluyor. */
   @media (max-width: 860px) and (max-height: 700px) {
-    .site-footer__inner {
-      padding-block-start: calc(var(--nav-h) - 0.5rem);
+    .site-footer__top {
+      gap: clamp(0.3rem, 0.8svh, 0.75rem);
     }
 
     .site-footer__slogan {
-      font-size: clamp(1.5rem, 8.5vw, 2.25rem);
+      font-size: clamp(1.35rem, 7.5vw, 2rem);
+    }
+
+    .footer-clock__label {
+      font-size: 0.8rem;
+    }
+
+    .footer-clock__time {
+      font-size: clamp(1.1rem, 3.2svh, 1.5rem);
+    }
+
+    .site-footer__line {
+      margin-block: clamp(0.3rem, 1svh, 0.75rem);
+    }
+
+    .site-footer__cols {
+      gap: clamp(0.4rem, 1svh, 0.75rem);
     }
 
     .site-footer__label {
-      padding-block: 0.3rem;
+      padding-block: 0.2rem;
+      font-size: clamp(0.95rem, 2.4svh, 1.15rem);
+    }
+
+    .site-footer__col > .btn {
+      margin-block-start: 0.3rem;
+    }
+
+    .footer-nav {
+      grid-template-rows: repeat(3, auto);
+      margin-block-start: 0.3rem;
+    }
+
+    .footer-top__icon {
+      inline-size: 2.25rem;
+      block-size: 2.25rem;
     }
 
     .footer-socials__list a {
@@ -3849,6 +3893,7 @@
 
     .site-footer__credits {
       gap: 0;
+      margin-block-start: 0.5rem;
     }
   }
 
