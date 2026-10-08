@@ -2580,8 +2580,8 @@
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    column-gap: 2.25rem;
-    row-gap: 1.75rem;
+    column-gap: 0.75rem;
+    row-gap: 1.5rem;
     padding-block: 2rem;
   }
 
@@ -2601,9 +2601,17 @@
      aspect-ratio'dan türer (yerleşim kayması yok); tüm logolar ortak bir
      yükseklikte, modifier'lar yalnızca görsel ağırlığı dengeler. */
   .clients__logo {
+    /* Her logo aynı kutuya (--box-w x --box-h) sığar; mask-size: contain
+       taşmayı imkânsız kılar. Kutu içinde işaret, oranına göre eşit alan
+       verecek biçimde boyutlanır: yükseklik = u / sqrt(oran), genişlik =
+       u * sqrt(oran). Geniş logo bu yüzden daha alçak, kare logo daha dar
+       olur. --ar inline gelir (genişlik / yükseklik); --k mürekkep yoğunluğuna
+       göre optik düzeltmedir (page.tsx), böylece ince çizgili logo yoğun
+       olandan küçük görünmez. */
+    --u: var(--logo-unit);
     display: block;
-    block-size: clamp(1.75rem, 1.5rem + 0.6vw, 2.25rem);
-    max-inline-size: 100%;
+    inline-size: min(var(--box-w), calc(var(--u) * var(--k) * sqrt(var(--ar))));
+    block-size: min(var(--box-h), calc(var(--u) * var(--k) / sqrt(var(--ar))));
     background-color: var(--color-ink-950);
     -webkit-mask-image: var(--logo);
     mask-image: var(--logo);
@@ -2616,19 +2624,12 @@
     transition: transform 0.3s var(--ease-out-quart);
   }
 
-  /* Kare/dikey (oran <= 1.1) logolar aynı yükseklikte görsel olarak ufak kalır. */
-  .clients__logo--compact {
-    block-size: 3.5rem;
-  }
-
-  /* Orta kademe (Nur). */
-  .clients__logo--mid {
-    block-size: 2.625rem;
-  }
-
-  /* Aşırı geniş (oran > 7, Suufle) logo ortak yükseklikte satırı taşırıyordu. */
-  .clients__logo--wide {
-    max-inline-size: 12.5rem;
+  .clients__item {
+    --box-w: 8.25rem;
+    --box-h: 3.75rem;
+    --logo-unit: 3rem;
+    inline-size: var(--box-w);
+    block-size: var(--box-h);
   }
 
   .clients__item:hover .clients__logo {
@@ -2642,25 +2643,15 @@
     }
 
     .clients__grid {
-      column-gap: 0.75rem;
-      row-gap: 3rem;
+      column-gap: 0.25rem;
+      row-gap: 1.25rem;
       padding-block: 1.5rem;
     }
 
-    .clients__logo {
-      block-size: 1.25rem;
-    }
-
-    .clients__logo--compact {
-      block-size: 2.125rem;
-    }
-
-    .clients__logo--mid {
-      block-size: 1.625rem;
-    }
-
-    .clients__logo--wide {
-      max-inline-size: 10rem;
+    .clients__item {
+      --box-w: 4.75rem;
+      --box-h: 2.75rem;
+      --logo-unit: 2.25rem;
     }
   }
 

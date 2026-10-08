@@ -62,6 +62,31 @@ const categoryIdOf = (category: string) =>
   PORTFOLIO_CATEGORIES.find((entry) => entry.title === category)?.id ?? "";
 
 /** gertix'in ayıracı: iki uçta artı işareti, arada kesik çizgi. */
+/**
+ * Logo bandı optik ağırlık çarpanı (CSS `--k`). Her logo aynı kutuya sığar
+ * ve oranına göre eşit kutu alanı alır; ama dolgu yoğunluğu (mürekkep /
+ * kutu) logodan logoya 3 kata kadar değişir. Çarpan, mürekkep alanını
+ * eşitler: k = sqrt(hedef / yoğunluk). Yeni logo = 1 (varsayılan); ölçüm
+ * için logoyu bantta render edip alfa toplamına bakın.
+ */
+const LOGO_WEIGHT: Readonly<Record<string, number>> = {
+  "POYRAZ GAYRİMENKUL": 0.9,
+  "MAVİ AKDENİZ": 0.86,
+  EMOR: 0.76,
+  "NUR PASTANELERİ": 1.07,
+  "HOOP VİZE": 0.67,
+  "RIXOS PREMIUM BODRUM": 1.16,
+  "TERRA CITY": 1.02,
+  "EVİM DOOR": 0.86,
+  AGGİK: 0.68,
+  "EMLAK CRM PRO": 0.85,
+  SUUFLE: 0.74,
+  "GOLDEN ROSE": 1.12,
+  "WELLNESS ANTALYA": 1.14,
+  "POYRAZ GLOBAL": 0.89,
+  "YÜNER HALI": 0.87,
+};
+
 function ClientsSeparator() {
   return (
     <div className="clients__separator" aria-hidden="true">
@@ -287,24 +312,16 @@ export default function Home() {
             <ClientsSeparator />
             <ul className="clients__grid" data-enter-stagger>
               {CLIENTS.map((client, index) => {
-                const ratio = client.width / client.height;
-                const logoClass = [
-                  "clients__logo",
-                  ratio <= 1.1 && "clients__logo--compact",
-                  client.name === "NUR PASTANELERİ" && "clients__logo--mid",
-                  ratio > 7 && "clients__logo--wide",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
                 const mark = (
                   <span
-                    className={logoClass}
+                    className="clients__logo"
                     role="img"
                     aria-label={`${client.name} logo`}
                     style={
                       {
                         "--logo": `url("${client.logo}")`,
-                        aspectRatio: `${client.width} / ${client.height}`,
+                        "--ar": client.width / client.height,
+                        "--k": LOGO_WEIGHT[client.name] ?? 1,
                       } as React.CSSProperties
                     }
                   />
