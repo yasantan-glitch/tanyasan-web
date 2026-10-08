@@ -33,13 +33,15 @@ export interface HeroPhase {
 
 /** Bir hizmet klibinin dört dosyası — hepsi aynı taban addan türetilir. */
 export interface HeroVideoSources {
-  /** Masaüstü klibi: 1280×720. */
+  /** Masaüstü klibi: 1280×720, sık keyframe (GOP 6, B-frame yok). Ekim
+   * 2026'ya dek TEK keyframe'liydi: her seek 120 kareye kadar baştan
+   * çözülüyordu (ölçüm: seek p95 24 ms → GOP 6'da 4 ms). */
   src: string;
   /** Dikey telefon klibi: merkezden 3:5 kırpılmış 432×720, sık keyframe
    * (GOP 6, B-frame yok), sessiz. Kırpma tam olarak object-fit: cover'ın
-   * dikey ekranda zaten gösterdiği bölge — kadraj değişmiyor. Gerekçe:
-   * masaüstü klibinde TEK keyframe var; telefonun donanım çözücüsü her
-   * currentTime seek'inde 120 kareyi baştan çözmek zorunda kalıyordu. */
+   * dikey ekranda zaten gösterdiği bölge — kadraj değişmiyor. Her seek en
+   * fazla 5 kare çözer; tüm-intra (GOP 1) denendi, ölçülebilir kazanç
+   * olmadan klipleri 2.6× büyüttü. */
   mobileSrc: string;
   /** İlk karenin görseli — klip inene / boyanana dek boş zemin yerine. */
   poster: string;
@@ -147,13 +149,28 @@ const SERVICE_VIDEOS: Record<string, string> = {
  */
 export const HERO_MOBILE_VIDEO_MEDIA = "(max-width: 860px) and (max-aspect-ratio: 3/5)";
 
+/** Tüm hero kliplerinin kare hızı. Motor playhead'i bu ızgaraya oturtur:
+ * yalnızca gösterilen KARE değişince seek eder (bkz. useHeroScroll
+ * driveLayer). Klip üretirken kare hızını değiştirirseniz burayı da. */
+export const HERO_CLIP_FPS = 24;
+
+/**
+ * Klip/poster dosyalarının sürümü — URL'ye `?v=` olarak eklenir. Dosya
+ * adları sürümlü değil ve `/hero-videos/*` bir gün önbellekte kalıyor
+ * (next.config.ts); dosyaların İÇERİĞİ değiştiğinde bunu artırın, yoksa
+ * dönen ziyaretçi eski klibi yeni CSS'le görür. 2: renk düzeltmesi
+ * kliplere gömüldü (CSS filter kaldırıldı) + masaüstü GOP 6 (Ekim 2026).
+ */
+const HERO_MEDIA_VERSION = 2;
+
 function heroVideoSources(name: string): HeroVideoSources {
   const base = "/hero-videos";
+  const v = `?v=${HERO_MEDIA_VERSION}`;
   return {
-    src: `${base}/${name}.mp4`,
-    mobileSrc: `${base}/mobile/${name}.mp4`,
-    poster: `${base}/posters/${name}.jpg`,
-    posterMobile: `${base}/posters/${name}-mobile.jpg`,
+    src: `${base}/${name}.mp4${v}`,
+    mobileSrc: `${base}/mobile/${name}.mp4${v}`,
+    poster: `${base}/posters/${name}.jpg${v}`,
+    posterMobile: `${base}/posters/${name}-mobile.jpg${v}`,
   };
 }
 

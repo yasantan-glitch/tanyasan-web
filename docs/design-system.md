@@ -183,7 +183,7 @@ devam ediyor.
 `app/components/hero/` altında kuruldu (`Hero.tsx`, `useHeroScroll.ts`,
 `heroPhases.ts`). Mekanizma scrollcraft eklentisinin
 (`nateherk-design@nateherk`) tekniklerinin React'e portu: sticky-pin +
-normalize progress, cue pencereleri, lerp'lenmiş/deadband'li video playhead,
+normalize progress, cue pencereleri, lerp'lenmiş/kareye oturan video playhead,
 blob-preload, iOS priming.
 
 Tek runtime bağımlılığı `lucide-react` (hizmet fazlarının ikonları — 6 ikon,
@@ -569,8 +569,15 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
 
 - **Video renk düzeltmesi:** `public/hero-network.mp4` ölçüldü — amber tonu
   hedeften (`#E8AE30`, H≈41°) daha turuncu ve soluk (H≈30-36°, S/L farklı)
-  çıktı. `--hero-video-filter: saturate(1.35) hue-rotate(10deg)
-  brightness(0.94) contrast(1.05)` ile düzeltiliyor (`app/globals.css`).
+  çıktı. Düzeltme `saturate(1.35) hue-rotate(10deg) brightness(0.94)
+  contrast(1.05)`. Ekim 2026'dan beri bu CSS `filter` DEĞİL, kliplerin ve
+  posterlerin İÇİNE gömülü (ffmpeg komutları aşağıda): tam ekran `<video>`
+  üstündeki filtre her yeni karede ayrı bir GPU geçişi istiyordu (ölçüm,
+  mobil emülasyon: GPU süreci −%25–45, düşen kare 17–20 → 10). Gömülü sonuç
+  orijinal + CSS filtresiyle karşılaştırıldı: Chromium'da PSNR 41.5 dB
+  (ortalama fark 1.5/255), WebKit'te 40 dB (1.9/255) — iki motor CSS
+  filtresini zaten ~2/255 farklı çiziyordu, gömülü klip ikisinde de aynı.
+  `.hero-video`'ya filtre geri eklenirse renk İKİ KEZ uygulanır.
 - **Logo:** Hero'nun kendi logo katmanı (stroke→solid çizim) kaldırıldı; faz 1
   artık tipografik bir statement. `HeroLogoSolid` yalnızca nav'da kullanılıyor
   (`logoData.ts`'teki "TANYASAN" logotype'ı — `Logo_Beyaz.svg`'nin "Design &
@@ -584,28 +591,48 @@ sürülür; görünmez faz bir kez `opacity: 0`'a set edilip atlanır (`zeroed[]
   kalemler `body → body-sm`, ikon/ayraç bir kademe küçülür, faz göstergesi
   gizlenir. Eşik `useHeroScroll`'daki `isMobile()` ile aynı (860px). Override
   `:root` üzerinde — Tailwind v4'te `@theme` media query kabul etmiyor.
-  Seek deadband mobilde hâlâ daha geniş (`0.02` vs `0.008`). Dikey telefonda
+  Playhead kare ızgarasına oturur (`HERO_CLIP_FPS`, kare ortasına seek; aynı
+  kareye tekrar seek yok) — eski `0.02`/`0.008` eşiği kaldırıldı. Dikey telefonda
   (sahne ≤860px ve en/boy ≤3:5) her hizmet klibinin mobil varyantı yüklenir:
   `hero-videos/mobile/<ad>.mp4` — merkezden 3:5 kırpım (432×720, cover'ın
-  zaten gösterdiği bölge, kadraj aynı), GOP 6, B-frame yok, sessiz. Masaüstü
-  klipleri tek keyframe'li; telefon çözücüsü her seek'te 120 kareyi baştan
-  çözüyordu, scrub donuyordu. Her klibin ilk karesi `hero-videos/posters/`
+  zaten gösterdiği bölge, kadraj aynı), GOP 6, B-frame yok, sessiz.
+  Masaüstü klipleri de Ekim 2026'dan beri GOP 6 (öncesinde tek keyframe:
+  her seek 120 kareye kadar baştan çözülüyordu — ölçüm: seek p50 11.9 → 2.6
+  ms, p95 24 → 4 ms; gösterilmesi gereken kare değişimlerinin %34'ü
+  kaçıyordu). Mobilde tüm-intra (GOP 1) denendi: ölçülebilir kazanç yok,
+  boyut 2.6×. Her klibin ilk karesi `hero-videos/posters/`
   altında poster olarak bağlanır (yavaş ağ / Düşük Güç Modu'nda boş zemin
   yerine). Mobil dosya yoksa bir kez masaüstü klibine düşülür. İlk hizmetin
   mobil posteri HTML'de `<link rel="preload">` ile (media sorgulu, motorla
   aynı `HERO_MOBILE_VIDEO_MEDIA`) JS'ten önce iner; klip için fetch preload
   yok. Mobilde (Save-Data kapalıysa) tüm posterler mount'ta bağlanır, 6 klip
   (~2.3 MB) faz sırasıyla tek tek arka planda iner ve Blob olarak bellekte
-  kalır. `<video>`'ya BAĞLAMA ise her ekranda aktif ±1 penceresiyle sınırlı
-  (en fazla 3 bağlı video — 6'sı birden iPhone'da oynatmayı durdurdu);
+  kalır. `<video>`'ya BAĞLAMA ise en fazla 3 video (6'sı birden iPhone'da
+  oynatmayı durdurdu) ve faz SINIRINDA hiç değişmez: scroll sürerken komşu
+  klip fazın q ≥ 0.6'sında (yukarıda ≤ 0.4) eklenir, gerekirse en uzak
+  görünmez klip o an çözülür; budama yalnızca scroll durunca (aktif ±1);
   bellekteki Blob sayesinde yeniden bağlama anında. Scroll'da hiçbir indirme
   iptal edilmez. Kaynaklar
   `heroPhases.ts`'teki `heroVideoSources()`'tan türetilir; gerçek cihazda
   tanı için `?herodebug` konsola klip/priming olaylarını yazar. Üretim
   (`public/hero-videos/` içinde, `<ad>` = klibin taban adı):
-  `ffmpeg -i <ad>.mp4 -an -vf "crop=ih*3/5:ih,scale=432:720:flags=lanczos,format=yuv420p" -c:v libx264 -profile:v main -level 3.1 -preset slow -crf 24 -g 6 -keyint_min 6 -sc_threshold 0 -bf 0 -movflags +faststart mobile/<ad>.mp4`,
-  `ffmpeg -i <ad>.mp4 -frames:v 1 -q:v 3 posters/<ad>.jpg`,
-  `ffmpeg -i <ad>.mp4 -frames:v 1 -vf "crop=ih*3/5:ih,scale=432:720" -q:v 3 posters/<ad>-mobile.jpg`.
+  Kaynak (master) renk düzeltmesiz, tek keyframe'li ilk sürümdür ve repoda
+  yok; git geçmişinden alınır: `git show 8d7220a:public/hero-videos/<ad>.mp4
+  > master/<ad>.mp4`. Renk düzeltmesi (CSS filtre spesifikasyonunun
+  matrisleri, her adımda kırpma — tarayıcının yaptığı gibi):
+  `IN="scale=in_color_matrix=bt709:in_range=tv:out_range=pc:flags=accurate_rnd+full_chroma_int,format=rgb48le"`,
+  `BAKE="colorchannelmixer=rr=1.275450:rg=-0.250250:rb=-0.025200:gr=-0.074550:gg=1.099750:gb=-0.025200:br=-0.074550:bg=-0.250250:bb=1.324800,colorchannelmixer=rr=0.951057:rg=-0.113296:rb=0.162239:gr=0.028068:gg=1.019981:gb=-0.048049:br=-0.133425:bg=0.135021:bb=0.998404,colorchannelmixer=rr=0.94:gg=0.94:bb=0.94,colorlevels=rimin=0.0238095:gimin=0.0238095:bimin=0.0238095:rimax=0.9761905:gimax=0.9761905:bimax=0.9761905"`
+  (sırasıyla saturate 1.35, hue-rotate 10°, brightness 0.94, contrast 1.05),
+  `OUT="scale=out_color_matrix=bt709:in_range=pc:out_range=tv:flags=accurate_rnd,format=yuv420p"`,
+  `CROP="crop=ih*3/5:ih,scale=432:720:flags=lanczos"`. Üretim
+  (`public/hero-videos/` içinde):
+  `ffmpeg -i master/<ad>.mp4 -an -vf "$IN,$BAKE,$OUT" -c:v libx264 -profile:v main -preset slow -crf 21 -g 6 -keyint_min 6 -sc_threshold 0 -bf 0 -movflags +faststart <ad>.mp4`,
+  `ffmpeg -i master/<ad>.mp4 -an -vf "$IN,$BAKE,$CROP,$OUT" -c:v libx264 -profile:v main -level 3.1 -preset slow -crf 24 -g 6 -keyint_min 6 -sc_threshold 0 -bf 0 -movflags +faststart mobile/<ad>.mp4`,
+  `ffmpeg -i master/<ad>.mp4 -frames:v 1 -vf "$IN,$BAKE,scale=out_color_matrix=bt709:in_range=pc:out_range=pc,format=yuvj420p" -q:v 3 posters/<ad>.jpg`,
+  `ffmpeg -i master/<ad>.mp4 -frames:v 1 -vf "$IN,$BAKE,$CROP,scale=out_color_matrix=bt709:in_range=pc:out_range=pc,format=yuvj420p" -q:v 3 posters/<ad>-mobile.jpg`.
+  Dosyaların içeriği değişince `heroPhases.ts`'teki `HERO_MEDIA_VERSION`
+  artırılır (URL'ye `?v=` olarak eklenir; dosyalar bir gün önbellekte
+  kalıyor, dönen ziyaretçi eski klibi yeni CSS'le görmesin).
 - **Reduced-motion:** Video, scrub ve rAF döngüsü hiç mount edilmez. Yerine
   `.hero-bg-static`'in düz koyu radial-gradient zemini (interaktif daldakiyle
   birebir aynı class) + `.surface-ink` bir bölümde 6 hizmet ailesi hairline
@@ -1568,8 +1595,8 @@ kurulmuyor.
 **Wellness'in kendi görsel zayıflığı ayrıca telafi edildi**
 (`.home-portfolio-media--boost`, UNGATED — mobil ve reduced-motion'da da
 geçerli): `scale(1.14)` + `saturate(1.16) contrast(1.08) brightness(1.03)`.
-Kaynak dosyaya DOKUNULMADI; gerekçe hero videosundaki
-`--hero-video-filter`le aynı disiplin — zayıf bir kaynağı CSS'te telafi
+Kaynak dosyaya DOKUNULMADI; gerekçe hero videosunun renk düzeltmesiyle
+(o artık klibe gömülü) aynı disiplin — zayıf bir kaynağı telafi
 etmek, içerik uydurmak değil. `object-fit: cover` görseli kadraja
 SIĞDIRIYOR ama içeriği büyütmüyordu; ölçekle içerik (kırtasiye takımı)
 çerçeveyi daha çok dolduruyor.

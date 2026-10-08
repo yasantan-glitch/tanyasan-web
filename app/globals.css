@@ -128,7 +128,7 @@
   --container-prose: 36rem; /* ~68ch — uzun metin sütunu */
 
   /* ------------------------------------------------------------------
-     HERO — 8 fazlı scroll bütçesi ve video renk düzeltmesi.
+     HERO — 8 fazlı scroll bütçesi.
      Gerekçe: docs/design-system.md §8.
      --hero-travel, 8 fazın ağırlık toplamına (12.564) ağırlık başına ~95.5vh
      verir; sticky sahnenin kendi yüksekliği bunun üstüne binerek toplam
@@ -143,7 +143,6 @@
      ------------------------------------------------------------------ */
   --hero-travel: 1200vh;
   --hero-span: calc(100svh + var(--hero-travel));
-  --hero-video-filter: saturate(1.35) hue-rotate(10deg) brightness(0.94) contrast(1.05);
 
   /* Faz öğelerinin ölçüsü — mobilde :root üzerinden küçültülür. */
   --hero-phase-icon: 2.5rem;
@@ -854,9 +853,15 @@
      DOM sırası z-sırasını verir: statik zemin altta, hizmet/resolve klipleri
      üstünde. Opaklık her frame'de useHeroScroll tarafından yazılır — CSS
      transition YOK, crossfade scroll'a bağlı olduğu için geri scroll'da da
-     simetrik çözülüyor. */
+     simetrik çözülüyor.
+
+     Renk düzeltmesi (saturate 1.35 · hue-rotate 10° · brightness 0.94 ·
+     contrast 1.05) Ekim 2026'dan beri kliplerin ve posterlerin İÇİNE
+     gömülü — CSS filter YOK. Tam ekran <video> üstündeki filtre her yeni
+     karede ayrı bir GPU geçişi istiyordu (ölçüm: mobilde GPU süreci
+     −%25–45, düşen kare 17–20 → 10). Filtreyi buraya geri koymak renkleri
+     İKİ KEZ uygular. Üretim komutu: docs/design-system.md §8. */
   .hero-video {
-    filter: var(--hero-video-filter);
     will-change: opacity;
   }
 

@@ -12,6 +12,7 @@ import {
   staggerDraw,
 } from "./heroMath";
 import {
+  HERO_CLIP_FPS,
   HERO_MOBILE_VIDEO_MEDIA,
   HERO_PHASES,
   HERO_PHASE_COUNT,
@@ -105,24 +106,67 @@ const heroDebug = () =>
  */
 const VIDEO_FADE = { rIn: 0.12, rOut: 0.12 };
 
-/** Aktif fazın kaç komşusunun klibi yüklü tutulur (1 = önceki + sonraki).
- * Yalnızca hizmet fazları için: faz 8'in hiç medyası yok. */
+/** Aktif fazın kaç komşusunun klibi İNDİRİLİR / durağanken bağlı tutulur
+ * (1 = önceki + sonraki). Yalnızca hizmet fazları için: faz 8'in hiç
+ * medyası yok. */
 const VIDEO_PRELOAD_RADIUS = 1;
 
-/** Mobilde scroll yönü bu kadar süre değişmezse "durdu" sayılır ve bağlama
- * penceresi yeniden aktif fazın ortasına döner. Kısa tutulursa parmak
- * hamleleri arasındaki duraklamalarda pencere ileri-geri kayıp klipleri
- * boşuna çözüp yeniden bağlar. */
+/** Aynı anda src'si bağlı en fazla <video> sayısı. iOS Safari'de 6 klibin
+ * birden bağlı/primelenmiş olması oynatmayı tamamen durdurdu (Ekim 2026). */
+const VIDEO_MAX_ATTACHED = 3;
+
+/**
+ * Scroll SÜRERKEN komşu klibin bağlandığı faz-yerel eşik: aşağı giderken
+ * q ≥ 0.6'da sonraki, yukarı giderken q ≤ 0.4'te önceki faz bağlanır.
+ * Ölçüm (Ekim 2026): eski pencere faz SINIRINDA kayıyordu — bağla/çöz,
+ * iki videonun crossfade'iyle aynı karede çalışıyor ve o kareler koşunun
+ * en ağır ana iş parçacığı kareleriydi (7–10 ms, tüm görevlerin p99'u
+ * 5.8 ms). Eşik fazın ortasında: o an komşu klip zaten görünmez
+ * (video yalnızca kendi aralığında görünür) ve sınıra 0.4 faz var.
+ */
+const VIDEO_PREATTACH_Q = 0.6;
+
+/** Scroll bu kadar süre durursa "durdu" sayılır; bağlı klipler ancak o
+ * zaman aktif ±1'e budanır. Kısa tutulursa parmak hamleleri arasındaki
+ * duraklamalarda klipler boşuna çözülüp yeniden bağlanır. */
 const SCROLL_IDLE_MS = 900;
+
+/**
+ * Video playhead'inin scroll hedefine yaklaşma zaman sabiti (ms). Zaman
+ * tabanlı: α = 1 − e^(−dt/τ). 84 ms, eski kare başına 0.18 katsayısının
+ * 60 Hz'teki karşılığı (−16.7 / ln 0.82) — 60 Hz'te his aynı, 120 Hz'te ya
+ * da kare düşünce hız değişmiyor.
+ */
+const VIDEO_LERP_TAU_MS = 84;
+/** Masaüstünde ilerleme zaten yumuşatılıyor (VIEW_SMOOTH_TAU_MS); video
+ * ikinci kez aynı gecikmeyi eklemesin diye daha kısa. */
+const VIDEO_LERP_TAU_SMOOTH_MS = 45;
+
+/**
+ * Masaüstü (fare/trackpad: pointer fine + hover) için sahnenin gösterdiği
+ * ilerlemenin yumuşatılması. Tekerlek notch'u sayfayı TEK karede ~100 px
+ * sıçratıyor (ölçüm: her notch tek hareketli kare, ardından 3–4 durağan
+ * kare); sahne sticky olduğu için gösterilen her şey p'nin fonksiyonu —
+ * p'yi yumuşatmak scroll'u ele geçirmeden (Lenis vb. YOK) sahneyi akıtır.
+ * Native scroll, çapa linkleri, dok/Atla scrollTo'su, header ve diğer
+ * sayfalar etkilenmez. Dokunmatikte uygulanmaz: içerik parmağı izler.
+ * τ = 80 ms → bir notch ~185 ms'de %90 yerleşir, ilk karede ≤ %20'si.
+ */
+const VIEW_SMOOTH_TAU_MS = 80;
+const VIEW_SMOOTH_MEDIA = "(pointer: fine) and (hover: hover)";
+/** Bundan büyük sıçrama (Home/End, çapa, sayfa içi atlama) yumuşatılmaz —
+ * aradaki fazlar bir anda ekrandan akıp geçmesin. Sahne yüksekliği cinsinden. */
+const VIEW_SNAP_SCREENS = 1.5;
 /** Bundan küçük scroll farkı yön sayılmaz (adres çubuğu / momentum titremesi). */
 const SCROLL_DIR_DEADBAND_PX = 2;
 
 /**
  * Scroll'a bağlı sürülen tek bir video katmanı. Her katman kendi fazının
  * klibini taşır (phaseIndex ile heroPhases.ts'e eşlenir) ve aktif fazdan
- * uzaklaşınca src'si bırakılır — mobilde de: aynı anda en fazla aktif ±1
- * (≤3) <video> bağlı. iOS Safari'de 6 klibin birden bağlı/primelenmiş olması
- * oynatmayı tamamen durdurdu (Ekim 2026). Taban katman kavramı yok.
+ * uzaklaşınca src'si bırakılır — mobilde de: aynı anda en fazla
+ * VIDEO_MAX_ATTACHED (3) <video> bağlı. iOS Safari'de 6 klibin birden
+ * bağlı/primelenmiş olması oynatmayı tamamen durdurdu (Ekim 2026). Taban
+ * katman kavramı yok. Hangisinin ne zaman bağlandığı: syncVideoWindow.
  *
  * İNDİRME ile BAĞLAMA ayrı: `download` ağ isteğidir ve scroll'da ASLA iptal
  * edilmez (yalnızca unmount'ta) — hızlı scroll'da bitmek üzere olan bir klip
@@ -138,6 +182,9 @@ interface VideoLayer {
   /** lerp'lenen ve hedef playhead — ikisi de [0,1] normalize. */
   cur: number;
   target: number;
+  /** Son seek edilen kare (HERO_CLIP_FPS ızgarası); −1 = henüz yok. Aynı
+   * kareye tekrar seek edilmez — her seek aynı kareyi yeniden çözerdi. */
+  frame: number;
   ready: boolean;
   duration: number;
   stuckAt: number;
@@ -372,7 +419,7 @@ export interface HeroScrollHandle {
 
 /**
  * Hero'nun scroll-scrubbing motoru. scrollcraft.js'in tekniklerinin
- * (sticky-pin + normalize progress, lerp'lenmiş/deadband'li video playhead,
+ * (sticky-pin + normalize progress, lerp'lenmiş/kareye oturan video playhead,
  * blob-preload, iOS priming) React'e portu.
  *
  * Zamanlama heroPhases.ts'teki ağırlıklardan türetilen PHASE_RANGES'ten gelir;
@@ -445,8 +492,8 @@ export function useHeroScroll(): HeroScrollHandle {
     /**
      * Mobil eager mod — mount'ta bir kez karar verilir. Açıkken: tüm
      * posterler hemen bağlanır, klipler faz sırasıyla arka planda TEK TEK
-     * iner ve Blob'ları bellekte tutulur (6 küçük klip ≈ 2.3 MB). BAĞLAMA ise
-     * her iki modda da aktif ±1 penceresiyle sınırlı. Kapalıyken (masaüstü —
+     * iner ve Blob'ları bellekte tutulur (6 küçük klip ≈ 2.6 MB). BAĞLAMA ise
+     * her iki modda da syncVideoWindow'un kuralıyla (≤3). Kapalıyken (masaüstü —
      * klipler büyük; ya da Save-Data) yalnızca pencere iner, uzaklaşan klibin
      * Blob'u bırakılır.
      */
@@ -469,6 +516,8 @@ export function useHeroScroll(): HeroScrollHandle {
      * konsoldan `__heroDebug.report()` ile tablo olarak okunur. */
     const timeline = {
       hydrated: now(),
+      /** Sahnenin son çizdiği ilerleme (pView) — ölçüm betikleri okur. */
+      view: 0,
       clips: {} as Record<number, { attached?: number; decoded?: number; firstFrame?: number }>,
       phases: [] as Array<{ phase: number; at: number; clip: string }>,
       report() {
@@ -546,6 +595,7 @@ export function useHeroScroll(): HeroScrollHandle {
         phaseIndex,
         cur: 0,
         target: 0,
+        frame: -1,
         ready: false,
         duration: 1,
         stuckAt: 0,
@@ -719,11 +769,8 @@ export function useHeroScroll(): HeroScrollHandle {
           // Yeni gelen katman lerp'i sıfırdan başlatmasın — scroll zaten
           // fazın ortasında olabilir.
           layer.cur = layer.target;
-          try {
-            layer.el.currentTime = Math.max(layer.target * layer.duration, 0.001);
-          } catch {
-            /* seek atlanır */
-          }
+          layer.frame = -1;
+          seekFrame(layer, frameOf(layer, layer.cur));
           if (activated) primeLayer(layer);
           read();
         },
@@ -753,12 +800,11 @@ export function useHeroScroll(): HeroScrollHandle {
       );
     }
 
-    /** Uzaklaşan fazın klibini videodan çözer (src + decoder bırakılır).
-     * Süren indirme İPTAL EDİLMEZ — bitmek üzere olan klip hızlı scroll'da
-     * kesilip geri dönüşte baştan inmesin; dönülürse aynı promise kullanılır.
-     * Bitmiş indirmenin Blob'u: eager modda bellekte KALIR (geri dönüşte
-     * yeniden bağlama anında), aksi hâlde bırakılır (bellek aktif ±1'de
-     * kalsın; geri dönüşte fetch HTTP cache'ten döner). */
+    /** Klibi videodan çözer (src + decoder bırakılır). Süren indirme İPTAL
+     * EDİLMEZ — bitmek üzere olan klip hızlı scroll'da kesilip geri dönüşte
+     * baştan inmesin; dönülürse aynı promise kullanılır. Blob burada
+     * BIRAKILMAZ: çözülen klip hâlâ indirme penceresindeyse (aktif ±1)
+     * geri dönüşte yeniden bağlama anında olsun — bkz. releaseDownload. */
     function unload(layer: VideoLayer) {
       if (!layer.wanted) return;
       layer.wanted = false;
@@ -774,15 +820,23 @@ export function useHeroScroll(): HeroScrollHandle {
       layer.primed = false;
       layer.frameReady = false;
       layer.cur = 0;
+      layer.frame = -1;
       layer.stuckAt = 0;
-      if (eager) return;
+    }
+
+    /** İndirme penceresinin dışına düşen, bağlı olmayan klibin Blob'unu
+     * bırakır. Eager modda (mobil, 6 küçük klip) hiçbir şey bırakılmaz;
+     * aksi hâlde (masaüstü ~2 MB'lık klipler) bellek aktif ±1'de kalır, geri
+     * dönüşte fetch HTTP önbelleğinden döner. */
+    function releaseDownload(layer: VideoLayer) {
+      if (eager || layer.wanted) return;
       const pending = layer.download;
       pending?.then(
         () => {
           if (!layer.wanted && layer.download === pending) {
             layer.download = null;
             // Ortak tablo da Blob'u tutuyor — o da bırakılmazsa masaüstünün
-            // ~3 MB'lık klibi sayfa boyunca bellekte kalırdı.
+            // ~2 MB'lık klibi sayfa boyunca bellekte kalırdı.
             const clips = window.__heroClips;
             if (clips) {
               delete clips[layer.sources.src];
@@ -795,7 +849,7 @@ export function useHeroScroll(): HeroScrollHandle {
     }
 
     /** Eager mod: klipler faz sırasıyla, TEK TEK İNER — bağlanmaz. Bağlamayı
-     * read()'in ±1 penceresi (ensureLoaded) yapar; inen klip pencerede ise
+     * syncVideoWindow (ensureLoaded) yapar; inen klip isteniyorsa
      * ensureLoaded'ın bekleyen then'i onu bağlar. Hızlı scroll ileride bir
      * klibi talep ederse pencere onu paralel başlatır, kuyruk aynı promise'i
      * bekler. */
@@ -856,7 +910,9 @@ export function useHeroScroll(): HeroScrollHandle {
       stageH = stage?.offsetHeight || window.innerHeight;
       mobile = isMobile();
       mobileSource = mobileVideoMq.matches;
-      // Pencere kuralı mobileSource'a bağlı — değişmiş olabilir, yeniden uygula.
+      smoothView = window.matchMedia(VIEW_SMOOTH_MEDIA).matches;
+      snapView = true;
+      // Kaynak değişmiş olabilir — pencereyi yeniden uygula.
       windowKey = "";
       const rect = section!.getBoundingClientRect();
       top = rect.top + window.scrollY;
@@ -936,45 +992,105 @@ export function useHeroScroll(): HeroScrollHandle {
       setLayerOpacity(layer, inRange ? cue(q, 0, 1, VIDEO_FADE.rIn, VIDEO_FADE.rOut) : 0);
     }
 
-    /** Scroll yönü: +1 aşağı, −1 yukarı, 0 durdu (SCROLL_IDLE_MS). Yalnızca
-     * mobil kaynakta bağlama penceresini kaydırır. */
+    /** Scroll yönü: +1 aşağı, −1 yukarı, 0 durdu (SCROLL_IDLE_MS). 0 iken
+     * bağlı klipler aktif ±1'e budanır; scroll sürerken hiç budanmaz. */
     let scrollDir = 0;
     let lastScrollY = window.scrollY;
     let idleTimer = 0;
-    /** Son uygulanan pencere — aynıysa hiçbir katmana dokunulmaz. */
+    /** Son uygulanan pencere durumu — aynıysa hiçbir katmana dokunulmaz. */
     let windowKey = "";
 
     /**
-     * Bağlı klip penceresi: her zaman 3 faz genişliğinde (iOS'ta en fazla 3
-     * bağlı <video>, bkz. VideoLayer notu). Durağanken aktif faz ortada
-     * [c−1, c, c+1]; mobilde aşağı scroll'da bir faz ileri kayar
-     * [c, c+1, c+2], yukarıda geri [c−2, c−1, c] — gelmekte olan faz,
-     * içine girilmeden çözülmüş ve primelenmiş olsun. Arkada kalan faz
-     * bu sırada opaklık 0'da (video yalnızca kendi aralığında görünür),
-     * bırakılması görünmüyor.
+     * Hangi kliplerin <video>'ya BAĞLI olacağı (en fazla VIDEO_MAX_ATTACHED).
+     * Kural: bağlı küme faz SINIRINDA ve scroll'un başında DEĞİŞMEZ —
+     * crossfade karesinde bağla/çöz çalışmasın (ölçüm, bkz.
+     * VIDEO_PREATTACH_Q).
      *
-     * Önce pencere dışı çözülür, SONRA pencere içi istenir — bağlama zaten
-     * asenkron (download().then), sayı hiçbir anda 3'ü aşmaz.
+     * - Scroll sürerken (scrollDir ≠ 0) yalnızca EKLENİR: aktif faz c her
+     *   zaman; q ≥ VIDEO_PREATTACH_Q iken c+1, q ≤ 1 − VIDEO_PREATTACH_Q iken
+     *   c−1. Sınır geçildiğinde yeni aktif fazın ihtiyacı zaten bağlı.
+     *   Sınıra ulaşılırsa (4. klip gerekiyorsa) gerekmeyenlerin aktif faza
+     *   EN UZAK olanı çözülür — o an görünmüyor (video yalnızca kendi
+     *   aralığında görünür) ve iş fazın ortasında oluyor, sınırda değil.
+     * - Durunca (SCROLL_IDLE_MS) küme [c−1, c, c+1]'e döner; fazla olan
+     *   ancak o zaman çözülür.
+     *
+     * İNDİRME bundan ayrı: aktif ±1'in klibi bağlanmasa da iner (poster de
+     * bağlanır), ön-bağlama anı geldiğinde Blob hazır olsun.
      */
-    function syncVideoWindow(current: number) {
-      const shift = mobileSource ? scrollDir : 0;
-      const key = `${current}:${shift}`;
+    function syncVideoWindow(current: number, q: number) {
+      const idle = scrollDir === 0;
+      const zone = idle ? "idle" : q >= VIDEO_PREATTACH_Q ? "next" : q <= 1 - VIDEO_PREATTACH_Q ? "prev" : "mid";
+      const key = `${current}:${zone}`;
       if (key === windowKey) return;
       windowKey = key;
-      const from = current - VIDEO_PRELOAD_RADIUS + shift;
-      const to = current + VIDEO_PRELOAD_RADIUS + shift;
-      const inWindow = (layer: VideoLayer) => layer.phaseIndex >= from && layer.phaseIndex <= to;
-      // Eager modda da bırakılır: Blob bellekte kaldığı için geri dönüşte
-      // yeniden bağlama anında.
-      for (const layer of layers) if (!inWindow(layer)) unload(layer);
-      for (const layer of layers) if (inWindow(layer)) ensureLoaded(layer);
-      log("pencere", { current, shift, from, to });
+
+      const near = (layer: VideoLayer) => Math.abs(layer.phaseIndex - current) <= VIDEO_PRELOAD_RADIUS;
+      for (const layer of layers) {
+        if (near(layer)) {
+          if (!layer.download) {
+            setPoster(layer);
+            download(layer).catch(() => {});
+          }
+        } else releaseDownload(layer);
+      }
+
+      const required = new Set<number>([current]);
+      if (idle) {
+        required.add(current - 1).add(current + 1);
+      } else if (zone === "next") required.add(current + 1);
+      else if (zone === "prev") required.add(current - 1);
+
+      if (idle) {
+        for (const layer of layers) if (!required.has(layer.phaseIndex)) unload(layer);
+      } else {
+        const missing = layers.filter((layer) => required.has(layer.phaseIndex) && !layer.wanted);
+        const evictable = layers
+          .filter((layer) => layer.wanted && !required.has(layer.phaseIndex))
+          .sort((a, b) => Math.abs(b.phaseIndex - current) - Math.abs(a.phaseIndex - current));
+        let count = layers.filter((layer) => layer.wanted).length;
+        while (count + missing.length > VIDEO_MAX_ATTACHED && evictable.length) {
+          unload(evictable.shift()!);
+          count--;
+        }
+      }
+      for (const layer of layers) if (required.has(layer.phaseIndex)) ensureLoaded(layer);
+      log("pencere", { current, zone, wanted: layers.filter((l) => l.wanted).map((l) => l.phaseIndex) });
     }
 
+    /**
+     * İki ilerleme: `pTarget` native scroll'un söylediği, `pView` sahnenin
+     * çizdiği. Dokunmatikte ikisi hep eşit. Masaüstünde (VIEW_SMOOTH_MEDIA)
+     * pView, tick() içinde pTarget'a zaman tabanlı yaklaşır — scroll'un
+     * kendisine dokunulmaz, yalnızca sahnenin onu izleyişi yumuşar.
+     */
+    let pTarget = 0;
+    let pView = 0;
+    let smoothView = false;
+    /** Bir sonraki read() yumuşatmadan doğrudan hedefe otursun (mount,
+     * resize — ölçüler değişti, aradaki eğri anlamsız). */
+    let snapView = true;
+
+    /** Scroll değişti / ölçüler değişti / klip bağlandı: hedefi güncelle ve
+     * çiz. Yumuşatma açıksa çizilen pView'dır; tick onu hedefe taşır. */
     function read() {
-      const y = window.scrollY;
       const travel = Math.max(height - stageH, 1);
-      const p = clamp01((y - top) / travel);
+      pTarget = clamp01((window.scrollY - top) / travel);
+      if (
+        !smoothView ||
+        snapView ||
+        Math.abs(pTarget - pView) * travel > VIEW_SNAP_SCREENS * stageH
+      ) {
+        pView = pTarget;
+        snapView = false;
+      }
+      render(pView);
+    }
+
+    /** Sahnenin tamamını verilen ilerlemeye göre çizer. Yalnızca stil
+     * yazar, layout okumaz. */
+    function render(p: number) {
+      if (debug) timeline.view = p;
 
       // Aktif faz — hem gösterge hem de klip yükleme penceresi bunu kullanır.
       let current = 0;
@@ -1003,7 +1119,7 @@ export function useHeroScroll(): HeroScrollHandle {
         } else zeroPhase(i);
         driveVideoLayer(i, q, inRange);
       }
-      syncVideoWindow(current);
+      syncVideoWindow(current, phaseProgress(p, current));
 
       const introQ = phaseProgress(p, INTRO_PHASE_INDEX);
       const resolveQ = phaseProgress(p, RESOLVE_PHASE_INDEX);
@@ -1276,8 +1392,30 @@ export function useHeroScroll(): HeroScrollHandle {
       }
     }
 
-    /** Tek katmanın playhead'ini lerp'leyip seek eder. */
-    function driveLayer(layer: VideoLayer, eps: number) {
+    /** Normalize playhead'in düştüğü kare (HERO_CLIP_FPS ızgarası). */
+    function frameOf(layer: VideoLayer, v: number) {
+      const frames = Math.max(1, Math.round(layer.duration * HERO_CLIP_FPS));
+      return Math.min(frames - 1, Math.floor(clamp(v, 0, 1) * frames));
+    }
+
+    /** Karenin ORTASINA seek eder — kare sınırına düşen bir zaman, yuvarlama
+     * yüzünden komşu kareyi gösterebilirdi. */
+    function seekFrame(layer: VideoLayer, frame: number) {
+      layer.frame = frame;
+      try {
+        layer.el.currentTime = Math.min((frame + 0.5) / HERO_CLIP_FPS, layer.duration - 0.001);
+      } catch {
+        /* seek atlanır */
+      }
+    }
+
+    /**
+     * Tek katmanın playhead'ini zaman tabanlı lerp'leyip seek eder. Seek
+     * yalnızca gösterilecek KARE değişince yapılır (eski sürüm 8–20 ms'lik
+     * bir eşikle aynı karenin içinde tekrar tekrar seek ediyordu; her biri
+     * aynı kareyi yeniden çözdü). Seek sürerken yenisi kuyruğa alınmaz.
+     */
+    function driveLayer(layer: VideoLayer, alpha: number) {
       const el = layer.el;
       if (el.seeking) {
         const now = performance.now();
@@ -1293,25 +1431,43 @@ export function useHeroScroll(): HeroScrollHandle {
         return;
       }
       layer.stuckAt = 0;
-      layer.cur += (layer.target - layer.cur) * 0.18;
-      const t = clamp(layer.cur, 0, 0.999) * layer.duration;
-      if (Math.abs(el.currentTime - t) > eps) {
-        try {
-          el.currentTime = t;
-        } catch {
-          /* seek atlanır */
-        }
-      }
+      layer.cur += (layer.target - layer.cur) * alpha;
+      const frame = frameOf(layer, layer.cur);
+      if (frame !== layer.frame) seekFrame(layer, frame);
     }
 
-    const tick = () => {
+    let lastTick = 0;
+    const tick = (now: number) => {
       if (destroyed) return;
-      const eps = mobile ? 0.02 : 0.008;
+      // Sekme arka planda kaldıysa dev bir dt tek karede hedefe ışınlamasın.
+      const dt = lastTick ? Math.min(now - lastTick, 100) : 16.7;
+      lastTick = now;
 
+      // Masaüstü: sahne pView'ı çizer, pView pTarget'a yaklaşır.
+      if (smoothView && pView !== pTarget) {
+        const travel = Math.max(height - stageH, 1);
+        pView += (pTarget - pView) * (1 - Math.exp(-dt / VIEW_SMOOTH_TAU_MS));
+        if (Math.abs(pTarget - pView) * travel < 0.5) pView = pTarget;
+        render(pView);
+      }
+
+      const alpha =
+        1 - Math.exp(-dt / (smoothView ? VIDEO_LERP_TAU_SMOOTH_MS : VIDEO_LERP_TAU_MS));
       for (const layer of layers) {
         if (!layer.ready) continue;
-        if (layer.opacity <= 0.01) continue;
-        driveLayer(layer, eps);
+        if (layer.opacity <= 0.01) {
+          // Görünmezken lerp yok: playhead hedefinde (fazın dışında 0 ya da
+          // 1'e kenetli) bekler ve o kareye BİR KEZ seek edilir. Aksi hâlde
+          // bağlı kalan katman eski karesinde donar ve tekrar görünürken
+          // ekranda geri sarılırdı (ölçüldü: 70. kareden 10.'ya).
+          layer.cur = layer.target;
+          if (!layer.el.seeking) {
+            const frame = frameOf(layer, layer.cur);
+            if (frame !== layer.frame) seekFrame(layer, frame);
+          }
+          continue;
+        }
+        driveLayer(layer, alpha);
       }
       requestAnimationFrame(tick);
     };

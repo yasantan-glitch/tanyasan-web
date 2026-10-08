@@ -91,11 +91,24 @@ veya `Hero.tsx` içinde faz sınırı için elle yazılmış sabit **yoktur**.
   tetiklenmez; `read()` fonksiyonu doğrudan ref'lenmiş DOM node'larına
   `style.opacity` / `style.transform` yazar. Bu, 8 faz × ~9 öğelik bir
   sahnenin 60fps'te kalabilmesinin sebebidir.
-- **Video playhead lerp'lidir.** Hedef ilerleme (`playhead.target`) scroll'dan
-  doğrudan gelir, ama gerçek video `currentTime` (`playhead.cur`) her
-  `requestAnimationFrame`'de `target`'a `× 0.18` katsayıyla yaklaşır —
-  ani scroll'da video seek'i pürüzsüzleşir. Mobilde deadband daha geniştir
-  (`0.02` vs `0.008`) çünkü mobil seek daha pahalı/gecikmeli.
+- **Video playhead lerp'lidir ve kareye oturur.** Hedef (`layer.target`)
+  scroll'dan gelir; `layer.cur` ona ZAMAN TABANLI yaklaşır
+  (`α = 1 − e^(−dt/τ)`, τ = 84 ms = eski 0.18/kare @60 Hz; masaüstünde
+  45 ms, bkz. aşağı). Seek yalnızca gösterilecek KARE değişince yapılır
+  (`HERO_CLIP_FPS`, kare ortasına) — aynı kareye tekrar seek her seferinde
+  aynı kareyi yeniden çözüyordu. Seek sürerken yenisi kuyruğa alınmaz.
+  Görünmez (opaklık ≈ 0) bağlı katman lerp'lenmez ama hedef karesine BİR
+  KEZ seek edilir; yoksa tekrar görünürken ekranda geri sarılıyordu.
+- **Masaüstünde sahne yumuşatılmış ilerlemeyi çizer** (`pView`, yalnızca
+  `(pointer: fine) and (hover: hover)`). Tekerlek notch'u sayfayı tek karede
+  ~100 px sıçratıyordu; sahne sticky olduğu için gösterilen her şey p'nin
+  fonksiyonu, p'yi yumuşatmak (τ 80 ms, `tick` içinde) scroll'u ele
+  geçirmeden akıtır. Native scroll, çapalar, dok/Atla `scrollTo`'su, header,
+  diğer sayfalar etkilenmez; 1.5 ekrandan büyük sıçrama yumuşatılmaz.
+  **Lenis vb. smooth-scroll kütüphanesi bilinçli olarak YOK** (Ekim 2026
+  değerlendirmesi: tüm sayfalarda scroll'u ele geçirir, dok/Atla scrollTo,
+  DragGallery tekerleği, PortfolioStack kilidi ve raylarla çakışır).
+  Dokunmatikte uygulanmaz — içerik parmağı izler.
 - **Yalnızca aktif faz güncellenir.** Her `read()` çağrısında hangi fazın
   aralığında olunduğu bulunur (`PHASE_RANGES` taraması); yalnızca o fazın
   ikon/ayraç/başlık/kalem node'larına stil yazılır. Diğer fazlar bir kez
@@ -173,17 +186,27 @@ varyantı yüklenir (3:5 kırpım, sık keyframe), her klibe `hero-videos/poster
 altındaki ilk kare poster olarak bağlanır. Kaynak yolları `heroPhases.ts`'teki
 `heroVideoSources()`'tan türer; yeni klip eklerken dört dosyanın da (masaüstü,
 mobil, iki poster) üretilmesi gerekir — ffmpeg komutları `design-system.md` §8.
-Masaüstü klipleri tek keyframe'li: telefonda scrub için ASLA doğrudan
-kullanılmamalı. Gerçek cihazda tanı: `?herodebug`.
+Masaüstü klipleri de GOP 6 (Ekim 2026'ya dek tek keyframe'liydi). **Renk
+düzeltmesi kliplere ve posterlere GÖMÜLÜ** — `.hero-video`'da CSS `filter`
+YOK, geri eklemeyin (renk iki kez uygulanır). Klip/poster içeriği değişince
+`heroPhases.ts`'teki `HERO_MEDIA_VERSION`'ı artırın (`?v=`; dosyalar bir gün
+önbellekte). Renk düzeltmesiz master'lar git geçmişinde (`8d7220a`).
+Gerçek cihazda tanı: `?herodebug`.
 
 **Yükleme sırası:** faz 2'nin mobil posteri HTML'deki `<link rel="preload">`
 ile (Hero.tsx `HeroVideoPreloads`) JS'ten önce iner; `media` sorgusu motorla
 aynı (`HERO_MOBILE_VIDEO_MEDIA`). Klibin kendisi için `as="fetch"` preload
 YOK (iOS'ta doğrulanamadığı için kaldırıldı). Mobilde (Save-Data kapalıysa)
 **eager mod**: tüm posterler mount'ta, klipler faz sırasıyla tek tek arka
-planda İNER ve Blob'ları bellekte kalır. **Bağlama her modda aktif ±1**:
-aynı anda en fazla 3 `<video>`'nun src'si var. 6 klibin birden bağlanıp
-primelenmesi iPhone'da oynatmayı tamamen durdurdu — geri getirmeyin.
+planda İNER ve Blob'ları bellekte kalır. **Bağlama her modda en fazla 3**
+`<video>`: 6 klibin birden bağlanıp primelenmesi iPhone'da oynatmayı
+tamamen durdurdu — geri getirmeyin. **Bağlı küme faz SINIRINDA ve
+scroll'un başında değişmez** (`syncVideoWindow`): scroll sürerken komşu klip
+fazın q ≥ 0.6'sında (yukarı giderken ≤ 0.4) EKLENİR, 4. gerekirse en uzak
+görünmez klip o an çözülür; aktif ±1'e budama yalnızca scroll durunca
+(`SCROLL_IDLE_MS`). Ölçüm: eski pencere sınırda kayıyordu, bağla/çöz
+crossfade karesine düşüyordu (koşunun en ağır kareleri). İndirme bağlamadan
+ayrı: aktif ±1'in klibi bağlanmasa da iner.
 İndirmeler scroll'da iptal EDİLMEZ (yalnızca unmount'ta) — `download`
 (ağ) ile `wanted` (src bağlı mı) ayrı tutulur. Priming katman başına
 (`layer.primed`); dok düğmeleri `activateRef` ile dokunuş anında primeler.
