@@ -21,7 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     ...getPublishedPosts().map((post) => ({
       url: `${BASE}/blog/${post.slug}`,
-      lastModified: post.date,
+      lastModified: post.updated ?? post.date,
     })),
   ];
 }

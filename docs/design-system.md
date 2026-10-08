@@ -1879,6 +1879,83 @@ dolduruldu). `PORTFOLIO_ITEMS`'a eklendi, ikinci bir liste açılmadı.
   `app/portfolyo/page.tsx` başlığı, ikisi de aynı cümleyi elle taşıyor —
   henüz ortak kaynağa alınmadı).
 
+## 15. Blog (`/blog`, `/blog/[slug]`)
+
+> Numara 15: `app/globals.css`'teki hareket substratı yorumu "§14"e
+> gönderme yapıyor ama o bölüm bu dokümanda henüz yazılmadı; numara ona
+> ayrılmış olarak bırakıldı.
+
+İçerik `content/blog/*.md` (yazım kuralları `content/blog/README.md`),
+okuyucu `app/content/blog.ts`. Ekim 2026'da dört yazıyla yeniden kuruldu;
+ilk sürüm tek sütunluk bir metin + koyu kapanış bandıydı.
+
+**Düzen diğer gövde sayfalarının kalıbı — yeni bir düzen kurulmadı.**
+Başlık bandı /hizmetler'inkiyle aynı sıra: kırıntı (yazıda) ya da eyebrow
+(listede) → h1 → `text-lead text-muted` lede → hairline üst çizgili mono
+satır (`.service-index`'in yerinde ve geometrisinde: yazıda tarih ·
+kategori · okuma süresi, listede sayaçlı kategoriler). Lede yeni metin
+değil: yazıda `excerpt`, listede meta açıklamasının aynısı. Yazı gövdesi
+`.service-grid` / `.service-head`'i olduğu gibi kullanıyor: solda yapışkan
+İçindekiler, sağda `--container-prose` metin. İlk sürümde metin sol kenara
+yapışık tek sütundu ve 1440px'te sayfanın ~%60'ı boştu; sol sütun hem o
+boşluğu hem uzun yazılarda yön kaybını çözüyor. Blog için yazılan her
+kural `.blog-*` adında ve `globals.css`'in BLOG bloğunda; paylaşılan
+sınıflara (`.service-*`, `.btn-*`, `.eyebrow`) dokunulmadı.
+
+**İçindekiler.** `blog.ts` yazı başına ayrı bir `Marked` örneğiyle
+`##`/`###`'e Türkçe sadeleştirilmiş `id` verir ve listeyi toplar; 4'ten az
+`##` olan yazıda `###`'ler de girer (sosyal-medya-hatalari: 3 bölüm, 9
+numaralı alt başlık). Masaüstünde sol sütun (uzun liste kısa ekranda kendi
+içinde kayar); ≤860px'te sütun gizlenir, metnin üstünde bir `<details>`
+açılır — aynı anda yalnızca biri erişilebilir ağaçta. **Scroll-spy YOK:**
+etkin bölümü işaretlemek ikinci bir scroll listener ya da her başlık için
+bir IntersectionObserver demekti; `docs/CLAUDE.md`'nin tek-listener kuralı
+ve "JS yok" substratı buna değmez. Çapa hedefleri `html { scroll-padding-top }`
++ başlıktaki küçük `scroll-margin` ile nav'ın altında kalmıyor.
+
+**Kapanış bandı kaldırıldı.** Koyu "İŞİNİZİN GÖRÜNEN YÜZÜNÜ…" bandının hemen
+altında amber footer ikinci bir slogan + Teklif Al taşıyordu — §13'teki
+vaka sayfasıyla aynı gerekçe. Yerine metnin altında, aynı açık yüzeyde:
+yazar kutusu (/hakkimda'nın portresi ve lede'inin özeti, yeni iddia yok)
+ve kategoriye göre konuşan kapanış bloğu (`.btn-ink` → /iletisim, `.btn-ghost`
+→ `/hizmetler#<kategori>`). Altında "Diğer yazılar": önce aynı kategori,
+sonra en yeni, iki satır. Son bölümün alt payı `--seam-h` kadar artırıldı
+(anasayfa bant 5'in kalıbı).
+
+**Liste satırı** (`BlogRow.tsx`, listede ve "Diğer yazılar"da aynı):
+satırın tamamı tek link; masaüstünde meta | başlık + özet | ok, ilk sütun
+`.service-grid`in sol sütunuyla aynı ölçüde — başlıklar yazı sayfasındaki
+metin sütunuyla aynı çizgide. Listenin ilk satırı bir kademe büyük
+(`display-xl` + lead özet). Hover §4'ün dili: hairline ve başlık amber'a
+döner, ok 0.35rem kayar. Kart grid'i bilinçli olarak kurulmadı (§4).
+
+**Kategori filtresi yok.** Dört yazı / üç kategoride istemci tarafı filtre
+değmez; kategori satırı yalnızca sayaçlı bir özet, tıklanmaz. ~8 yazıdan
+sonra `aria-pressed` düğmelere ve `hidden` çevirmeye dönüştürülebilir
+(eski `PortfolioFilter`ın kalıbı — URL'ye yazılmaz, sayfa statik kalır).
+Paylaş düğmeleri de bilinçli olarak yok.
+
+**Metin tipografisi.** Tailwind preflight h3'ü gövde metnine (17px/400),
+listeleri işaretsize indiriyordu — ilk sürümde ikisi de canlıdaydı.
+`.blog-prose` h3'e Archivo 600 / 20px, listelere `disc`/`decimal` + amber
+işaret, linklere alt çizgi (renk tek başına yetmiyor: `#7A5200` / `#1C1C1C`
+≈ 2.5:1, WCAG 1.4.1), alıntı / tablo / kod / ayraç kuralları veriyor.
+Tablolar `blog.ts`'te klavyeyle kaydırılabilir bir kaba sarılıyor; sayfa
+hiçbir genişlikte yatay kaymıyor.
+
+**Hareket** yalnızca mevcut substrat: h1'lerde `data-enter="mask"` (/portfolyo
+başlığıyla aynı), satır listelerinde `data-enter-stagger`. Reduced-motion ve
+`animation-timeline` desteği yoksa her şey son hâlinde durur.
+
+**SEO.** Başlık, açıklama, OG/Twitter, canonical ve sitemap adresleri ilk
+sürümdekiyle aynı. `Article` JSON-LD'ye `dateModified`, `image`,
+`inLanguage`, `articleSection`, `wordCount` eklendi; yanına `BreadcrumbList`
+(Anasayfa › Blog › yazı) — görünür kırıntı izi aynı üç adımı gösteriyor.
+İsteğe bağlı `updated` alanı `dateModified`'a, OG `modifiedTime`'a ve
+sitemap `lastModified`'ına gidiyor; yoksa üçü de `date`'e düşüyor. Aynı gün
+yayınlanan yazılar slug'a göre sıralanıyor (eski karşılaştırıcı eşitlikte
+0 döndürmüyordu, sıra `readdir`'e kalıyordu).
+
 ---
 
 ## Kapsam dışı

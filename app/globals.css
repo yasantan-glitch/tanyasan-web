@@ -2010,13 +2010,103 @@
      Kart yok, hairline satırlar — sitenin geri kalanıyla aynı dil (§4).
      Renkler yüzeyden geliyor: liste her zaman surface-paper'da ama kural
      sabit renk yazmıyor, diğer bölümlerle aynı disiplin.
+
+     Yazı sayfası gövdesi `.service-grid` / `.service-head`'i OLDUĞU GİBİ
+     kullanıyor (solda yapışkan İçindekiler, sağda metin); buradaki kurallar
+     yalnızca `.blog-*` — paylaşılan sınıflara dokunulmadı. Gerekçe:
+     docs/design-system.md "Blog".
      ========================================================================== */
 
-  /* Tek sütun hairline satır listesi. .home-service-row'un ikonsuz kardeşi:
-     o satırda ikon vardı (.service-icon), burada yalnızca başlık + meta. */
+  /* --- Başlık bandı ------------------------------------------------------ */
+
+  /* Kırıntı izi: Anasayfa / Blog / yazı. Son öğe (yazının başlığı) tek
+     satırda üç noktayla kesilir — tam başlık hemen altındaki h1'de. */
+  .blog-breadcrumb {
+    display: flex;
+    gap: 0 0.6rem;
+    min-inline-size: 0;
+    color: var(--fg-muted);
+  }
+
+  .blog-breadcrumb li {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .blog-breadcrumb li + li::before {
+    content: "/";
+    content: "/" / "";
+    margin-inline-end: 0.6rem;
+  }
+
+  .blog-breadcrumb [aria-current] {
+    flex: 0 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .blog-breadcrumb a {
+    color: var(--accent-text);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-breadcrumb a:hover {
+    color: var(--fg-strong);
+  }
+
+  /* Meta satırı (yazı) ve kategori satırı (liste): /hizmetler başlığındaki
+     `.service-index` çapa rayının yerinde ve geometrisinde — hairline üst
+     çizgi + mono etiketler. Kategori satırı tıklanmaz (sayaçlı bir özet). */
+  .blog-meta,
+  .blog-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
+    margin-block-start: var(--spacing-section-tight);
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: 1.25rem;
+    color: var(--fg-muted);
+  }
+
+  .blog-meta li,
+  .blog-categories li {
+    padding-block: 0.35rem;
+  }
+
+  .blog-categories-count {
+    margin-inline-start: 0.35rem;
+    color: var(--fg-strong);
+  }
+
+  /* Kategori bağlantısı satırdaki tek link: alt çizgiyle ayırt ediliyor,
+     yalnızca renkle değil (WCAG 1.4.1). */
+  .blog-meta a {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
+    transition:
+      color var(--duration-base) var(--ease-out-quart),
+      text-decoration-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-meta a:hover {
+    color: var(--accent-text);
+    text-decoration-color: currentColor;
+  }
+
+  /* --- Liste satırı (BlogRow.tsx) ----------------------------------------- */
+
+  /* Üç sütun: meta | başlık + özet | ok. İlk sütun `.service-grid`in sol
+     sütunuyla aynı ölçüde — başlıklar yazı sayfasındaki metin sütunuyla
+     aynı çizgide başlıyor. .home-service-row'un ikonsuz kardeşi. */
   .blog-row {
-    display: block;
-    padding-block: 2rem;
+    display: grid;
+    grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr) auto;
+    gap: 0.75rem var(--spacing-section-tight);
+    align-items: start;
+    padding-block: 2.5rem;
     border-block-start: 1px solid var(--hairline);
     transition: border-color var(--duration-base) var(--ease-out-quart);
   }
@@ -2030,13 +2120,60 @@
     border-color: var(--accent-text);
   }
 
+  .blog-row-meta {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: start;
+    padding-block-start: 0.45rem;
+    color: var(--fg-muted);
+  }
+
   .blog-row-title {
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    font-weight: var(--text-display-lg--font-weight);
     color: var(--fg-strong);
     transition: color var(--duration-base) var(--ease-out-quart);
   }
 
-  .blog-row:hover .blog-row-title {
+  .blog-row-excerpt {
+    margin-block-start: 0.75rem;
+    max-inline-size: var(--container-prose);
+  }
+
+  /* Öne çıkan (listenin ilk, en yeni) satırı: başlık ve özet bir kademe. */
+  .blog-row--featured .blog-row-title {
+    font-size: var(--text-display-xl);
+    line-height: var(--text-display-xl--line-height);
+    letter-spacing: var(--text-display-xl--letter-spacing);
+    font-weight: var(--text-display-xl--font-weight);
+  }
+
+  .blog-row--featured .blog-row-excerpt {
+    margin-block-start: 1rem;
+    font-size: var(--text-lead);
+    line-height: var(--text-lead--line-height);
+    letter-spacing: var(--text-lead--letter-spacing);
+  }
+
+  .blog-row-arrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    color: var(--fg-muted);
+    transition:
+      color var(--duration-base) var(--ease-out-quart),
+      transform var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-row:hover .blog-row-title,
+  .blog-row:hover .blog-row-arrow {
     color: var(--accent-text);
+  }
+
+  .blog-row:hover .blog-row-arrow {
+    transform: translate3d(0.35rem, 0, 0);
   }
 
   /* Boş durum: yazı yoksa liste yerine tek bir bant. "Yakında" değil —
@@ -2047,10 +2184,61 @@
     border-block-start: 1px solid var(--hairline);
   }
 
-  /* Yazı gövdesi: marked'in ürettiği ham HTML'e uygulanıyor (`.blog-prose`),
-     Tailwind Typography eklenmedi — sitede zaten yalnızca birkaç eleman
-     türü var (p, h2, ul/ol, a, strong/em), tek amaçlık bir kural seti
-     eklemek yeni bir bağımlılıktan daha az maliyetli. */
+  /* --- Yazı gövdesi: İçindekiler ------------------------------------------ */
+
+  /* Yapışkan sol sütun `.service-head`ten geliyor; burada yalnızca uzun bir
+     İçindekiler'in kısa bir ekranda taşmaması için kendi kaydırması. Yan
+     dolgu, kaydırma kabının odak halkasını kırpmaması için. */
+  .blog-aside {
+    max-block-size: calc(100svh - var(--nav-h) - 4rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.25rem;
+    margin: -0.25rem;
+  }
+
+  .blog-body {
+    min-inline-size: 0;
+  }
+
+  .blog-toc {
+    display: grid;
+    border-inline-start: 1px solid var(--hairline);
+  }
+
+  .blog-toc a {
+    display: block;
+    margin-inline-start: -1px;
+    padding-block: 0.4rem;
+    padding-inline-start: 1rem;
+    border-inline-start: 1px solid transparent;
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+    color: var(--fg-muted);
+    transition:
+      color var(--duration-base) var(--ease-out-quart),
+      border-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-toc a:hover {
+    color: var(--accent-text);
+    border-color: var(--accent-text);
+  }
+
+  .blog-toc-sub a {
+    padding-inline-start: 2rem;
+  }
+
+  /* Mobil İçindekiler — masaüstünde yok (sol sütun var). */
+  .blog-toc-details {
+    display: none;
+  }
+
+  /* --- Yazı gövdesi: metin -------------------------------------------------
+     marked'in ürettiği ham HTML'e uygulanıyor (`.blog-prose`); Tailwind
+     Typography eklenmedi — tek amaçlık bir kural seti yeni bir bağımlılıktan
+     daha az maliyetli. Tailwind preflight h3'ü gövde metnine, listeleri
+     işaretsize indiriyor; ikisi de burada geri veriliyor. */
   .blog-prose {
     max-inline-size: var(--container-prose);
   }
@@ -2059,34 +2247,306 @@
     margin-block-start: 1.5rem;
   }
 
+  .blog-prose h2,
+  .blog-prose h3 {
+    color: var(--fg-strong);
+    scroll-margin-block-start: 1.5rem;
+  }
+
   .blog-prose h2 {
     font-family: var(--font-display);
     font-size: var(--text-display-lg);
     line-height: var(--text-display-lg--line-height);
     letter-spacing: var(--text-display-lg--letter-spacing);
     font-weight: var(--text-display-lg--font-weight);
-    color: var(--fg-strong);
     margin-block-start: 3rem;
   }
 
+  .blog-prose h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-lead);
+    line-height: 1.35;
+    letter-spacing: var(--text-lead--letter-spacing);
+    font-weight: 600;
+    margin-block-start: 2.5rem;
+  }
+
+  .blog-prose h2 + h3 {
+    margin-block-start: 1.75rem;
+  }
+
+  /* Alt başlık kendi paragrafına yapışık okunur. */
+  .blog-prose h3 + * {
+    margin-block-start: 0.75rem;
+  }
+
+  /* Link alt çizgili — renk tek başına yetmiyor: #7A5200 ile #1C1C1C gövde
+     metni arası ~2.5:1 (WCAG 1.4.1 için ≥3:1 ya da renk dışı bir işaret). */
   .blog-prose a {
     color: var(--accent-text);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
     text-underline-offset: 0.2em;
+    transition: text-decoration-color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-prose a:hover {
+    text-decoration-color: currentColor;
   }
 
   .blog-prose ul,
   .blog-prose ol {
-    padding-inline-start: 1.25rem;
+    padding-inline-start: 1.5rem;
     display: grid;
-    gap: 0.5rem;
+    gap: 0.6rem;
+  }
+
+  .blog-prose ul {
+    list-style-type: disc;
+  }
+
+  .blog-prose ol {
+    list-style-type: decimal;
   }
 
   .blog-prose li {
-    padding-block: 0;
+    padding-inline-start: 0.35rem;
+  }
+
+  .blog-prose li::marker {
+    color: var(--accent-text);
+  }
+
+  .blog-prose ol > li::marker {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  .blog-prose li > ul,
+  .blog-prose li > ol {
+    margin-block-start: 0.6rem;
   }
 
   .blog-prose strong {
     color: var(--fg-strong);
+    font-weight: 600;
+  }
+
+  .blog-prose blockquote {
+    padding-inline-start: 1.25rem;
+    border-inline-start: 2px solid var(--accent-text);
+    font-size: var(--text-lead);
+    line-height: var(--text-lead--line-height);
+    letter-spacing: var(--text-lead--letter-spacing);
+    color: var(--fg-strong);
+  }
+
+  .blog-prose blockquote > * + * {
+    margin-block-start: 1rem;
+  }
+
+  .blog-prose code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    padding: 0.1em 0.35em;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .blog-prose pre {
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+  }
+
+  .blog-prose pre code {
+    padding: 0;
+    border: 0;
+    font-size: inherit;
+    overflow-wrap: normal;
+  }
+
+  .blog-prose hr {
+    border: 0;
+    border-block-start: 1px solid var(--hairline);
+    margin-block: 3rem;
+  }
+
+  /* Tablo kendi kabında yatay kayar; sayfa hiçbir genişlikte yatay
+     kaymaz. Kap blog.ts'te ekleniyor (tabindex'li bölge — klavyeyle de
+     kaydırılabilir). */
+  .blog-table-wrap {
+    overflow-x: auto;
+    border-block: 1px solid var(--hairline);
+  }
+
+  .blog-prose table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+  }
+
+  .blog-prose th,
+  .blog-prose td {
+    padding: 0.75rem 1.25rem 0.75rem 0;
+    border-block-start: 1px solid var(--hairline);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .blog-prose thead th {
+    border-block-start: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--fg-muted);
+  }
+
+  /* --- Yazı sonu: yazar, kapanış, diğer yazılar ---------------------------- */
+
+  .blog-author,
+  .blog-endcap {
+    max-inline-size: var(--container-prose);
+    padding-block-start: 2.5rem;
+    border-block-start: 1px solid var(--hairline);
+  }
+
+  .blog-author {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    margin-block-start: var(--spacing-section-tight);
+  }
+
+  /* /hakkimda'nın portresiyle aynı çerçeve dili (.about-portrait), küçük. */
+  .blog-author-portrait {
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+  }
+
+  .blog-author-name {
+    margin-block-start: 0.5rem;
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    font-weight: var(--text-display-lg--font-weight);
+  }
+
+  .blog-author-link {
+    padding-block: 0.35rem;
+    color: var(--accent-text);
+    transition: color var(--duration-base) var(--ease-out-quart);
+  }
+
+  .blog-author-link:hover {
+    color: var(--fg-strong);
+  }
+
+  .blog-endcap {
+    margin-block-start: 2.5rem;
+  }
+
+  .blog-endcap-title {
+    font-size: var(--text-display-xl);
+    line-height: var(--text-display-xl--line-height);
+    letter-spacing: var(--text-display-xl--letter-spacing);
+    font-weight: var(--text-display-xl--font-weight);
+  }
+
+  .blog-endcap-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-block-start: 1.75rem;
+  }
+
+  .blog-related {
+    padding-block-start: 2.5rem;
+    border-block-start: 1px solid var(--hairline);
+  }
+
+  /* --- ≤860px: tek sütun --------------------------------------------------
+     `.service-grid` kendi tek sütun kuralını zaten taşıyor (yapışma kapalı);
+     burada yalnızca blog'a özgü olanlar. */
+  @media (max-width: 860px) {
+    .blog-row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.75rem;
+      padding-block: 2rem;
+    }
+
+    .blog-row-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 0.75rem;
+      padding-block-start: 0;
+    }
+
+    .blog-row-meta > * + *::before {
+      content: "·";
+      content: "·" / "";
+      margin-inline-end: 0.75rem;
+    }
+
+    .blog-row-arrow {
+      display: none;
+    }
+
+    .blog-post .blog-aside {
+      display: none;
+    }
+
+    .blog-toc-details {
+      display: block;
+      margin-block-end: 2.5rem;
+      border-block: 1px solid var(--hairline);
+    }
+
+    .blog-toc-details summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-block: 1rem;
+      color: var(--accent-text);
+      list-style: none;
+    }
+
+    .blog-toc-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .blog-toc-details summary::after {
+      content: "+";
+      content: "+" / "";
+      font-size: 1rem;
+    }
+
+    .blog-toc-details[open] summary::after {
+      content: "−";
+      content: "−" / "";
+    }
+
+    .blog-toc-details .blog-toc {
+      margin-block-end: 1.25rem;
+    }
+
+    .blog-author {
+      grid-template-columns: 4rem minmax(0, 1fr);
+      gap: 1rem;
+    }
   }
 
   /* ==========================================================================

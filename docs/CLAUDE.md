@@ -336,7 +336,8 @@ düzeltme de yapıldı:
 ## Nav linklerinin sayfaları
 
 `navLinks.ts`'teki `/hizmetler`, `/portfolyo` (+ `/portfolyo/emlak-crm-pro`),
-`/hakkimda` ve `/iletisim` kurulu; **yalnızca `/blog`** içerik bekliyor. Yeni
+`/hakkimda`, `/iletisim` ve `/blog` (+ `/blog/[slug]`, içerik
+`content/blog/*.md`) kurulu. Yeni
 bir sayfa eklerken `navLinks.ts`'i güncellemeye gerek yok, adresler zaten
 oradan geliyor; yapılması gereken yalnızca o route'ta bir sayfa oluşturmak.
 
