@@ -8,6 +8,31 @@ export const metadata: Metadata = {
   title: "Blog: Web Tasarım, Dijital Pazarlama ve Yazılım Yazıları",
   description:
     "Antalya'dan web tasarım, grafik tasarım, dijital pazarlama ve yazılım geliştirme üzerine rehberler ve notlar.",
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    siteName: "Tan Yasan Reklam ve Tasarım Ajansı",
+    title: "Blog: Web Tasarım, Dijital Pazarlama ve Yazılım Yazıları",
+    description:
+      "Antalya'dan web tasarım, grafik tasarım, dijital pazarlama ve yazılım geliştirme üzerine rehberler ve notlar.",
+    url: "/blog",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+        alt: "Tan Yasan Reklam ve Tasarım Ajansı — Antalya Web Tasarım & Yazılım Ajansı",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog: Web Tasarım, Dijital Pazarlama ve Yazılım Yazıları",
+    description:
+      "Antalya'dan web tasarım, grafik tasarım, dijital pazarlama ve yazılım geliştirme üzerine rehberler ve notlar.",
+    images: ["/opengraph-image"],
+  },
 };
 
 /**
