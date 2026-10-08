@@ -23,11 +23,16 @@ import {
 
 import ShotTheme from "./ShotTheme";
 import ShotZoom from "./ShotZoom";
+import { socialMetadata } from "@/app/lib/socialMetadata";
+
+const TITLE = "Emlak CRM Pro Vaka Çalışması: Emlak Ofisi Yazılımı";
+const DESCRIPTION =
+  "Portföy, müşteri, danışman performansı ve muhasebeyi tek sistemde toplayan, sıfırdan tasarlanıp kodlanan emlak CRM yazılımının vaka çalışması.";
 
 export const metadata: Metadata = {
-  title: "Emlak CRM Pro Vaka Çalışması: Emlak Ofisi Yazılımı",
-  description:
-    "Portföy, müşteri, danışman performansı ve muhasebeyi tek sistemde toplayan, sıfırdan tasarlanıp kodlanan emlak CRM yazılımının vaka çalışması.",
+  title: TITLE,
+  description: DESCRIPTION,
+  ...socialMetadata({ title: TITLE, description: DESCRIPTION, path: "/portfolyo/emlak-crm-pro" }),
 };
 
 /**

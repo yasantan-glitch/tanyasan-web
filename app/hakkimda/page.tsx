@@ -4,12 +4,17 @@ import Link from "next/link";
 
 import JsonLd from "@/app/components/seo/JsonLd";
 import { SOCIAL_LINKS } from "@/app/content/socialLinks";
+import { socialMetadata } from "@/app/lib/socialMetadata";
 
+
+const TITLE = "Tan Yasan: Antalya Grafik Tasarımcı ve Dijital Pazarlama Uzmanı";
+const DESCRIPTION =
+  "Antalya'dan yaklaşık 20 yıllık grafik tasarım ve dijital pazarlama deneyimiyle markalara stratejik çözümler geliştiriyor, web tasarım ve yazılımı da hizmetlerime kattım.";
 
 export const metadata: Metadata = {
-  title: "Tan Yasan: Antalya Grafik Tasarımcı ve Dijital Pazarlama Uzmanı",
-  description:
-    "Antalya'dan yaklaşık 20 yıllık grafik tasarım ve dijital pazarlama deneyimiyle markalara stratejik çözümler geliştiriyor, web tasarım ve yazılımı da hizmetlerime kattım.",
+  title: TITLE,
+  description: DESCRIPTION,
+  ...socialMetadata({ title: TITLE, description: DESCRIPTION, path: "/hakkimda" }),
 };
 
 /**

@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import { PORTFOLIO_CATEGORIES } from "@/app/content/portfolioCategories";
 
 import PortfolioStack from "./PortfolioStack";
+import { socialMetadata } from "@/app/lib/socialMetadata";
+
+const TITLE = "Portfolyo: Logo, Kurumsal Kimlik ve Web Tasarım Çalışmaları";
+const DESCRIPTION =
+  "Antalya'dan markalara yaptığımız logo, kurumsal kimlik, afiş, sosyal medya ve web tasarım işleri ile sıfırdan kodlanan Emlak CRM Pro yazılımı.";
 
 export const metadata: Metadata = {
-  title: "Portfolyo: Logo, Kurumsal Kimlik ve Web Tasarım Çalışmaları",
-  description:
-    "Antalya'dan markalara yaptığımız logo, kurumsal kimlik, afiş, sosyal medya ve web tasarım işleri ile sıfırdan kodlanan Emlak CRM Pro yazılımı.",
+  title: TITLE,
+  description: DESCRIPTION,
+  ...socialMetadata({ title: TITLE, description: DESCRIPTION, path: "/portfolyo" }),
 };
 
 /**

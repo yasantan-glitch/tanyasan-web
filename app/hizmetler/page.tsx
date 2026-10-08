@@ -6,15 +6,20 @@ import ServiceRail from "@/app/components/services/ServiceRail";
 import { railTiming } from "@/app/components/services/railTiming";
 import { SERVICES } from "@/app/content/services";
 import { SERVICE_MEDIA } from "@/app/content/serviceMedia";
+import { socialMetadata } from "@/app/lib/socialMetadata";
 
 /** Rayın durak/geçiş haritası ve panel başına koreografi menzilleri. Render
  * anında, panel sayısından türüyor — gerekçesi railTiming.ts'te. */
 const RAIL = railTiming(SERVICES.length);
 
+const TITLE = "Hizmetler: Web Tasarım, Yazılım, Dijital Pazarlama";
+const DESCRIPTION =
+  "Antalya merkezli ajansımızdan web tasarım, özel yazılım geliştirme, dijital pazarlama, grafik tasarım, fotoğraf & video ve danışmanlık hizmetleri.";
+
 export const metadata: Metadata = {
-  title: "Hizmetler: Web Tasarım, Yazılım, Dijital Pazarlama",
-  description:
-    "Antalya merkezli ajansımızdan web tasarım, özel yazılım geliştirme, dijital pazarlama, grafik tasarım, fotoğraf & video ve danışmanlık hizmetleri.",
+  title: TITLE,
+  description: DESCRIPTION,
+  ...socialMetadata({ title: TITLE, description: DESCRIPTION, path: "/hizmetler" }),
 };
 
 /**

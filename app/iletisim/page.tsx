@@ -5,11 +5,16 @@ import { CONTACT } from "@/app/content/contact";
 import { SOCIAL_LINKS } from "@/app/content/socialLinks";
 
 import ContactForm from "./ContactForm";
+import { socialMetadata } from "@/app/lib/socialMetadata";
+
+const TITLE = "İletişim: Antalya Web Tasarım ve Yazılım Teklifi";
+const DESCRIPTION =
+  "Konyaaltı / Antalya'dan Türkiye geneline web tasarım, yazılım ve dijital pazarlama. Formu doldurun, +90 530 691 3612'yi arayın ya da tan@tanyasan.com'a yazın.";
 
 export const metadata: Metadata = {
-  title: "İletişim: Antalya Web Tasarım ve Yazılım Teklifi",
-  description:
-    "Konyaaltı / Antalya'dan Türkiye geneline web tasarım, yazılım ve dijital pazarlama. Formu doldurun, +90 530 691 3612'yi arayın ya da tan@tanyasan.com'a yazın.",
+  title: TITLE,
+  description: DESCRIPTION,
+  ...socialMetadata({ title: TITLE, description: DESCRIPTION, path: "/iletisim" }),
 };
 
 /**
