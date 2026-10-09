@@ -7,6 +7,12 @@ import ScrollDirection from "./components/ScrollDirection";
 import CursorBall from "./components/CursorBall";
 import SiteFooter from "./components/footer/SiteFooter";
 
+// `preload: false` (üçünde de, Ekim 2026, mobil LCP): altı font preload'u
+// Lighthouse mobil ölçümünde ilk boyamayı ~2.3 s'ye itiyordu (sayfa ~0.4 s'de
+// yüklenmiş olsa bile); preload'lar kalkınca ilk boyama ~0.35 s. Fontlar
+// satır içi CSS'teki @font-face'ten yine erken iniyor; `swap` + next/font'un
+// boyut ayarlı fallback'i kaymayı önlüyor.
+
 // Display: geniş ağırlık (100–900) ve genişlik (62–125) eksenine sahip
 // endüstriyel grotesk. Hero'da büyük boyutta logonun sert diyagonalleriyle
 // örtüşüyor. Gerekçe: docs/design-system.md
@@ -15,6 +21,7 @@ const archivo = Archivo({
   subsets: ["latin", "latin-ext"],
   axes: ["wdth"],
   display: "swap",
+  preload: false,
 });
 
 // Gövde: nötr, 17px'te yorucu olmayan okuma yüzü.
@@ -22,6 +29,7 @@ const instrumentSans = Instrument_Sans({
   variable: "--font-instrument-sans",
   subsets: ["latin", "latin-ext"],
   display: "swap",
+  preload: false,
 });
 
 // Utility: bölüm etiketleri, teknoloji rozetleri, rakamlar —
@@ -30,6 +38,7 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin", "latin-ext"],
   display: "swap",
+  preload: false,
 });
 
 const SITE_DESCRIPTION =

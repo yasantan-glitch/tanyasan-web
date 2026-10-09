@@ -292,7 +292,7 @@ mevcut slogan `--text-hero-statement` ile ekrana hakim tek blok olarak duruyor.
 Kopyanın **girişi scroll'a bağlı değil**: hero'nun ilk karesinde başka öğe
 olmadığı için metin sayfa açılır açılmaz ekranda olmalı — giriş tek seferlik
 bir CSS load animasyonu (`.hero-intro-rise`, satır başına 0/0.12/0.26s
-gecikme), scroll yalnızca **çıkışı** sürüyor. Sağ altta bir scroll ipucu var
+gecikme; alt başlık yalnızca transform ile girer, opacity animasyonu yok — LCP için ilk karede görünür), scroll yalnızca **çıkışı** sürüyor. Sağ altta bir scroll ipucu var
 (hairline mouse SVG'si + "KAYDIR"); intro'nun ilk %25'inde sönüyor.
 
 **Scroll ipucu — mouse ikonu.** Önceki nokta + "SCROLL" metni akıcıydı ama

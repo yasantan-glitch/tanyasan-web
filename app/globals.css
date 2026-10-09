@@ -1119,11 +1119,22 @@
     }
   }
 
+  /* Alt başlık yalnızca transform ile girer: opacity 0'dan başlayan giriş
+     metni LCP için "boyanmamış" sayar (gecikme + fade bitene kadar). Metin
+     ilk karede görünür kalır, hafifçe yukarı oturur. */
+  @keyframes hero-sub-rise-in {
+    from {
+      transform: translate3d(0, 2.4vh, 0);
+    }
+    to {
+      transform: none;
+    }
+  }
+
   /* Doğrudan çocuk: giriş SATIR düzeyinde kalır, kelimelere sızmaz —
      kelimelerin transform'u çıkış koreografisine ait, iki hareket aynı
      özelliğe yazmamalı. */
-  .hero-intro-rise .hero-statement > span,
-  .hero-intro-rise .hero-intro-sub {
+  .hero-intro-rise .hero-statement > span {
     animation: hero-rise-in var(--duration-deliberate) var(--ease-out-quart) both;
   }
 
@@ -1132,7 +1143,7 @@
   }
 
   .hero-intro-rise .hero-intro-sub {
-    animation-delay: 0.26s;
+    animation: hero-sub-rise-in var(--duration-deliberate) var(--ease-out-quart) 0.26s both;
   }
 
   /* Motoru mount etmeyen dal zaten bu sınıfı basmıyor; bu blok yalnızca
