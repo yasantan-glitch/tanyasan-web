@@ -20,6 +20,11 @@ interface PageProps {
 
 const SITE = "https://tanyasan.com";
 
+/** JSON-LD için tarih-saat: YYYY-AA-GG → İstanbul saat dilimli ISO 8601
+ * (Türkiye yıl boyu UTC+3). Zaten saat içeriyorsa dokunulmaz. */
+const toIstanbulDateTime = (date: string) =>
+  date.includes("T") ? date : `${date}T09:00:00+03:00`;
+
 /** Yalnızca yayında (draft olmayan) yazılar statik olarak üretilir — bir
  * taslağın URL'i tahmin edilirse de `notFound()` devreye girer, §aşağıya. */
 export function generateStaticParams() {
@@ -95,8 +100,8 @@ export default async function BlogPostPage({ params }: PageProps) {
           "@type": "Article",
           headline: post.title,
           description: post.excerpt,
-          datePublished: post.date,
-          dateModified: post.updated ?? post.date,
+          datePublished: toIstanbulDateTime(post.date),
+          dateModified: toIstanbulDateTime(post.updated ?? post.date),
           image: `${SITE}/opengraph-image`,
           inLanguage: "tr-TR",
           articleSection: categoryName(post.category),
