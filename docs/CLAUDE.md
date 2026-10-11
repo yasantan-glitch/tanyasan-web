@@ -291,8 +291,17 @@ hâlinde).
 
 ## Logo davranışı
 
-`.site-header-logo` her zaman görünür; iki `<img>` üst üste, tona göre
-opaklıkla geçer. Hero'nun kendi logo katmanı yok.
+`.site-header-logo`'da iki `<img>` üst üste, tona göre opaklıkla geçer.
+**Tek istisna anasayfa (Ekim 2026):** hero intro kompozisyonu ekrandayken
+header logosu GİZLİ (`globals.css`, `html:has(.hero-stage .hero-intro-art)`,
+yalnızca opaklık — bağlantı DOM'da, klavye odağında görünür). Scroll'la
+kompozisyonun logosu header'a taşınır ve varınca `HeroIntroArt` logoya satır
+içi `opacity: 1` yazar. Yolculuk yapan kopya `<header>`'a React portal'ı
+(`.hero-intro-dock`): hero sahnesindeki bir kopya header'ın `::before`
+scrim'inin altında kalıp kararırdı. SiteHeader.tsx'e dokunulmadı; logoya
+`style` prop'u eklerseniz bu satır içi yazımı ezer. Header logosunun
+geometrisini (`/Logo_Beyaz.svg`, `.site-header-logo` ölçüleri) değiştirirseniz
+geçişi yeniden doğrulayın — kopya `logoData.ts`'ten çiziliyor.
 
 ## Mobil drawer davranışı (`MobileDrawer.tsx`)
 

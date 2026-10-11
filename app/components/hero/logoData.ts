@@ -62,3 +62,8 @@ export const LOGO_ELEMENTS: LogoElement[] = [
  * için hero çizim animasyonuna dahil edilmiyor.
  */
 export const LOGO_WORDMARK_ELEMENTS = LOGO_ELEMENTS.slice(0, 4);
+
+/** "Design & Digital Agency" etiketi (kalan 20 path) — header logosunun alt
+ * satırı. Hero intro'sunun header'a giden kopyası yolculuk sırasında bunu
+ * açıyor; header'daki /Logo_Beyaz.svg ile aynı geometri (bkz. HeroIntroArt). */
+export const LOGO_TAGLINE_ELEMENTS = LOGO_ELEMENTS.slice(4);

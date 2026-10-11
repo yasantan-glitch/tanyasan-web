@@ -202,6 +202,8 @@ pointer yerine scroll'dan sürülüyor) ve reduced-motion yasası ("fewer and
 gentler, not zero"). `dwell`/`lingerEase` remap'i bilinçli olarak
 kullanılmıyor.
 
+**Açılış intro'su (Ekim 2026):** faz 1'in boş bandında ~5 sn'lik dekoratif, `aria-hidden` bir katman (`HeroIntroArt.tsx`): sarı inşa çizgileri → üçgen tohum → tarama çizgisiyle açılan logo konturu → dolu logo → `services.ts`'teki altı hizmet mono etiket olarak; statement 3.5 sn'de girer (yalnızca `hero-intro-rise`'ın başlangıcı ötelenir, alt başlık ilk karede boyalı — LCP). Saf CSS, yalnızca compositor transform/opacity, hydration'ı beklemez; inline script (`heroIntroScript.ts`) kompozisyonu hero fontları inene dek (≤2 sn) opaklık 0'da tutup saati o an başlatır (font swap kayması CLS'e katılmasın) ve ilk scroll/dokunuş/tuşta son kareye atlar, reduced-motion ve istemci tarafı ikinci mount doğrudan son kareyi gösterir. Scroll'da etiketler/çizgiler faz 1'in ilk %35'inde söner; logo ise %50'ye dek header logosunun tam yerine ve boyutuna gider (header'a portal edilmiş kopya, translate + scale) ve vardığı karede gerçek header logosuna devreder — anasayfada header logosu o ana dek gizli (reduced-motion, kısa ekran ve sayfanın aşağıda açıldığı durumlar hariç). Telefonda kompozisyon header ile statement arasındaki bandın üst kısmında ortalı, statement'a en az 9svh pay.
+
 ### Faz modeli
 
 Hero 8 fazlı bir anlatı: faz 1 tipografik statement, fazlar 2-7 altı hizmet

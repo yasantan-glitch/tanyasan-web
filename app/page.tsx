@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import Hero from "./components/hero/Hero";
 import HeroClipPrefetch from "./components/hero/HeroClipPrefetch";
+import HeroIntroSkip from "./components/hero/HeroIntroSkip";
 import JsonLd from "./components/seo/JsonLd";
 import { CONTACT } from "./content/contact";
 import { SOCIAL_LINKS } from "./content/socialLinks";
@@ -140,6 +141,7 @@ export default function Home() {
       {/* Klip indirmesi hydration'ı beklemesin — bkz. heroClipScript.ts. */}
       <HeroClipPrefetch />
       <Hero />
+      <HeroIntroSkip />
 
       {/* 1 — Kısa tanıtım. Yeni CSS yok: .service-grid + .service-head
           /hakkimda ve /iletisim'deki gibi olduğu gibi kullanılıyor (≤860px'te

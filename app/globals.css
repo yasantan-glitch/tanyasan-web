@@ -1155,6 +1155,469 @@
     }
   }
 
+  /* ---------------------------------------------------------------
+     HERO AÇILIŞ INTRO'SU (Ekim 2026) — header ile statement arasındaki boş
+     bandı dolduran ~5 sn'lik dekoratif sahne. Gerekçe, zaman çizelgesi ve
+     atlama: HeroIntroArt.tsx + heroIntroScript.ts.
+
+     Kurallar:
+     - Yalnızca transform/opacity, compositor'da (hydration'da takılmaz).
+     - TABAN STİL = SON KARE. Animasyonlar `both` dolgulu; animasyon yoksa
+       (reduced-motion, [data-static]) ya da finish() edildiyse bitmiş
+       kompozisyon görünür.
+     - Mutlak konum, kopyanın üstüne yaslı (bottom: 100%) — hiçbir kutuyu
+       itmiyor, CLS'e katkısı yok. Etiketler sola yaslı: font swap'ı
+       başlangıç kenarını oynatmıyor.
+     --------------------------------------------------------------- */
+
+  /* Statement intro'nun 3.5. saniyesinde girer: mevcut hero-intro-rise
+     animasyonlarına dokunulmuyor, yalnızca başlangıçları öteleniyor
+     (0 / 0.12 / 0.26 s → 3.5 / 3.62 / 3.76 s). Değer heroIntroScript.ts'teki
+     HERO_INTRO_LEAD_MS ile aynı. Alt başlık transform-only olduğu için
+     bekleme boyunca da boyalı — LCP öğesi. */
+  .hero-intro-lead .hero-intro-rise .hero-statement > span {
+    animation-delay: 3.5s;
+  }
+
+  .hero-intro-lead .hero-intro-rise .hero-statement > span:nth-child(2) {
+    animation-delay: 3.62s;
+  }
+
+  .hero-intro-lead .hero-intro-rise .hero-intro-sub {
+    animation-delay: 3.76s;
+  }
+
+  .hero-intro-art {
+    --hero-intro-gap: clamp(1rem, 3.5svh, 3rem);
+    position: absolute;
+    inset-inline: var(--spacing-gutter);
+    bottom: 100%;
+    padding-bottom: var(--hero-intro-gap);
+    pointer-events: none;
+    will-change: opacity, transform;
+  }
+
+  /* Telefon: 2 sütun — 01·02 logonun üstünde, 03–06 altında. */
+  .hero-intro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "l1 l2"
+      "mark mark"
+      "l3 l4"
+      "l5 l6";
+    column-gap: 1rem;
+    row-gap: 0.4rem;
+    align-items: start;
+  }
+
+  .hero-intro-mark {
+    grid-area: mark;
+    position: relative;
+    justify-self: start;
+    width: min(100%, 16rem);
+    aspect-ratio: 1080 / 200;
+    margin-block: 0.7rem;
+  }
+
+  .hero-intro-logo {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Scroll'la sönen çizgi katmanı (JS yazar; çizgilerin kendi giriş
+     animasyonları içeride) ve header'a giden logonun kompozisyondaki
+     yeri — ikisi de işaret kutusunun tamamı. */
+  .hero-intro-lines,
+  .hero-intro-logo-group {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* İnşa çizgileri: yataylar ekranın iki kenarına taşar (sahnenin
+     overflow: clip'i kırpıyor), dikeyler logonun biraz üstüne/altına. */
+  .hero-intro-line {
+    position: absolute;
+    background-color: var(--color-accent);
+    opacity: 0.2;
+  }
+
+  .hero-intro-line--h {
+    top: var(--at);
+    left: -100vw;
+    right: -100vw;
+    height: 1px;
+    animation: hero-intro-line-h calc(3.5s - var(--i) * 0.08s) var(--ease-out-quart)
+      calc(var(--i) * 0.08s) both;
+  }
+
+  .hero-intro-line--v {
+    left: var(--at);
+    top: -0.6rem;
+    bottom: -0.6rem;
+    width: 1px;
+    animation: hero-intro-line-v calc(3.5s - var(--i) * 0.08s) var(--ease-out-quart)
+      calc(var(--i) * 0.08s) both;
+  }
+
+  /* Belir (ilk ~0.75 s), parlak bekle, logo dolunca (3–3.5 s) kısıl. */
+  @keyframes hero-intro-line-h {
+    0% {
+      transform: scaleX(0);
+      opacity: 0;
+    }
+    22% {
+      transform: scaleX(1);
+      opacity: 0.55;
+    }
+    86% {
+      opacity: 0.55;
+    }
+    100% {
+      transform: scaleX(1);
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes hero-intro-line-v {
+    0% {
+      transform: scaleY(0);
+      opacity: 0;
+    }
+    22% {
+      transform: scaleY(1);
+      opacity: 0.55;
+    }
+    86% {
+      opacity: 0.55;
+    }
+    100% {
+      transform: scaleY(1);
+      opacity: 0.2;
+    }
+  }
+
+  /* Tohum: logonun sarı üçgeni kendi eksenindeki çizgiden yerine düşer.
+     Kutu logonun tamamıyla aynı (aynı viewBox) — üçgen tam yerine oturuyor. */
+  .hero-intro-seed {
+    animation: hero-intro-seed 0.9s cubic-bezier(0.34, 1.45, 0.64, 1) 0.3s both;
+  }
+
+  @keyframes hero-intro-seed {
+    0% {
+      transform: translate3d(0, -70%, 0);
+      opacity: 0;
+    }
+    35% {
+      opacity: 1;
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  /* Kontur "çizimi": kırpan sarmalayıcı soldan kayarken içerik ters yönde
+     kayıyor — içerik yerinde duruyor, görünür bölge soldan sağa açılıyor.
+     İkisi aynı süre + eğri; tarama çizgisi de. */
+  .hero-intro-wipe {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    animation: hero-intro-wipe 1.8s var(--ease-in-out-soft) 1.5s both;
+  }
+
+  .hero-intro-wipe-inner {
+    position: absolute;
+    inset: 0;
+    animation: hero-intro-wipe-inner 1.8s var(--ease-in-out-soft) 1.5s both;
+  }
+
+  @keyframes hero-intro-wipe {
+    from {
+      transform: translate3d(-100%, 0, 0);
+    }
+  }
+
+  @keyframes hero-intro-wipe-inner {
+    from {
+      transform: translate3d(100%, 0, 0);
+    }
+  }
+
+  /* Kontur, dolu logo gelince söner (yarısı harf kenarının dışında —
+     beyaz harflerde sarı hale bırakmasın). Taban: görünmez. */
+  .hero-intro-outline {
+    color: var(--color-accent);
+    opacity: 0;
+    animation: hero-intro-out 0.4s var(--ease-out-quart) 3.1s both;
+  }
+
+  @keyframes hero-intro-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  .hero-intro-fill {
+    animation: hero-intro-in 0.5s var(--ease-out-quart) 3s both;
+  }
+
+  @keyframes hero-intro-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* Tarama çizgisi: kutunun SAĞ kenarı açılan kenarla birlikte ilerliyor;
+     arkasında kısa, soluk bir iz. Taban: görünmez. */
+  .hero-intro-scan {
+    position: absolute;
+    inset: -0.6rem 0;
+    border-right: 1px solid var(--color-accent);
+    background: linear-gradient(
+      90deg,
+      transparent 82%,
+      color-mix(in srgb, var(--color-accent) 16%, transparent)
+    );
+    opacity: 0;
+    animation: hero-intro-scan 1.8s var(--ease-in-out-soft) 1.5s both;
+  }
+
+  /* İlk kare görünmez: gecikme boyunca (`both`) çizgi logonun sol
+     kenarında beklemesin. */
+  @keyframes hero-intro-scan {
+    0% {
+      transform: translate3d(-100%, 0, 0);
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 1;
+    }
+    100% {
+      transform: none;
+      opacity: 0;
+    }
+  }
+
+  /* Hizmet etiketleri — sıra services.ts'ten, 0.25 s arayla yanar. */
+  /* Dış span: ızgara alanı + scroll sönmesi (JS). İç span: giriş
+     animasyonu. İkisi aynı elemente yazmaz (bkz. docs/CLAUDE.md). */
+  .hero-intro-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    line-height: 1.35;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    color: var(--color-fg-on-ink-body);
+  }
+
+  .hero-intro-label-in {
+    display: flex;
+    gap: 0.6em;
+    animation: hero-intro-label 0.6s var(--ease-out-quart) calc(3.5s + var(--i) * 0.25s) both;
+  }
+
+  .hero-intro-label-index {
+    flex: none;
+    color: var(--color-accent);
+  }
+
+  @keyframes hero-intro-label {
+    0% {
+      transform: translate3d(0, 6px, 0);
+      opacity: 0;
+    }
+    40% {
+      opacity: 1;
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  /* Masaüstü: kompozisyon sağda, 3 sütun — 01–03 üstte, 04–06 altta. */
+  @media (min-width: 861px) {
+    .hero-intro-art {
+      left: auto;
+      width: min(44rem, 52vw);
+    }
+
+    .hero-intro-grid {
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-areas:
+        "l1 l2 l3"
+        "mark mark mark"
+        "l4 l5 l6";
+      column-gap: 1.5rem;
+      row-gap: 0.5rem;
+    }
+
+    .hero-intro-mark {
+      width: 100%;
+      margin-block: 1rem;
+    }
+
+    .hero-intro-label {
+      font-size: var(--text-label);
+    }
+  }
+
+  /* Telefon: kompozisyon header ile statement arasındaki bandın ÜST
+     kısmında, ortalı. Kutu bandın tamamını kaplıyor — üst kenarı header'ın
+     hemen altı, alt kenarı statement'ın 9svh üstü:
+       top: yüzde, kapsayan kutunun (.hero-intro-wrap, alttan yaslı)
+       yüksekliği → wrap'in tepesi 100svh − %100; buradan header'ın altına.
+       bottom: wrap'in tepesinden 9svh yukarısı.
+     `safe center`: içerik sığmazsa (kısa telefon) ortalanıp header'a
+     taşmak yerine üste yaslanır. Konum statement'ın yüksekliğine bağlı
+     (font swap'ında kayar) — kompozisyon o sırada font beklemesiyle
+     görünmez, CLS'e sayılmıyor (bkz. heroIntroScript.ts). */
+  @media (max-width: 860px) {
+    .hero-intro-art {
+      top: calc(var(--nav-h) + 0.5rem - 100svh + 100%);
+      bottom: calc(100% + 9svh);
+      padding-bottom: 0;
+      display: grid;
+      align-content: center;
+      align-content: safe center;
+    }
+  }
+
+  /* Header'a giden logo kopyası — header'a portal (HeroIntroArt). Kutusu
+     header logosunun kutusu; konum/ölçek JS'ten (transform-origin sol üst).
+     will-change YOK: ölçek değiştikçe yeniden çizilsin, büyükken
+     bulanıklaşmasın (küçük bir SVG, ucuz). */
+  .hero-intro-dock {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .hero-intro-dock-tag,
+  .hero-intro-dock-logo {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Anasayfada header logosu, intro kompozisyonu ekrandayken GİZLİ —
+     kompozisyondaki logo scroll'la onun yerine gidiyor ve vardığı karede
+     HeroIntroArt satır içi `opacity: 1` yazıyor. Yalnızca opaklık: bağlantı
+     DOM'da ve erişilebilirlik ağacında kalıyor, klavye odağında görünür.
+     Medya koşulları kompozisyonun GÖRÜNDÜĞÜ yerlerin aynısı (aşağıdaki
+     display: none kuralının tersi) — reduced-motion ve kısa ekranda header
+     logosu her zamanki gibi. İstemci tarafı dönüşte de geçerli (kompozisyon
+     son karesinde, logo yine header'a gider). */
+  @media (prefers-reduced-motion: no-preference) and (max-width: 860px) and (min-height: 561px) {
+    html:has(.hero-stage .hero-intro-art) .site-header-logo:not(:focus-visible) {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (min-width: 861px) and (min-height: 691px) {
+    html:has(.hero-stage .hero-intro-art) .site-header-logo:not(:focus-visible) {
+      opacity: 0;
+    }
+  }
+
+  /* Kısa telefon (≤720px yükseklik — 360×640, iPhone SE): header ile
+     statement arası ~150px. Altı etiketin hepsi logonun altına iner, logo
+     ve boşluklar küçülür; kompozisyon header logosuna değmesin. */
+  @media (max-width: 860px) and (max-height: 720px) {
+    /* Bant kompozisyondan kısa: kutu doğrudan header'ın alt kenarından
+       başlıyor (header logosunun ~19px altı), statement'a pay kalsın. */
+    .hero-intro-art {
+      top: calc(var(--nav-h) - 100svh + 100%);
+    }
+
+    .hero-intro-grid {
+      grid-template-areas:
+        "mark mark"
+        "l1 l2"
+        "l3 l4"
+        "l5 l6";
+      row-gap: 0.3rem;
+    }
+
+    .hero-intro-mark {
+      width: min(100%, 13rem);
+      margin-block: 0.6rem 0.9rem;
+    }
+  }
+
+  /* Kısa masaüstü (1280×720, 1366×768, 1536×864): statement üç satır ve büyük, header
+     ile arası ~160–185px. Logo küçülür, satır araları sıkışır (ölçüldü:
+     kompozisyon ~130px). */
+  @media (min-width: 861px) and (max-height: 880px) {
+    .hero-intro-art {
+      --hero-intro-gap: 1.5rem;
+    }
+
+    .hero-intro-grid {
+      row-gap: 0.25rem;
+    }
+
+    .hero-intro-mark {
+      width: min(100%, 17rem);
+      margin-block: 0.6rem;
+    }
+
+    .hero-intro-label {
+      font-size: 0.6875rem;
+    }
+  }
+
+  /* Bant tamamen yoksa (yatay telefon, çok kısa pencere) intro hiç yok —
+     statement'ın üstüne binmektense boş kalsın. Statement'ın ötelemesi de
+     kalkar (hero-intro-rise'ın kendi 0 / 0.12 / 0.26 s'si); atlama scripti
+     ötelemesiz animasyona dokunmuyor. */
+  @media (max-height: 560px), (min-width: 861px) and (max-height: 690px) {
+    .hero-intro-art {
+      display: none;
+    }
+
+    .hero-intro-lead .hero-intro-rise .hero-statement > span {
+      animation-delay: 0s;
+    }
+
+    .hero-intro-lead .hero-intro-rise .hero-statement > span:nth-child(2) {
+      animation-delay: 0.12s;
+    }
+
+    .hero-intro-lead .hero-intro-rise .hero-intro-sub {
+      animation-delay: 0.26s;
+    }
+  }
+
+  /* İkinci mount (istemci tarafı gezinme) ve reduced-motion: animasyon yok,
+     taban stil = son kare. */
+  .hero-intro-art[data-static] * {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-intro-art * {
+      animation: none;
+    }
+  }
+
   /* Faz 1'in scroll ipucu — sağ altta, bilgilendirme amaçlı. Sarmalayıcının
      opaklığı/transform'u JS'ten sürülür (intro'nun ilk çeyreğinde söner,
      bkz. useHeroScroll), faz 1 dışında 0. Buradaki opacity yalnızca ilk

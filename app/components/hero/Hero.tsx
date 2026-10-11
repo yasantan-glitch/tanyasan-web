@@ -14,6 +14,7 @@ import {
   isServicePhase,
   type HeroServicePhase,
 } from "./heroPhases";
+import HeroIntroArt, { hasHeroIntroPlayed } from "./HeroIntroArt";
 import { buildOrbParticles, drawOrb, type OrbPalette } from "./outroOrb";
 import { dockCount, useHeroScroll, type HeroScrollHandle } from "./useHeroScroll";
 
@@ -413,6 +414,9 @@ function HeroInteractive() {
     phaseTickRefs,
     ...dock
   } = useHeroScroll();
+  // Intro sayfa yüklemesi başına bir kez (bkz. HeroIntroArt). İkinci mount'ta
+  // statement eskisi gibi hemen giriyor, kompozisyon son karesinde.
+  const playIntro = !hasHeroIntroPlayed();
 
   return (
     // surface-ink: hairline/focus/fg değişkenlerini koyu zemine bağlar —
@@ -423,7 +427,7 @@ function HeroInteractive() {
       style={{ height: "var(--hero-span)" }}
     >
       <HeroVideoPreloads />
-      <div className="hero-stage">
+      <div className={playIntro ? "hero-stage hero-intro-lead" : "hero-stage"}>
         <div ref={stageInnerRef} className="absolute inset-0">
           {/* Statik koyu zemin: intro fazı ve hizmet klipleri arası her
               boşlukta görünür. Hiç sürülmez — her video katmanı opacity:0'dan
@@ -643,6 +647,11 @@ function HeroInteractive() {
         </div>
 
         <div className="hero-intro-wrap absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">
+          {/* Açılış intro'su: kopyanın HEMEN ÜSTÜNE (bottom: 100%) yaslı, yani
+              statement'ın yüksekliği ne olursa olsun onunla çakışmıyor.
+              Kardeş, çocuk değil — faz 2 devrinin transform'u ona binmiyor;
+              kendi scroll sönmesi var (bkz. HeroIntroArt). */}
+          <HeroIntroArt animated={playIntro} scrollFade />
           {/* Faz 1 kopyası tek bir node'da: faz 2'ye devreden çıkış hareketi
               (yukarı kayma + ölçek) bu sarmalayıcıdan sürülüyor. CTA burada
               DEĞİL — o faz 8'in sahnesine ait (bkz. .hero-outro-cta), aynı
@@ -675,6 +684,8 @@ function HeroReduced() {
         <div className="hero-scrim" />
 
         <div className="absolute inset-x-0 bottom-0 px-(--spacing-gutter) pb-(--spacing-section-tight)">
+          {/* Intro'nun son karesi, hareketsiz. */}
+          <HeroIntroArt animated={false} scrollFade={false} />
           <HeroSlogan animated={false} />
           <div className="mt-10 flex flex-wrap gap-4">
             <HeroCtas />
