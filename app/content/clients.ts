@@ -56,6 +56,9 @@ const NAMES: Readonly<Record<string, string>> = {
   golden: "GOLDEN ROSE",
   wellness: "WELLNESS ANTALYA",
   yuner: "YÜNER HALI",
+  solgar: "SOLGAR",
+  nildahome: "NİLDA HOME",
+  abbott: "ABBOTT",
 };
 
 const prefixOf = (file: string) => {
