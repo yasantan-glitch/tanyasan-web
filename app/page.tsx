@@ -310,9 +310,7 @@ export default function Home() {
                       {
                         "--logo": `url("${client.logo}")`,
                         "--ar": ratio,
-                        ...(client.scale
-                          ? { "--h": `calc(var(--logo-h-square) * ${client.scale})` }
-                          : {}),
+                        ...(client.scale ? { "--scale": client.scale } : {}),
                       } as React.CSSProperties
                     }
                   />

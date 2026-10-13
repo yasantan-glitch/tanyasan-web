@@ -33,7 +33,7 @@ export interface Client {
   height: number;
   /** Oran > 1.6 olsa da kare logo yüksekliğiyle basılır (bkz. FORCE_SQUARE). */
   square?: boolean;
-  /** Kare logo yüksekliğinin çarpanı (1 = ortak boy; yalnızca optik denge için). */
+  /** Logonun ortak yüksekliğinin çarpanı (1 = ortak boy; yalnızca optik denge için). */
   scale?: number;
   /** Opsiyonel dış bağlantı (firmanın sitesi). */
   href?: string;
@@ -68,8 +68,15 @@ const NAMES: Readonly<Record<string, string>> = {
 /** Yatay oranı eşiği aşan ama rozet gibi okunan logolar (AGGİK, Nur ile aynı boy). */
 const FORCE_SQUARE: ReadonlySet<string> = new Set(["solgar"]);
 
-/** Optik denge için ortak yüksekliği küçülten/büyüten çarpanlar. */
-const SCALE: Readonly<Record<string, number>> = { solgar: 0.85 };
+/** Optik denge için ortak yüksekliği küçülten/büyüten çarpanlar (1 = ortak boy). */
+const SCALE: Readonly<Record<string, number>> = {
+  emor: 1.15,
+  hoop: 1.15,
+  "emlak-crm": 1.15,
+  suufle: 1.15,
+  solgar: 0.85,
+  abbott: 0.85,
+};
 
 const prefixOf = (file: string) => {
   const match = /^(\d+)-/.exec(file);
@@ -286,7 +293,7 @@ function readLogoClients(): Client[] {
         height: info.height,
         ...(FORCE_SQUARE.has(key) ? { square: true } : {}),
         ...(SCALE[key] ? { scale: SCALE[key] } : {}),
-      } satisfies Client;
+      } as Client;
     })
     .filter((client): client is Client => client !== null);
 }

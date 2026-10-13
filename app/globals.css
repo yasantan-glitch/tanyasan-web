@@ -3543,7 +3543,8 @@
   .clients__logo {
     --h: var(--logo-h-wide);
     display: block;
-    block-size: var(--h);
+    /* --scale: logo başına optik denge çarpanı (content/clients.ts SCALE). */
+    block-size: calc(var(--h) * var(--scale, 1));
     aspect-ratio: var(--ar);
     background-color: var(--color-ink-950);
     -webkit-mask-image: var(--logo);
