@@ -298,7 +298,7 @@ export default function Home() {
                 const mark = (
                   <span
                     className={
-                      ratio <= SQUARE_MAX_RATIO
+                      client.square || ratio <= SQUARE_MAX_RATIO
                         ? "clients__logo clients__logo--square"
                         : ratio > VERY_WIDE_MIN_RATIO
                           ? "clients__logo clients__logo--very-wide"

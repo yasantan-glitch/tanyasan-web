@@ -31,6 +31,8 @@ export interface Client {
   /** Logonun doğal boyutu — `aspect-ratio` için (yerleşim kayması olmaz). */
   width: number;
   height: number;
+  /** Oran > 1.6 olsa da kare logo yüksekliğiyle basılır (bkz. FORCE_SQUARE). */
+  square?: boolean;
   /** Opsiyonel dış bağlantı (firmanın sitesi). */
   href?: string;
 }
@@ -61,7 +63,10 @@ const NAMES: Readonly<Record<string, string>> = {
   abbott: "ABBOTT",
 };
 
-const prefixOf = (file: string) => {
+/** Yatay oranı eşiği aşan ama rozet gibi okunan logolar (AGGİK, Nur ile aynı boy). */
+const FORCE_SQUARE: ReadonlySet<string> = new Set(["solgar"]);
+
+const prefixOf =(file: string) => {
   const match = /^(\d+)-/.exec(file);
   return match ? Number(match[1]) : Infinity;
 };
@@ -274,6 +279,7 @@ function readLogoClients(): Client[] {
         logo: info.maskUri ?? `/${FOLDER}/${encodeURIComponent(file)}`,
         width: info.width,
         height: info.height,
+        ...(FORCE_SQUARE.has(key) ? { square: true } : {}),
       } satisfies Client;
     })
     .filter((client): client is Client => client !== null);
