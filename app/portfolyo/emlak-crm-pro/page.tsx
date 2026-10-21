@@ -16,6 +16,7 @@ import {
   CASE_PROBLEM,
   CASE_RESULTS,
   CASE_STACK,
+  CASE_TALEP,
   CASE_TITLE,
   type CaseModule,
   type CaseShot,
@@ -347,11 +348,31 @@ export default function EmlakCrmProPage() {
             >
               {CASE_EXTERNAL.label} ↗
             </a>
+            <a
+              href={CASE_TALEP.href}
+              className="eyebrow"
+              target="_blank"
+              rel="noopener"
+            >
+              {CASE_TALEP.label} ↗
+            </a>
           </div>
         </div>
 
         <div className="case-field" data-enter>
           <p className="case-field__note">{CASE_FIELD_NOTE}</p>
+          <p className="case-field__note">
+            Aynı marka ailesinden, emlak talebi toplayan{" "}
+            <a
+              href={CASE_TALEP.href}
+              className="underline underline-offset-4"
+              target="_blank"
+              rel="noopener"
+            >
+              {CASE_TALEP.label}
+            </a>{" "}
+            de yayında.
+          </p>
           <div className="case-field__row">
             <p className="case-field__label">Sahada kullanılıyor.</p>
             <ul className="case-field__logos">

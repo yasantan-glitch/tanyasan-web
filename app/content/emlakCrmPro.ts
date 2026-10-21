@@ -247,3 +247,13 @@ export const CASE_EXTERNAL = {
   href: "https://emlakcrmpro.com",
   label: "emlakcrmpro.com",
 };
+
+/**
+ * Aynı marka ailesinden AYRI bir proje (talep toplama sitesi). CRM ile
+ * teknik bağ iddia edilmez — cümle yalnızca marka ailesini ve konuyu
+ * anlatır. Anchor betimleyici kalır (SEO); nofollow yok.
+ */
+export const CASE_TALEP = {
+  href: "https://talep.emlakcrmpro.com/",
+  label: "Antalya emlak talep toplama sitesi",
+};
