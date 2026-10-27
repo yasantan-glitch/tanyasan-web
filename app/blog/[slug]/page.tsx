@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: post.excerpt,
     // Çocuk sayfadaki openGraph/twitter, layout'unkini derin birleştirmez,
     // bütünüyle değiştirir; bu yüzden siteName/locale burada yeniden verilir.
-    // Görsel: app/opengraph-image.tsx dosya tabanlı olarak eklenir.
+    // Görsel: yazıya özel, app/blog/[slug]/opengraph-image.tsx üretir.
     openGraph: {
       type: "article",
       locale: "tr_TR",
@@ -53,11 +53,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(post.updated ? { modifiedTime: post.updated } : {}),
       images: [
         {
-          url: "/opengraph-image",
+          url: `/blog/${post.slug}/opengraph-image`,
           width: 1200,
           height: 630,
           type: "image/png",
-          alt: "Tan Yasan Reklam ve Tasarım Ajansı — Antalya Web Tasarım & Yazılım Ajansı",
+          alt: post.title,
         },
       ],
     },
@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: "summary_large_image",
       title: post.title,
       description: post.excerpt,
-      images: ["/opengraph-image"],
+      images: [`/blog/${post.slug}/opengraph-image`],
     },
   };
 }
