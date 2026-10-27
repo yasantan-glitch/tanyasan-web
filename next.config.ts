@@ -13,6 +13,23 @@ const PUBLIC_ASSET_CACHE = [
   },
 ];
 
+/**
+ * Tüm rotalara güvenlik başlıkları. CSP bilerek YOK: satır içi stil/betik ve
+ * Next'in RSC akışıyla birlikte nonce'suz bir CSP siteyi kırar; ayrı, ölçülü
+ * bir iş. HSTS'te `includeSubDomains` yok — alt alan adlarının durumu bu
+ * depodan bilinmiyor.
+ */
+const SECURITY_HEADERS = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+  },
+  { key: "Strict-Transport-Security", value: "max-age=63072000" },
+];
+
 const nextConfig: NextConfig = {
   /**
    * CSS <link> yerine <head>'de <style> (Ekim 2026, mobil LCP). Ölçüm
@@ -31,6 +48,7 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
       { source: "/hero-videos/:path*", headers: PUBLIC_ASSET_CACHE },
       { source: "/images/:path*", headers: PUBLIC_ASSET_CACHE },
       { source: "/cursors/:path*", headers: PUBLIC_ASSET_CACHE },
