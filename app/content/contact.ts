@@ -9,7 +9,7 @@
  */
 
 const ADDRESS_LINES = [
-  "Hurma Mh. 255 Sk. No:37/7",
+  "Hurma Mh. 255 Sk. No:37 B",
   "07130 Konyaaltı / Antalya",
 ] as const;
 

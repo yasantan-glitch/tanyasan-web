@@ -330,7 +330,7 @@ güven kurmanın en hızlı yolu.
 - Partner rozetleri: Meta Business Partner, Google Ads Partner,
   Yandex Direct
 - İletişim bilgileri: tan@tanyasan.com · +90 530 691 3612 ·
-  Hurma Mh. 255 Sk. No:37/7, 07130 Konyaaltı / Antalya
+  Hurma Mh. 255 Sk. No:37 B, 07130 Konyaaltı / Antalya
 - "20 yıla yakın deneyim" vurgusu
 - "Dijitalde Fark Yaratın" ifadesi — meta açıklamada veya alt bölümde
   korunabilir (SEO değeri var)
