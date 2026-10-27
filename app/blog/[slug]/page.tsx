@@ -49,8 +49,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: post.title,
       description: post.excerpt,
       url: `/blog/${post.slug}`,
-      publishedTime: post.date,
-      ...(post.updated ? { modifiedTime: post.updated } : {}),
+      publishedTime: toIstanbulDateTime(post.date),
+      ...(post.updated ? { modifiedTime: toIstanbulDateTime(post.updated) } : {}),
       images: [
         {
           url: `/blog/${post.slug}/opengraph-image`,
